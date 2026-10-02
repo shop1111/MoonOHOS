@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.so -text
+*.hap -text
+*.jpeg -text

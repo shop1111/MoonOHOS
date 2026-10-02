@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonohos/demo"
+
+// Values
+pub fn add(Int, Int) -> Int
+
+pub fn concat_bytes(Bytes, Bytes) -> Bytes
+
+pub fn describe_bytes(String, Bytes) -> String
+
+pub fn echo_bytes(Bytes) -> Bytes
+
+pub fn echo_text(String) -> String
+
+pub fn join_text(String, String) -> String
+
+pub fn negate(Bool) -> Bool
+
+pub fn ping() -> Unit
+
+pub fn scale(Double, Double) -> Double
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

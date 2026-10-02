@@ -1,0 +1,16 @@
+_build/
+.mooncakes/
+.moonohos/
+dist/
+**/build/
+**/oh_modules/
+**/.hvigor/
+**/local.properties
+**/oh-package-lock.json5
+*.hap
+*.p12
+*.p7b
+examples/harmony/entry/libs/
+examples/harmony/entry/src/main/cpp/types/
+*.obj
+*.pdb

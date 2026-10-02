@@ -1,0 +1,12 @@
+{
+  "version": 1, "module": ".", "package": "moonohos/matrix", "nativeModule": "matrix",
+  "functions": [
+    {"name":"length","params":[{"name":"value","type":"String"},{"name":"offset","type":"Int"}],"return":"Int"},
+    {"name":"weighted","params":[{"name":"value","type":"Bytes"},{"name":"factor","type":"Double"}],"return":"Double"},
+    {"name":"enabled","params":[{"name":"value","type":"String"},{"name":"flag","type":"Bool"}],"return":"Bool"},
+    {"name":"discard","params":[{"name":"text","type":"String"},{"name":"data","type":"Bytes"}],"return":"Unit"},
+    {"name":"constant_text","params":[],"return":"String"},
+    {"name":"constant_bytes","params":[],"return":"Bytes"},
+    {"name":"mixed","params":[{"name":"text","type":"String"},{"name":"data","type":"Bytes"},{"name":"offset","type":"Int"},{"name":"factor","type":"Double"},{"name":"flag","type":"Bool"}],"return":"String"}
+  ]
+}

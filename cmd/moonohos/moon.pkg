@@ -1,0 +1,10 @@
+import {
+  "shop1111/moonohos" @lib,
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/async/process",
+}
+
+pkgtype(kind: "executable")

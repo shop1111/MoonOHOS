@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonohos/matrix"
+
+// Values
+pub fn constant_bytes() -> Bytes
+
+pub fn constant_text() -> String
+
+pub fn discard(String, Bytes) -> Unit
+
+pub fn enabled(String, Bool) -> Bool
+
+pub fn length(String, Int) -> Int
+
+pub fn mixed(String, Bytes, Int, Double, Bool) -> String
+
+pub fn weighted(Bytes, Double) -> Double
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

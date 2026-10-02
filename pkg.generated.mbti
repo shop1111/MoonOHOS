@@ -1,0 +1,81 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn c_header(Config) -> String
+
+pub fn cmake_source(Config) -> String
+
+pub fn compiler_commands(String, String) -> Array[Array[String]] raise ConfigError
+
+pub fn declarations(Config) -> String
+
+pub fn embed_source(Config) -> String
+
+pub fn identifier(String) -> Bool
+
+pub fn native_source(Config) -> String
+
+pub fn parse_config(String) -> Config raise ConfigError
+
+pub fn signature(Function) -> String
+
+pub fn tokenize(String) -> Array[String] raise ConfigError
+
+pub fn verify_interface(Config, String) -> Unit raise ConfigError
+
+pub fn wrapper_package(Config) -> String
+
+pub fn wrapper_source(Config) -> String
+
+// Errors
+pub(all) suberror ConfigError {
+  Invalid(String)
+} derive(@debug.Debug)
+#deprecated
+pub fn ConfigError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub struct Config {
+  module_dir : String
+  package_name : String
+  native_module : String
+  functions : Array[Function]
+}
+
+pub struct Function {
+  name : String
+  params : Array[Parameter]
+  result : ValueType
+}
+
+pub struct Parameter {
+  name : String
+  kind : ValueType
+}
+
+pub(all) enum ValueType {
+  Int32
+  Float64
+  Boolean
+  Text
+  Binary
+  Void
+} derive(Eq, @debug.Debug)
+pub fn ValueType::ark_name(Self) -> String
+pub fn ValueType::c_name(Self) -> String
+#deprecated
+pub fn ValueType::equal(Self, Self) -> Bool
+pub fn ValueType::moon_name(Self) -> String
+#deprecated
+pub fn ValueType::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn ValueType::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits
