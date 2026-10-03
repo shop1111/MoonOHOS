@@ -14,7 +14,7 @@ fn record_accessors(
       name: prefix + "_new",
       params: record.fields,
       result: type_.kind,
-      expression: "{" + record.fields.map(f => f.name).join(", ") + "}",
+      expression: "{" + record.fields.map(f => f.name).join(", ") + ",}",
     },
   ]
   for i, field in record.fields {

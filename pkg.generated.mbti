@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn build_stages(Project, Array[String]) -> Array[BuildStage] raise ConfigError
+
 pub fn c_header(Config) -> String
 
 pub fn cmake_source(Config) -> String
@@ -56,6 +58,8 @@ pub fn success_report(String, Json) -> Json
 
 pub fn tokenize(String) -> Array[String] raise ConfigError
 
+pub fn validate_stages(Array[BuildStage]) -> Unit raise ConfigError
+
 pub fn verify_interface(Config, String) -> Unit raise ConfigError
 
 pub fn wrapper_package(Config) -> String
@@ -70,6 +74,15 @@ pub(all) suberror ConfigError {
 pub fn ConfigError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+pub struct BuildStage {
+  id : String
+  description : String
+  dependencies : Array[String]
+  abi : String?
+  outputs : Array[String]
+}
+pub fn BuildStage::to_json(Self) -> Json
+
 pub struct Callable {
   name : String
   params : Array[FieldDef]
@@ -189,6 +202,7 @@ pub struct Project {
   records : Array[RecordDef]
   functions : Array[Callable]
 }
+pub fn Project::build_plan(Self, Array[String]) -> Json raise ConfigError
 pub fn Project::business_adapters(Self) -> String raise ConfigError
 pub fn Project::business_header(Self) -> String raise ConfigError
 pub fn Project::business_wrapper(Self) -> String raise ConfigError

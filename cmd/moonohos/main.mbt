@@ -350,6 +350,7 @@ async fn main {
         { "runtime": "not_run" }
       }
       Doctor => doctor(options)
+      Check | Inspect | Plan => analyze(options)
       _ => raise Failure(name + ": command implementation is not available yet")
     }
   } catch {

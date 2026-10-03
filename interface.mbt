@@ -287,7 +287,7 @@ pub fn Project::verify_interface(
       )
     }
   }
-  for expected in self.record_order() {
+  for expected in self.records {
     let actual = interface.records
       .search_by(r => r.name == expected.name)
       .map(i => interface.records[i])

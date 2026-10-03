@@ -8,7 +8,7 @@ test "nested records use field accessor ownership and interfaces" {
   let generated = p.generate()
   assert_true(generated.declarations.contains("export interface Meta"))
   assert_true(generated.declarations.contains("meta: Meta"))
-  assert_true(generated.wrapper.contains("{label, meta, values}"))
+  assert_true(generated.wrapper.contains("{label, meta, values,}"))
   assert_true(generated.wrapper.contains("v.meta"))
   assert_true(generated.native.contains("napi_set_named_property"))
   assert_true(!generated.embed.contains("struct _M0"))
