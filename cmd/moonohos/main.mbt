@@ -13,7 +13,8 @@ async fn build(
   abi_text : String,
   out_path : String,
   dry_run : Bool,
-) -> Unit {
+  cache : Bool,
+) -> Json {
   let config_path = normalized(@fs.realpath(config_path))
   let base = parent(config_path)
   let config = @lib.parse_project(read(config_path))
@@ -63,7 +64,7 @@ async fn build(
   let moon_version = command("toolchain", "moon", ["version"], base)
   let compiler_version = command("toolchain", "moonc", ["-v"], base)
   if !moon_version.contains("0.1.20260920") ||
-    !compiler_version.contains("v0.10.14") {
+    !compiler_version.contains("v0.10.14+7d59c7ec9") {
     raise Failure("toolchain: requires Moon 20260920 / moonc v0.10.14")
   }
   let moon_home = normalized(
@@ -88,7 +89,7 @@ async fn build(
     }
   }
   if dry_run {
-    return
+    return { "dryRun": true, "output": out, "runtime": "not_run" }
   }
   if @fs.exists(out) {
     raise Failure(
@@ -119,6 +120,27 @@ async fn build(
   config.verify_interface(
     read(source + "/" + package_relative + "/pkg.generated.mbti"),
   )
+  let cache_entry = if cache {
+    let key = build_cache_key(
+      staged,
+      native,
+      moon_home,
+      read(config_path),
+      abis,
+      artifacts,
+    )
+    Some(base + "/_build/moonohos/cache/" + key)
+  } else {
+    None
+  }
+  if cache_entry is Some(entry) && restore_cache(entry, work, out) {
+    return {
+      "output": out,
+      "cache": "hit",
+      "evidence": work,
+      "runtime": "not_run",
+    }
+  }
   write(bridge + "/moon.pkg", artifacts.package_file)
   write(bridge + "/main.mbt", artifacts.wrapper)
   let plan = command(
@@ -279,6 +301,19 @@ async fn build(
   seal_package(package_dir)
   verify_package(package_dir) |> ignore
   @fs.rename(package_dir, out)
+  if cache_entry is Some(entry) {
+    save_cache(entry, out, work)
+  }
+  {
+    "output": out,
+    "cache": if cache {
+      "miss"
+    } else {
+      "disabled"
+    },
+    "evidence": work,
+    "runtime": "not_run",
+  }
 }
 
 ///|
@@ -322,16 +357,15 @@ async fn main {
         println("MoonOHOS 0.2.0")
         return
       }
-      Build => {
+      Build =>
         build(
           options.config,
           options.sdk.unwrap(),
           options.abis.join(","),
           options.output,
           options.dry_run,
+          options.cache,
         )
-        { "runtime": "not_run" }
-      }
       Doctor => doctor(options)
       Check | Inspect | Plan => analyze(options)
       Verify => verify_package(options.output)

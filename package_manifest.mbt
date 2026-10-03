@@ -81,6 +81,7 @@ pub fn parse_package_manifest(
   let json = @json.parse(text) catch {
     _ => raise Invalid("package: invalid manifest JSON")
   }
+  validate_distribution_metadata(json)
   let (module_name, version, results, entries) = match json {
     {
       "schema": "moonohos-build-v1",

@@ -16,6 +16,8 @@ pub fn command_name(Command) -> String
 
 pub fn compiler_commands(String, String) -> Array[Array[String]] raise ConfigError
 
+pub fn content_cache_key(Array[ContentFingerprint]) -> String raise ConfigError
+
 pub fn conversion_limits() -> ConversionLimits
 
 pub fn declarations(Config) -> String
@@ -28,7 +30,11 @@ pub fn environment_report(Array[EnvironmentFact]) -> Json
 
 pub fn failure_report(String, Diagnostic, parameter? : Bool) -> Json
 
+pub fn fingerprint(String, String, Bytes) -> ContentFingerprint
+
 pub fn identifier(String) -> Bool
+
+pub fn ignored_cache_component(String) -> Bool
 
 pub fn inspect_elf(Bytes) -> ElfInfo raise ConfigError
 
@@ -70,11 +76,19 @@ pub fn success_report(String, Json) -> Json
 
 pub fn tokenize(String) -> Array[String] raise ConfigError
 
+pub fn validate_distribution_metadata(Json) -> Unit raise ConfigError
+
 pub fn validate_package_path(String) -> Unit raise ConfigError
 
 pub fn validate_stages(Array[BuildStage]) -> Unit raise ConfigError
 
+pub fn verify_import_file(String, PackageManifest) -> Unit raise ConfigError
+
 pub fn verify_interface(Config, String) -> Unit raise ConfigError
+
+pub fn verify_library(ElfInfo, PackageManifest, String) -> Unit raise ConfigError
+
+pub fn verify_type_package(String, PackageManifest) -> Unit raise ConfigError
 
 pub fn wrapper_package(Config) -> String
 
@@ -139,6 +153,13 @@ pub struct Config {
   functions : Array[Function]
 }
 pub fn Config::to_project(Self) -> Project
+
+pub struct ContentFingerprint {
+  domain : String
+  name : String
+  digest : String
+}
+pub fn ContentFingerprint::to_json(Self) -> Json
 
 pub struct ConversionLimits {
   depth : Int

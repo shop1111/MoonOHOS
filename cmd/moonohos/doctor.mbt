@@ -60,6 +60,8 @@ async fn doctor(options : @lib.CliOptions) -> Json {
           }
         }
         version
+      } else if name == "async" {
+        "0.21.0 (compiled dependency)"
       } else {
         "missing metadata"
       }

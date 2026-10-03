@@ -49,16 +49,16 @@ async fn verify_package(root : String) -> Json {
     }
     file.verify(@fs.read_file(root + "/" + file.path).binary())
   }
+  @lib.verify_type_package(
+    read(root + "/types/lib" + manifest.module_name + "/oh-package.json5"),
+    manifest,
+  )
+  @lib.verify_import_file(read(root + "/cmake/MoonOHOS.cmake"), manifest)
   let libraries : Array[Json] = []
   for abi in manifest.abis {
     let library = root + "/libs/" + abi + "/lib" + manifest.module_name + ".so"
     let info = @lib.inspect_elf(@fs.read_file(library).binary())
-    if info.abi != abi {
-      raise Failure("package: ELF architecture differs from manifest " + abi)
-    }
-    if info.soname is Some(name) && name != "lib" + manifest.module_name + ".so" {
-      raise Failure("package: wrong SONAME")
-    }
+    @lib.verify_library(info, manifest, abi)
     libraries.push(info.to_json())
   }
   {
