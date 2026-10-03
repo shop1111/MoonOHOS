@@ -30,7 +30,13 @@ pub fn failure_report(String, Diagnostic, parameter? : Bool) -> Json
 
 pub fn identifier(String) -> Bool
 
+pub fn inspect_elf(Bytes) -> ElfInfo raise ConfigError
+
 pub fn native_source(Config) -> String
+
+pub fn package_file(String, Bytes) -> PackageFile raise ConfigError
+
+pub fn package_requirements(String, Array[String]) -> Array[String]
 
 pub fn parse_abis(String) -> Array[String] raise ConfigError
 
@@ -39,6 +45,8 @@ pub fn parse_cli(Array[String]) -> CliOptions raise ConfigError
 pub fn parse_config(String) -> Config raise ConfigError
 
 pub fn parse_package_interface(String) -> PackageInterface
+
+pub fn parse_package_manifest(String) -> PackageManifest raise ConfigError
 
 pub fn parse_project(String) -> Project raise ConfigError
 
@@ -52,11 +60,17 @@ pub fn sdk_candidates(String) -> Array[String]
 
 pub fn sdk_files() -> Array[String]
 
+pub fn seal_manifest(Json, Array[PackageFile]) -> Json raise ConfigError
+
+pub fn sha256(Bytes) -> String
+
 pub fn signature(Function) -> String
 
 pub fn success_report(String, Json) -> Json
 
 pub fn tokenize(String) -> Array[String] raise ConfigError
+
+pub fn validate_package_path(String) -> Unit raise ConfigError
 
 pub fn validate_stages(Array[BuildStage]) -> Unit raise ConfigError
 
@@ -142,6 +156,15 @@ pub(all) struct Diagnostic {
 pub fn Diagnostic::render(Self) -> String
 pub fn Diagnostic::to_json(Self) -> Json
 
+pub struct ElfInfo {
+  abi : String
+  dependencies : Array[String]
+  imports : Array[String]
+  exports : Array[String]
+  soname : String?
+}
+pub fn ElfInfo::to_json(Self) -> Json
+
 pub struct EnvironmentFact {
   name : String
   actual : String
@@ -185,9 +208,24 @@ pub struct InterfaceRecord {
   unsupported : String?
 }
 
+pub struct PackageFile {
+  path : String
+  size : Int
+  checksum : String
+}
+pub fn PackageFile::to_json(Self) -> Json
+pub fn PackageFile::verify(Self, Bytes) -> Unit raise ConfigError
+
 pub struct PackageInterface {
   functions : Array[InterfaceFunction]
   records : Array[InterfaceRecord]
+}
+
+pub struct PackageManifest {
+  module_name : String
+  version : String
+  abis : Array[String]
+  files : Array[PackageFile]
 }
 
 pub struct Parameter {
@@ -220,6 +258,15 @@ pub struct RecordDef {
   name : String
   fields : Array[FieldDef]
 }
+
+pub struct Sha256 {
+  state : Array[UInt]
+  pending : Array[Byte]
+  mut count : UInt64
+}
+pub fn Sha256::digest(Self) -> String
+pub fn Sha256::new() -> Self
+pub fn Sha256::update(Self, Bytes) -> Unit
 
 pub(all) enum TypeExpr {
   Scalar(ValueType)

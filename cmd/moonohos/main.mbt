@@ -276,6 +276,8 @@ async fn build(
     )
   }
   ensure_dir(parent(out))
+  seal_package(package_dir)
+  verify_package(package_dir) |> ignore
   @fs.rename(package_dir, out)
 }
 
@@ -332,7 +334,7 @@ async fn main {
       }
       Doctor => doctor(options)
       Check | Inspect | Plan => analyze(options)
-      _ => raise Failure(name + ": command implementation is not available yet")
+      Verify => verify_package(options.output)
     }
   } catch {
     error => {
