@@ -111,6 +111,10 @@ pub struct Project {
   records : Array[RecordDef]
   functions : Array[Callable]
 }
+pub fn Project::business_adapters(Self) -> String raise ConfigError
+pub fn Project::business_header(Self) -> String raise ConfigError
+pub fn Project::business_wrapper(Self) -> String raise ConfigError
+pub fn Project::generation_plan(Self) -> Json raise ConfigError
 pub fn Project::reachable_types(Self) -> Array[TypeExpr] raise ConfigError
 pub fn Project::record_def(Self, String) -> RecordDef raise ConfigError
 pub fn Project::record_order(Self) -> Array[RecordDef] raise ConfigError
