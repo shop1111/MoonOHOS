@@ -24,6 +24,8 @@ pub fn native_source(Config) -> String
 
 pub fn parse_config(String) -> Config raise ConfigError
 
+pub fn parse_package_interface(String) -> PackageInterface
+
 pub fn parse_project(String) -> Project raise ConfigError
 
 pub fn parse_type_expr(String, result? : Bool) -> TypeExpr raise ConfigError
@@ -79,6 +81,24 @@ pub struct Function {
   result : ValueType
 }
 
+pub struct InterfaceFunction {
+  name : String
+  params : Array[TypeExpr]
+  result : TypeExpr
+  unsupported : String?
+}
+
+pub struct InterfaceRecord {
+  name : String
+  fields : Array[FieldDef]
+  unsupported : String?
+}
+
+pub struct PackageInterface {
+  functions : Array[InterfaceFunction]
+  records : Array[InterfaceRecord]
+}
+
 pub struct Parameter {
   name : String
   kind : ValueType
@@ -96,6 +116,7 @@ pub fn Project::record_def(Self, String) -> RecordDef raise ConfigError
 pub fn Project::record_order(Self) -> Array[RecordDef] raise ConfigError
 pub fn Project::summary(Self) -> Json raise ConfigError
 pub fn Project::validate(Self) -> Unit raise ConfigError
+pub fn Project::verify_interface(Self, String) -> Unit raise ConfigError
 
 pub struct RecordDef {
   name : String
