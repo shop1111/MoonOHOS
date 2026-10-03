@@ -12,6 +12,8 @@ pub fn cmake_source(Config) -> String
 
 pub fn compiler_commands(String, String) -> Array[Array[String]] raise ConfigError
 
+pub fn conversion_limits() -> ConversionLimits
+
 pub fn declarations(Config) -> String
 
 pub fn embed_source(Config) -> String
@@ -49,6 +51,7 @@ pub struct Callable {
   params : Array[FieldDef]
   result : TypeExpr
 }
+pub fn Callable::signature(Self) -> String
 
 pub struct Config {
   module_dir : String
@@ -57,6 +60,13 @@ pub struct Config {
   functions : Array[Function]
 }
 pub fn Config::to_project(Self) -> Project
+
+pub struct ConversionLimits {
+  depth : Int
+  nodes : Int
+  bytes : Int
+}
+pub fn ConversionLimits::to_json(Self) -> Json
 
 pub struct FieldDef {
   name : String
@@ -81,6 +91,11 @@ pub struct Project {
   records : Array[RecordDef]
   functions : Array[Callable]
 }
+pub fn Project::reachable_types(Self) -> Array[TypeExpr] raise ConfigError
+pub fn Project::record_def(Self, String) -> RecordDef raise ConfigError
+pub fn Project::record_order(Self) -> Array[RecordDef] raise ConfigError
+pub fn Project::summary(Self) -> Json raise ConfigError
+pub fn Project::validate(Self) -> Unit raise ConfigError
 
 pub struct RecordDef {
   name : String
