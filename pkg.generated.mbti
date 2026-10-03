@@ -10,6 +10,8 @@ pub fn c_header(Config) -> String
 
 pub fn cmake_source(Config) -> String
 
+pub fn command_name(Command) -> String
+
 pub fn compiler_commands(String, String) -> Array[Array[String]] raise ConfigError
 
 pub fn conversion_limits() -> ConversionLimits
@@ -18,9 +20,15 @@ pub fn declarations(Config) -> String
 
 pub fn embed_source(Config) -> String
 
+pub fn failure_report(String, Diagnostic, parameter? : Bool) -> Json
+
 pub fn identifier(String) -> Bool
 
 pub fn native_source(Config) -> String
+
+pub fn parse_abis(String) -> Array[String] raise ConfigError
+
+pub fn parse_cli(Array[String]) -> CliOptions raise ConfigError
 
 pub fn parse_config(String) -> Config raise ConfigError
 
@@ -31,6 +39,8 @@ pub fn parse_project(String) -> Project raise ConfigError
 pub fn parse_type_expr(String, result? : Bool) -> TypeExpr raise ConfigError
 
 pub fn signature(Function) -> String
+
+pub fn success_report(String, Json) -> Json
 
 pub fn tokenize(String) -> Array[String] raise ConfigError
 
@@ -55,6 +65,34 @@ pub struct Callable {
 }
 pub fn Callable::signature(Self) -> String
 
+pub struct CliOptions {
+  command : Command
+  config : String
+  sdk : String?
+  abis : Array[String]
+  output : String
+  json : Bool
+  dry_run : Bool
+  cache : Bool
+}
+
+pub(all) enum Command {
+  Build
+  Doctor
+  Check
+  Inspect
+  Plan
+  Verify
+  Help
+  Version
+} derive(Eq, @debug.Debug)
+#deprecated
+pub fn Command::equal(Self, Self) -> Bool
+#deprecated
+pub fn Command::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn Command::to_repr(Self) -> @debug.Repr
+
 pub struct Config {
   module_dir : String
   package_name : String
@@ -69,6 +107,15 @@ pub struct ConversionLimits {
   bytes : Int
 }
 pub fn ConversionLimits::to_json(Self) -> Json
+
+pub(all) struct Diagnostic {
+  stage : String
+  code : String
+  message : String
+  context : Array[String]
+}
+pub fn Diagnostic::render(Self) -> String
+pub fn Diagnostic::to_json(Self) -> Json
 
 pub struct FieldDef {
   name : String
