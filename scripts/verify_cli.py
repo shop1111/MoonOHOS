@@ -74,6 +74,19 @@ def main():
         manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
         report = run("verify", "--out", work / "recovered", "--json", code=3)
         assert "elf:" in report["diagnostics"][0]["message"] or "architecture" in report["diagnostics"][0]["message"], label
+    import struct
+    program_start = struct.unpack_from('<Q', original, 32)[0]
+    program_size, program_count = struct.unpack_from('<HH', original, 54)
+    dynamic_start = next(program_start + index * program_size for index in range(program_count)
+                         if struct.unpack_from('<I', original, program_start + index * program_size)[0] == 2)
+    for relative, replacement in [(32, 0), (16, struct.unpack_from('<Q', original, dynamic_start + 16)[0] + 1)]:
+        data = bytearray(original)
+        struct.pack_into('<Q', data, dynamic_start + relative, replacement)
+        library.write_bytes(data)
+        file_entry['sha256'] = hashlib.sha256(data).hexdigest()
+        manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
+        report = run('verify', '--out', work / 'recovered', '--json', code=3)
+        assert 'dynamic program segment' in json.dumps(report)
     library.write_bytes(original)
     file_entry["sha256"] = hashlib.sha256(original).hexdigest()
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")

@@ -20,6 +20,10 @@ fn hello() {
 '''
         self.assertEqual(counter.code_lines(source), 4)
 
+    def test_literal_lists_and_tuples_are_excluded(self):
+        source = '"a",\n("a", "b"),\n["a", "b"]\nlet values = ["a", "b"]\n)\n'
+        self.assertEqual(counter.code_lines(source), 2)
+
     def test_nested_comments_and_escaped_quotes(self):
         self.assertEqual(counter.code_lines('/* outer /* inner */ end */ let x = "a\\\"b"\n// no'), 1)
 

@@ -7,7 +7,7 @@
     },
     {
       "path": "build_plan.mbt",
-      "codeLines": 151
+      "codeLines": 123
     },
     {
       "path": "cache_key.mbt",
@@ -19,15 +19,15 @@
     },
     {
       "path": "cmd/moonohos/analysis.mbt",
-      "codeLines": 86
+      "codeLines": 83
     },
     {
       "path": "cmd/moonohos/cache.mbt",
-      "codeLines": 136
+      "codeLines": 133
     },
     {
       "path": "cmd/moonohos/doctor.mbt",
-      "codeLines": 105
+      "codeLines": 101
     },
     {
       "path": "cmd/moonohos/io.mbt",
@@ -35,7 +35,7 @@
     },
     {
       "path": "cmd/moonohos/main.mbt",
-      "codeLines": 387
+      "codeLines": 368
     },
     {
       "path": "cmd/moonohos/package.mbt",
@@ -43,7 +43,7 @@
     },
     {
       "path": "cmd/moonohos/runner.mbt",
-      "codeLines": 104
+      "codeLines": 102
     },
     {
       "path": "config.mbt",
@@ -51,7 +51,7 @@
     },
     {
       "path": "container_codegen.mbt",
-      "codeLines": 364
+      "codeLines": 363
     },
     {
       "path": "container_runtime.mbt",
@@ -59,11 +59,11 @@
     },
     {
       "path": "elf.mbt",
-      "codeLines": 346
+      "codeLines": 362
     },
     {
       "path": "environment.mbt",
-      "codeLines": 65
+      "codeLines": 55
     },
     {
       "path": "generate.mbt",
@@ -71,7 +71,7 @@
     },
     {
       "path": "generation_plan.mbt",
-      "codeLines": 216
+      "codeLines": 215
     },
     {
       "path": "interface.mbt",
@@ -79,11 +79,11 @@
     },
     {
       "path": "package_manifest.mbt",
-      "codeLines": 157
+      "codeLines": 152
     },
     {
       "path": "package_policy.mbt",
-      "codeLines": 113
+      "codeLines": 108
     },
     {
       "path": "project.mbt",
@@ -103,8 +103,8 @@
     },
     {
       "path": "type_graph.mbt",
-      "codeLines": 151
+      "codeLines": 163
     }
   ],
-  "total": 4055
+  "total": 4002
 }

@@ -66,3 +66,32 @@ test "depth boundary and Unit result" {
     },
   )
 }
+
+///|
+test "shared record DAG remains bounded and checks cached height at use site" {
+  let records : Array[Json] = [
+    { "name": "Level0", "fields": [{ "name": "value", "type": "Int" }] },
+  ]
+  for level in 1..<32 {
+    let child = "Level" + (level - 1).to_string()
+    records.push({
+      "name": "Level" + level.to_string(),
+      "fields": [
+        { "name": "left", "type": child },
+        { "name": "right", "type": child },
+      ],
+    })
+  }
+  let declarations = records.to_json().stringify()
+  let project = graph(declarations, "Level31")
+  project.validate()
+  assert_eq(project.record_order().length(), 32)
+  assert_true(
+    try {
+      graph(declarations, "Array[Level31]").validate()
+      false
+    } catch {
+      _ => true
+    },
+  )
+}

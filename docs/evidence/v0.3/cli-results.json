@@ -1,5 +1,5 @@
 {
-  "cases": 21,
+  "cases": 23,
   "results": [
     {
       "command": "check",
@@ -136,6 +136,24 @@
       ],
       "exitCode": 0,
       "ok": true
+    },
+    {
+      "command": "verify",
+      "options": [
+        "--out",
+        "--json"
+      ],
+      "exitCode": 3,
+      "ok": false
+    },
+    {
+      "command": "verify",
+      "options": [
+        "--out",
+        "--json"
+      ],
+      "exitCode": 3,
+      "ok": false
     },
     {
       "command": "verify",

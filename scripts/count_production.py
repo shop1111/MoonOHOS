@@ -13,6 +13,7 @@ def code_lines(text):
     for line in text.splitlines():
         if line.lstrip().startswith(("#|", "$|")) and block_depth == 0:
             continue
+        saw_literal = False
         cursor = 0
         tokens = []
         while cursor < len(line):
@@ -35,6 +36,7 @@ def code_lines(text):
                 continue
             char = line[cursor]
             if char in ('"', "'"):
+                saw_literal = True
                 quote = char
                 cursor += 1
                 while cursor < len(line):
@@ -48,7 +50,9 @@ def code_lines(text):
                 continue
             tokens.append(char)
             cursor += 1
-        if "".join(tokens).strip():
+        remaining = "".join(tokens).strip()
+        pure_literals = saw_literal and not remaining.strip(",()[] \t")
+        if remaining and not pure_literals:
             count += 1
     return count
 

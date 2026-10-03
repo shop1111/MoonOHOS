@@ -34,6 +34,7 @@ fn type_depth(
   kind : TypeExpr,
   path : Array[String],
   depth : Int,
+  heights : Map[String, Int],
 ) -> Int raise ConfigError {
   if depth > conversion_limits().depth {
     raise Invalid("type: nesting depth exceeds 32 at " + path.join(" -> "))
@@ -42,7 +43,7 @@ fn type_depth(
     Scalar(Void) =>
       raise Invalid("type: Unit is not a container element or field")
     Scalar(_) => depth
-    List(element) => type_depth(project, element, path, depth + 1)
+    List(element) => type_depth(project, element, path, depth + 1, heights)
     Record(name) => {
       if path.contains(name) {
         raise Invalid(
@@ -52,17 +53,27 @@ fn type_depth(
           name,
         )
       }
+      match heights.get(name) {
+        Some(height) => {
+          if depth > conversion_limits().depth - height {
+            raise Invalid("type: nesting depth exceeds 32 at " + name)
+          }
+          return depth + height
+        }
+        None => ()
+      }
       let record = project.record_def(name)
       let mut maximum = depth + 1
       let next = path.copy()
       next.push(name)
       for field in record.fields {
-        let child = type_depth(project, field.kind, next, depth + 1)
+        let child = type_depth(project, field.kind, next, depth + 1, heights)
         maximum = maximum.max(child)
       }
       if maximum > conversion_limits().depth {
         raise Invalid("type: nesting depth exceeds 32 at " + name)
       }
+      heights[name] = maximum - depth
       maximum
     }
   }
@@ -77,15 +88,16 @@ pub fn Project::validate(self : Project) -> Unit raise ConfigError {
     }
     names[record.name] = true
   }
+  let heights : Map[String, Int] = Map([])
   for record in self.records {
-    type_depth(self, Record(record.name), [], 0) |> ignore
+    type_depth(self, Record(record.name), [], 0, heights) |> ignore
   }
   for function in self.functions {
     for param in function.params {
-      type_depth(self, param.kind, [], 0) |> ignore
+      type_depth(self, param.kind, [], 0, heights) |> ignore
     }
     if function.result != Scalar(Void) {
-      type_depth(self, function.result, [], 0) |> ignore
+      type_depth(self, function.result, [], 0, heights) |> ignore
     }
   }
 }

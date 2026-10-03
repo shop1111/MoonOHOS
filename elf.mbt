@@ -189,7 +189,10 @@ fn linked_strings(
 }
 
 ///|
-fn inspect_programs(bytes : Bytes) -> Array[ElfSegment] raise ConfigError {
+fn inspect_programs(
+  bytes : Bytes,
+  sections : Array[ElfSection],
+) -> Array[ElfSegment] raise ConfigError {
   let offset = elf_offset(bytes, 32, 8)
   let entry_size = elf_offset(bytes, 54, 2)
   let count = elf_offset(bytes, 56, 2)
@@ -211,6 +214,20 @@ fn inspect_programs(bytes : Bytes) -> Array[ElfSegment] raise ConfigError {
       raise Invalid("elf: executable interpreter in shared library")
     }
     if kind == 2 {
+      if dynamic || file_size == 0 || file_size % 16 != 0 {
+        raise Invalid("elf: duplicate or invalid dynamic program segment")
+      }
+      let address = elf_word(bytes, start + 16, 8)
+      if !sections.any(section => {
+          section.kind == 6 &&
+          section.offset == file_offset &&
+          section.size == file_size &&
+          section.address == address
+        }) {
+        raise Invalid(
+          "elf: dynamic program segment disagrees with section table",
+        )
+      }
       dynamic = true
     }
     if kind == 1 {
@@ -275,8 +292,8 @@ pub fn inspect_elf(bytes : Bytes) -> ElfInfo raise ConfigError {
     62 => "x86_64"
     _ => raise Invalid("elf: unsupported machine architecture")
   }
-  let segments = inspect_programs(bytes)
   let sections = elf_sections(bytes)
+  let segments = inspect_programs(bytes, sections)
   verify_section_mapping(sections, segments)
   let dependencies : Array[String] = []
   let imports : Array[String] = []
