@@ -1,0 +1,8 @@
+{"version":1,"module":".","package":"moonohos/array_fixture","nativeModule":"arrays","functions":[
+{"name":"echo_ints","params":[{"name":"v","type":"Array[Int]"}],"return":"Array[Int]"},
+{"name":"echo_doubles","params":[{"name":"v","type":"Array[Double]"}],"return":"Array[Double]"},
+{"name":"echo_bools","params":[{"name":"v","type":"Array[Bool]"}],"return":"Array[Bool]"},
+{"name":"echo_strings","params":[{"name":"v","type":"Array[String]"}],"return":"Array[String]"},
+{"name":"echo_binary","params":[{"name":"v","type":"Array[Bytes]"}],"return":"Array[Bytes]"},
+{"name":"echo_nested","params":[{"name":"v","type":"Array[Array[String]]"}],"return":"Array[Array[String]]"},
+{"name":"join_ints","params":[{"name":"a","type":"Array[Int]"},{"name":"b","type":"Array[Int]"}],"return":"Array[Int]"}]}

@@ -109,8 +109,8 @@ pub fn embed_source(config : Config) -> String {
 }
 
 ///|
-pub fn native_source(config : Config) -> String {
-  let mut text = (
+fn native_prelude() -> String {
+  let text = (
       #|#include <napi/native_api.h>
       #|#include <cmath>
       #|#include <mutex>
@@ -158,6 +158,12 @@ pub fn native_source(config : Config) -> String {
     ) +
     "\n" +
     reference_helpers()
+  text
+}
+
+///|
+pub fn native_source(config : Config) -> String {
+  let mut text = native_prelude()
   for fn_ in config.functions {
     text += "static napi_value Call_" +
       fn_.name +

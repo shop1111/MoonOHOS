@@ -81,6 +81,16 @@ pub struct Function {
   result : ValueType
 }
 
+pub struct GeneratedArtifacts {
+  wrapper : String
+  package_file : String
+  header : String
+  embed : String
+  native : String
+  declarations : String
+  cmake : String
+}
+
 pub struct InterfaceFunction {
   name : String
   params : Array[TypeExpr]
@@ -114,6 +124,7 @@ pub struct Project {
 pub fn Project::business_adapters(Self) -> String raise ConfigError
 pub fn Project::business_header(Self) -> String raise ConfigError
 pub fn Project::business_wrapper(Self) -> String raise ConfigError
+pub fn Project::generate_arrays(Self) -> GeneratedArtifacts raise ConfigError
 pub fn Project::generation_plan(Self) -> Json raise ConfigError
 pub fn Project::reachable_types(Self) -> Array[TypeExpr] raise ConfigError
 pub fn Project::record_def(Self, String) -> RecordDef raise ConfigError
