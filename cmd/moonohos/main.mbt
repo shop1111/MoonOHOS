@@ -300,71 +300,86 @@ async fn build(
 
 ///|
 async fn main {
-  let args = @env.args()
-  if args.length() == 1 || args[1] == "--help" {
-    println(usage())
-    return
-  }
-  if args[1] == "--version" {
-    println("MoonOHOS 0.2.0")
-    return
-  }
-  if args[1] != "build" {
-    println(usage())
-    native_exit(2)
-    return
-  }
-  let mut config = "moonohos.json"
-  let mut sdk = ""
-  let mut abis = "arm64-v8a,x86_64"
-  let mut out = "_build/moonohos/dist"
-  let mut dry_run = false
-  let mut index = 2
-  while index < args.length() {
-    if args[index] == "--dry-run" {
-      dry_run = true
-      index += 1
-      continue
-    }
-    if args[index] == "--help" {
-      println(usage())
-      return
-    }
-    if index + 1 >= args.length() {
-      println("missing option value: " + args[index])
+  let args = @env.args()[1:].to_owned()
+  let json = args.contains("--json")
+  let options = @lib.parse_cli(args) catch {
+    Invalid(message) => {
+      let diagnostic : @lib.Diagnostic = {
+        stage: "arguments",
+        code: "invalid-option",
+        message,
+        context: [],
+      }
+      println(
+        if json {
+          @lib.failure_report(
+            args.get(0).unwrap_or("help"),
+            diagnostic,
+            parameter=true,
+          ).stringify(indent=2)
+        } else {
+          diagnostic.render()
+        },
+      )
       native_exit(2)
       return
     }
-    match args[index] {
-      "--config" => config = args[index + 1]
-      "--sdk" => sdk = args[index + 1]
-      "--abi" => abis = args[index + 1]
-      "--out" => out = args[index + 1]
-      _ => {
-        println("unknown option: " + args[index])
-        native_exit(2)
+  }
+  let name = @lib.command_name(options.command)
+  let result : Json = try {
+    match options.command {
+      Help => {
+        println(
+          usage() +
+          "Commands: doctor, check, inspect, plan, verify. Analysis commands support --json.",
+        )
         return
       }
+      Version => {
+        println("MoonOHOS 0.2.0")
+        return
+      }
+      Build => {
+        build(
+          options.config,
+          options.sdk.unwrap(),
+          options.abis.join(","),
+          options.output,
+          options.dry_run,
+        )
+        { "runtime": "not_run" }
+      }
+      Doctor => doctor(options)
+      _ => raise Failure(name + ": command implementation is not available yet")
     }
-    index += 2
-  }
-  if sdk == "" {
-    println("--sdk is required")
-    native_exit(2)
-    return
-  }
-  build(config, sdk, abis, out, dry_run) catch {
-    @lib.Invalid(message) => {
-      println("MoonOHOS failed at config/interface: " + message)
-      native_exit(3)
-    }
-    Failure(message) => {
-      println("MoonOHOS failed: " + message)
-      native_exit(3)
-    }
+  } catch {
     error => {
-      println("MoonOHOS failed at filesystem/config: " + error.to_string())
+      let diagnostic : @lib.Diagnostic = {
+        stage: name,
+        code: "failed",
+        message: match error {
+          Failure(message) => message
+          @lib.Invalid(message) => message
+          _ => error.to_string()
+        },
+        context: [],
+      }
+      println(
+        if options.json {
+          @lib.failure_report(name, diagnostic).stringify(indent=2)
+        } else {
+          diagnostic.render()
+        },
+      )
       native_exit(3)
+      return
     }
   }
+  println(
+    if options.json {
+      @lib.success_report(name, result).stringify(indent=2)
+    } else {
+      result.stringify(indent=2)
+    },
+  )
 }

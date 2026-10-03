@@ -24,7 +24,7 @@ test "CLI options retain defaults and constrain flags" {
     )
   }
   assert_true(@moonohos.parse_cli(["check", "--json"]).json)
-  assert_eq(@moonohos.parse_cli([]).command, @moonohos.Help)
+  assert_eq(@moonohos.parse_cli([]).command, Help)
 }
 
 ///|
