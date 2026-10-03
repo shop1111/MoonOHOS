@@ -22,6 +22,10 @@ pub fn native_source(Config) -> String
 
 pub fn parse_config(String) -> Config raise ConfigError
 
+pub fn parse_project(String) -> Project raise ConfigError
+
+pub fn parse_type_expr(String, result? : Bool) -> TypeExpr raise ConfigError
+
 pub fn signature(Function) -> String
 
 pub fn tokenize(String) -> Array[String] raise ConfigError
@@ -40,11 +44,23 @@ pub(all) suberror ConfigError {
 pub fn ConfigError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+pub struct Callable {
+  name : String
+  params : Array[FieldDef]
+  result : TypeExpr
+}
+
 pub struct Config {
   module_dir : String
   package_name : String
   native_module : String
   functions : Array[Function]
+}
+pub fn Config::to_project(Self) -> Project
+
+pub struct FieldDef {
+  name : String
+  kind : TypeExpr
 }
 
 pub struct Function {
@@ -57,6 +73,36 @@ pub struct Parameter {
   name : String
   kind : ValueType
 }
+
+pub struct Project {
+  module_dir : String
+  package_name : String
+  native_module : String
+  records : Array[RecordDef]
+  functions : Array[Callable]
+}
+
+pub struct RecordDef {
+  name : String
+  fields : Array[FieldDef]
+}
+
+pub(all) enum TypeExpr {
+  Scalar(ValueType)
+  List(TypeExpr)
+  Record(String)
+} derive(Eq, @debug.Debug)
+pub fn TypeExpr::ark_name(Self) -> String
+pub fn TypeExpr::c_name(Self) -> String
+#deprecated
+pub fn TypeExpr::equal(Self, Self) -> Bool
+pub fn TypeExpr::is_reference(Self) -> Bool
+pub fn TypeExpr::moon_name(Self) -> String
+#deprecated
+pub fn TypeExpr::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn TypeExpr::to_repr(Self) -> @debug.Repr
+pub fn TypeExpr::wrapper_name(Self) -> String
 
 pub(all) enum ValueType {
   Int32
