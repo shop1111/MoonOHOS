@@ -52,6 +52,17 @@ int main() {
   Value fractional = Array({Number(0.5)}); Reject(Call_echo_ints, {&fractional}, "RangeError");
   Value shared = ints; shared.sendable = true; Reject(Call_echo_ints, {&shared}, "TypeError");
   Value huge = empty; huge.reported_length = 1048577; Reject(Call_echo_ints, {&huge}, "RangeError");
+  Value cyclic = Array({}); cyclic.elements.push_back(std::shared_ptr<Value>(&cyclic, [](Value *){}));
+  Reject(Call_echo_nested, {&cyclic}, "TypeError"); cyclic.elements.clear();
+  Value oversized_text = Text(u"x"); oversized_text.reported_length = 33554433;
+  Value oversized_array = Array({oversized_text}); Reject(Call_echo_strings, {&oversized_array}, "RangeError");
+  { Env e; Call call{{&wrong}}; assert(!Call_echo_ints(&e, &call)); assert(e.message.find("echo_ints.v[0]") != std::string::npos); }
+  { Budget b{true}; b.add(1048576, 67108864, 32, "boundary");
+    for (int kind = 0; kind < 3; ++kind) { bool caught = false;
+      try { b.add(kind == 0 ? 1 : 0, kind == 1 ? 1 : 0, kind == 2 ? 33 : 32, "boundary"); }
+      catch (const RangeFault &) { caught = true; } assert(caught);
+    }
+  }
   Reject(Call_echo_ints, {&bytes}, "TypeError"); Reject(Call_join_ints, {&ints, &wrong}, "TypeError");
   Failures(Call_echo_nested, {&nested}); Failures(Call_join_ints, {&ints, &ints}); Failures(Call_echo_binary, {&binary});
   for (int point = 0; point < 6; ++point) {

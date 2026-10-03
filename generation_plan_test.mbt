@@ -27,3 +27,17 @@ test "internal symbol collisions rejected" {
     },
   )
 }
+
+///|
+test "raw exports cannot collide with another adapter" {
+  let project = @moonohos.parse_project(
+    "{\"version\":1,\"module\":\".\",\"package\":\"a/core\",\"nativeModule\":\"demo\",\"functions\":[{\"name\":\"echo\",\"params\":[],\"return\":\"Int\"},{\"name\":\"raw_echo\",\"params\":[],\"return\":\"Int\"}]}",
+  )
+  assert_true(
+    try project.generation_plan() catch {
+      _ => true
+    } noraise {
+      _ => false
+    },
+  )
+}

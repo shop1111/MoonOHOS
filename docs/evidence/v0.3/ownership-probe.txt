@@ -1,0 +1,92 @@
+Pinned moonc v0.10.14+7d59c7ec9 generated export bodies; compiler-owned layouts below are not used directly by bridge C++.
+
+struct _M0TPB5ArrayGsE* moonohos_raw_type_9_field_2(
+  struct _M0TP28moonohos15record__fixture7Summary* _M0L1vS356
+) {
+  return _M0FP38moonohos15record__fixture16moonohos__bridge32moonohos__raw__type__9__field__2(_M0L1vS356);
+}
+
+int32_t moonohos_raw_type_9_field_1(
+  struct _M0TP28moonohos15record__fixture7Summary* _M0L1vS355
+) {
+  return _M0FP38moonohos15record__fixture16moonohos__bridge32moonohos__raw__type__9__field__1(_M0L1vS355);
+}
+
+int32_t moonohos_raw_type_9_field_0(
+  struct _M0TP28moonohos15record__fixture7Summary* _M0L1vS354
+) {
+  return _M0FP38moonohos15record__fixture16moonohos__bridge32moonohos__raw__type__9__field__0(_M0L1vS354);
+}
+
+struct _M0TP28moonohos15record__fixture7Summary* moonohos_raw_type_9_new(
+  int32_t _M0L5countS351,
+  int32_t _M0L5totalS352,
+  struct _M0TPB5ArrayGsE* _M0L6labelsS353
+) {
+  return _M0FP38moonohos15record__fixture16moonohos__bridge27moonohos__raw__type__9__new(_M0L5countS351, _M0L5totalS352, _M0L6labelsS353);
+}
+
+struct _M0TPB5ArrayGsE* moonohos_raw_type_8_new() {
+  return _M0FP38moonohos15record__fixture16moonohos__bridge27moonohos__raw__type__8__new();
+}
+
+struct _M0TPB5ArrayGRP28moonohos15record__fixture3BoxE* moonohos_raw_type_7_new(
+
+) {
+  return _M0FP38moonohos15record__fixture16moonohos__bridge27moonohos__raw__type__7__new();
+}
+
+moonbit_bytes_t moonohos_raw_type_6_field_3(
+  struct _M0TP28moonohos15record__fixture3Box* _M0L1vS340
+) {
+  return _M0FP38moonohos15record__fixture16moonohos__bridge32moonohos__raw__type__6__field__3(_M0L1vS340);
+}
+
+struct _M0TP28moonohos15record__fixture4Meta* moonohos_raw_type_6_field_2(
+  struct _M0TP28moonohos15record__fixture3Box* _M0L1vS339
+) {
+  return _M0FP38moonohos15record__fixture16moonohos__bridge32moonohos__raw__type__6__field__2(_M0L1vS339);
+}
+
+struct _M0TPB5ArrayGiE* moonohos_raw_type_6_field_1(
+  struct _M0TP28moonohos15record__fixture3Box* _M0L1vS338
+) {
+  return _M0FP38moonohos15record__fixture16moonohos__bridge32moonohos__raw__type__6__field__1(_M0L1vS338);
+}
+
+moonbit_string_t moonohos_raw_type_6_field_0(
+  struct _M0TP28moonohos15record__fixture3Box* _M0L1vS337
+) {
+  return _M0FP38moonohos15record__fixture16moonohos__bridge32moonohos__raw__type__6__field__0(_M0L1vS337);
+}
+
+struct _M0TP28moonohos15record__fixture3Box* moonohos_raw_type_6_new(
+  moonbit_string_t _M0L5labelS333,
+  struct _M0TPB5ArrayGiE* _M0L6valuesS334,
+  struct _M0TP28moonohos15record__fixture4Meta* _M0L4metaS335,
+  moonbit_bytes_t _M0L7payloadS336
+) {
+  return _M0FP38moonohos15record__fixture16moonohos__bridge27moonohos__raw__type__6__new(_M0L5labelS333, _M0L6valuesS334, _M0L4metaS335, _M0L7payloadS336);
+}
+
+int32_t moonohos_raw_type_4_field_0(
+  struct _M0TP28moonohos15record__fixture4Meta* _M0L1vS332
+) {
+  return _M0FP38moonohos15record__fixture16moonohos__bridge32moonohos__raw__type__4__field__0(_M0L1vS332);
+}
+
+struct _M0TP28moonohos15record__fixture4Meta* moonohos_raw_type_4_new(
+  int32_t _M0L6activeS331
+) {
+  return _M0FP38moonohos15record__fixture16moonohos__bridge27moonohos__raw__type__4__new(_M0L6activeS331);
+}
+
+struct _M0TPB5ArrayGiE* moonohos_raw_type_2_new() {
+  return _M0FP38moonohos15record__fixture16moonohos__bridge27moonohos__raw__type__2__new();
+}
+
+struct _M0TP28moonohos15record__fixture3Box* moonohos_raw_echo_box(
+  struct _M0TP28moonohos15record__fixture3Box* _M0L1vS321
+) {
+  return _M0FP38moonohos15record__fixture16moonohos__bridge24moonohos__raw__echo__box(_M0L1vS321);
+}

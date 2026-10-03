@@ -2,13 +2,13 @@
 
 MoonOHOS 将 MoonBit 核心逻辑编译为 HarmonyOS Native 模块。ArkTS 负责 UI 和系统交互，MoonBit 负责算法、计算和业务核心。
 
-0.2 提供 MoonBit 实现的构建 CLI、标量及 String/Bytes 接口生成器和可打开的 Stage 示例应用。所有函数都是同步接口，耗时任务应等待后续异步支持。
+0.3 源码提供 MoonBit 实现的构建 CLI、标量、String/Bytes、Array/Struct 接口生成器和可打开的 Stage 示例应用。所有函数都是同步接口，耗时任务应等待后续异步支持。
 
-首版验收记录保留在 [0.1 验证记录](docs/VALIDATION.md)，新类型的结果单独记录在 [0.2 验证记录](docs/VALIDATION-0.2.md)。ARM64 真机运行尚未验证。
+首版验收记录保留在 [0.1 验证记录](docs/VALIDATION.md)，后续结果分别记录在 [0.2 验证记录](docs/VALIDATION-0.2.md) 和 [0.3 验证记录](docs/VALIDATION-0.3.md)。ARM64 真机运行尚未验证。
 
 ## 验证环境
 
-- Windows x64，Moon `0.1.20260920`，moonc `v0.10.14`。
+- Windows x64，Moon `0.1.20260920`，moonc `v0.10.14+7d59c7ec9`，Core `0.10.14+7d59c7ec9`，async `0.21.0`。
 - DevEco Studio 26，内置 HarmonyOS SDK API 26。
 - 编译目标 `arm64-v8a`、`x86_64`；ARM64 真机和旧 SDK 兼容性分别验证。
 - CLI 在 Windows 上由 Moon 自动选择 MSVC 构建，需要安装 C++ Build Tools；鸿蒙模块使用 SDK Clang/CMake/Ninja。
@@ -17,10 +17,10 @@ MoonOHOS 将 MoonBit 核心逻辑编译为 HarmonyOS Native 模块。ArkTS 负�
 
 ## 快速开始
 
-源码仓库：[shop1111/MoonOHOS](https://github.com/shop1111/MoonOHOS)。Mooncakes 模块为 `shop1111/moonohos@0.2.0`，使用上述固定工具链可安装 CLI：
+源码仓库：[shop1111/MoonOHOS](https://github.com/shop1111/MoonOHOS)。Mooncakes 模块为 `shop1111/moonohos@0.3.0`，使用上述固定工具链可安装 CLI：
 
 ```powershell
-moon install shop1111/moonohos/cmd/moonohos@0.2.0
+moon install shop1111/moonohos/cmd/moonohos@0.3.0
 moonohos --version
 ```
 
@@ -38,7 +38,7 @@ $taskCli = '.\_build\native\release\build\cmd\moonohos\moonohos.exe'
 
 `--sdk` 接受 DevEco 的 `sdk` 目录、OpenHarmony SDK 组件目录或 Native 目录；这里的 OpenHarmony 是 DevEco 内置组件名称，不代表已经验证独立 OpenHarmony 产品。
 
-在 DevEco 打开 `examples/harmony`，运行 `EntryAbility`。页面显示 `42`、中文文本和 Uint8Array，并自动检查标量、引用类型和重复调用。日志标签是 `MoonOHOS`，成功标记是 `MOONOHOS_RUNTIME_PASS`。`scripts/build_example.ps1` 生成未签名 HAP；目标设备是否允许安装需按设备实际规则处理，脚本不设置签名。
+在 DevEco 打开 `examples/harmony`，运行 `EntryAbility`。页面显示 `42`、中文文本、Uint8Array 和批量 Sample 分析，并自动检查标量、引用类型、嵌套容器和重复调用。日志标签是 `MoonOHOS`，成功标记是 `MOONOHOS_RUNTIME_PASS`。`scripts/build_example.ps1` 生成未签名 HAP；目标设备是否允许安装需按设备实际规则处理，脚本不设置签名。
 
 ## 接入已有 MoonBit 库
 
@@ -67,7 +67,7 @@ $taskCli = '.\_build\native\release\build\cmd\moonohos\moonohos.exe'
 & $taskCli build --config .\moonohos.json --sdk 'D:\apps\DevEco Studio\sdk' --dry-run
 ```
 
-路径均相对清单文件解析，包含 `--out` 和相对形式的 `--sdk`。默认构建两个 ABI，默认输出 `_build/moonohos/dist`。输出目录必须不存在；重复构建请使用新的目录或先自行清理旧产物。`--dry-run` 验证配置和工具链并打印步骤，不创建输出。
+路径均相对清单文件解析，包含 `--out` 和相对形式的 `--sdk`。默认构建两个 ABI，默认输出 `_build/moonohos/dist`。输出目录必须不存在；重复构建请使用新的目录或先自行清理旧产物。`--dry-run` 验证配置和工具链，不创建输出或暂存目录。完整签名核对和阶段规划使用 `check` / `plan`。
 
 | MoonBit | C 适配边界 | ArkTS |
 |---|---|---|
@@ -77,6 +77,8 @@ $taskCli = '.\_build\native\release\build\cmd\moonohos\moonohos.exe'
 | `Unit` 返回值 | `void` | `void` |
 | `String` | `moonbit_string_t`，内部固定版本 ABI | `string`，UTF-16 码元原样复制 |
 | `Bytes` | `moonbit_bytes_t`，内部固定版本 ABI | `Uint8Array`，复制视图范围 |
+| `Array[T]` | 不透明指针与编译器生成的访问函数 | `Array<T>` |
+| 具名普通 Struct | 不透明指针与编译器生成的访问函数 | 具名 `interface` |
 
 缺少参数或类型错误抛出 `TypeError`，无效数值抛出 `RangeError`；额外参数与普通 JavaScript 调用一致，被忽略。Int 运算遵循 MoonBit 的 32 位回绕语义。Node-API 操作失败抛出 Error，已有 pending exception 保留。MoonBit panic 可能终止应用进程，不能当作可捕获的业务错误。
 
@@ -84,7 +86,7 @@ String 支持空串、中文、emoji、内嵌 NUL 和未配对代理码元，按
 
 输入先复制到 C++ 缓冲区，再在锁内分配 MoonBit 对象；调用完成后复制结果并分别释放输入和返回值引用，解锁后创建 ArkTS 返回值。固定编译器导出函数借用参数、返回一个持有的引用；即便返回输入本体，也分别释放两份引用。C++ 分配异常转换为 Error；MoonBit panic 和运行时分配失败可能终止进程。C 头文件用于内部适配，不承诺跨 MoonBit 版本的引用类型 ABI。
 
-不支持 Array/Struct、泛型、可选或标记参数、`raise`、回调、异步接口和额外 Native stub。也拒绝所选模块及其依赖内的 Native stub/pre-build hook。纯 MoonBit 依赖仍通过 Moon 正常解析；本地工作区依赖需要先改为可解析的模块依赖。支持 `moon.mod` 和旧 `moon.mod.json`，源目录必须在模块内部，不复制嵌套模块及符号链接。
+不支持泛型、`#value` 结构体、可选或标记参数、`raise`、回调、异步接口和额外 Native stub。也拒绝所选模块及其依赖内的 Native stub/pre-build hook。纯 MoonBit 依赖仍通过 Moon 正常解析；本地工作区依赖需要先改为可解析的模块依赖。支持 `moon.mod` 和旧 `moon.mod.json`，源目录必须在模块内部，不复制嵌套模块及符号链接。
 
 清单仍为 version 1，函数参数及 return 使用 `"String"`、`"Bytes"`，可与标量类型任意组合。例如生成后：
 
@@ -93,6 +95,44 @@ import native from 'libmoonohos.so';
 const text: string = native.join_text('你好，', 'MoonBit 🌙');
 const bytes: Uint8Array = native.echo_bytes(new Uint8Array([0, 127, 255]));
 ```
+
+## Array / Struct 契约
+
+清单继续使用 `version: 1`，可增加 `types`：
+
+```json
+"types": [
+  {"name": "Sample", "fields": [
+    {"name": "label", "type": "String"},
+    {"name": "values", "type": "Array[Double]"}
+  ]}
+]
+```
+
+目标包需提供同名公开普通结构体，包装包必须能构造并读取全部字段。函数、字段和嵌套类型通过 `.mbti` 声明解析及实际包装包编译核对。类型依赖必须无环；泛型、不可访问字段、遗漏字段和未知声明语法会失败。
+
+数组仅接受普通、稠密、非 Sendable 数组。TypedArray 使用 Bytes 契约，不可作为 Array。记录需要声明字段均为自有属性，额外属性忽略；null、缺失字段、数组空洞和循环对象抛出 TypeError。非循环的重复对象分别复制。错误诊断包含具体字段或数组索引。
+
+每次输入或输出转换最多嵌套 32 层、处理 1,048,576 个元素/字段、复制 64 MiB 数据，超限抛出 RangeError。仅有顶层 String/Bytes 的旧接口仍使用 INT32_MAX 长度规则。Array/Struct 通过编译器生成的构造、追加、长度和读取函数转换，C++ 不依赖其私有内存布局。输入、返回值和引用型字段读取结果分别释放，不按地址合并引用。
+
+## 分析、校验和缓存
+
+```powershell
+& $taskCli doctor --sdk 'D:\apps\DevEco Studio\sdk' --json
+& $taskCli check --config moonohos.json --json
+& $taskCli inspect --config moonohos.json --json
+& $taskCli plan --config moonohos.json --abi x86_64 --json
+& $taskCli verify --out _build/moonohos/dist --json
+& $taskCli build --sdk 'D:\apps\DevEco Studio\sdk' --out _build/moonohos/dist-cached --cache --json
+```
+
+`doctor` 检查固定工具链和 SDK 文件；`check` 核对声明并严格编译临时包装包；`inspect` 给出接口和可达类型摘要；`plan` 给出有序构建阶段、依赖和引用转换规划；`verify` 无需 SDK，核对清单、文件完整性、SHA256、类型包、可重定位 CMake、ELF64 架构、内存映射、注册符号和动态依赖。`verify --out` 相对当前目录，其余项目命令的路径相对清单文件。
+
+成功退出 0，参数错误退出 2，诊断或构建失败退出 3。`--json` 输出单个结构化报告。外部进程始终使用参数数组启动，默认超时 300 秒并取消本次启动的子进程。阶段命令、耗时、标准输出和错误写入工作目录，分发包不含这些机器相关日志。
+
+缓存默认关闭。启用后先解析依赖和核对接口，再按 ABI、源码和依赖内容、清单、Core、运行时、编译器、SDK 及生成器内容计算键。命中前验证整个包；损坏条目改名保留证据后重建。输出目录必须不存在；完成的包通过移动暂存目录发布，失败不会将半成品放入输出目录。缓存与工作目录位于清单旁的 `_build/moonohos/`。
+
+旧 `Config`、`ValueType` 和生成函数仍保留；复杂接口使用 `parse_project()`、`Project.generate()` 等公共入口。生产代码门槛由 `python scripts/count_production.py` 逐文件统计，排除测试、示例、fixture、生成源码、注释及纯字符串/模板正文。Windows CI 使用固定版本执行严格 Native 检查、测试、接口一致性、CLI 构建、打包、代码量门槛和真实生成代码 ASan；SDK/HAP/模拟器检查独立在本机执行。
 
 ## 产物接入
 
@@ -138,10 +178,10 @@ python scripts\verify_integration.py 'D:\apps\DevEco Studio\sdk'
 
 手写 fixture 验证最初的 Int 链路。宿主测试用 MSVC AddressSanitizer 执行实际生成的 MoonBit C 代码和 Node-API callback，覆盖 UTF-16、字节视图、返回输入本体、错误类型、范围错误、逐项 API 失败、pending exception 及注册失败。测试专用 failpoint 模拟输入与结果缓冲区分配异常，运行时 malloc/free 计数核对 10000 轮调用后的存活分配增量为零；这些检测不修改分发库。宿主替身不验证 HarmonyOS 加载器。
 
-集成检查验证中文、空格路径、干净双 ABI 构建、原始源码保持不变和错误配置，并额外构建引用类型与所有返回类型组合的 fixture，执行独立 ASan/分配计数测试。宿主日志位于 `_build/host-asan-v0.2/`。
+集成检查验证中文、空格路径、干净双 ABI 构建、原始源码保持不变和错误配置，并额外构建引用类型与所有返回类型组合的 fixture，执行独立 ASan/分配计数测试。宿主日志位于 `_build/host-asan-v0.3/`。
 
-设备验证脚本需要 PowerShell 7，要求模拟器已经连接，会安装当前示例 HAP、停止并启动示例进程两次，保存新成功日志、页面截图和 HAP SHA256。默认目标为 `127.0.0.1:5555`，可用 `-Target` 指定其他连接；每条 hdc 命令超时 45 秒即失败。证据默认写入 `_build/validation-v0.2/`，保留首版证据。它独立于构建 CLI。
+设备验证脚本需要 PowerShell 7，要求模拟器已经连接，会安装当前示例 HAP、停止并启动示例进程两次，保存新成功日志、页面截图和 HAP SHA256。默认目标为 `127.0.0.1:5555`，可用 `-Target` 指定其他连接；每条 hdc 命令超时 45 秒即失败。证据默认写入 `_build/validation-v0.3/`，保留首版证据。它独立于构建 CLI。
 
-下一阶段：Array/Struct → 异步和线程协议 → MoonBit 调用 HarmonyOS Native API 的 SDK。
+下一阶段：异步和线程协议 → MoonBit 调用 HarmonyOS Native API 的 SDK。
 
 参考：[MoonBit FFI](https://docs.moonbitlang.com/en/latest/language/ffi.html)、[HarmonyOS Node-API 开发流程](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/use-napi-process)。

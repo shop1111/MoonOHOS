@@ -14,5 +14,6 @@ examples/harmony/entry/libs/
 examples/harmony/entry/src/main/cpp/types/
 *.obj
 *.pdb
+__pycache__/
 !.gitignore
 !.moonignore

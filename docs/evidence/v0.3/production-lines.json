@@ -1,0 +1,110 @@
+{
+  "definition": "tracked production MoonBit tokens outside comments and string/template bodies",
+  "files": [
+    {
+      "path": "adapter.mbt",
+      "codeLines": 93
+    },
+    {
+      "path": "build_plan.mbt",
+      "codeLines": 151
+    },
+    {
+      "path": "cache_key.mbt",
+      "codeLines": 42
+    },
+    {
+      "path": "cli_options.mbt",
+      "codeLines": 172
+    },
+    {
+      "path": "cmd/moonohos/analysis.mbt",
+      "codeLines": 86
+    },
+    {
+      "path": "cmd/moonohos/cache.mbt",
+      "codeLines": 136
+    },
+    {
+      "path": "cmd/moonohos/doctor.mbt",
+      "codeLines": 105
+    },
+    {
+      "path": "cmd/moonohos/io.mbt",
+      "codeLines": 141
+    },
+    {
+      "path": "cmd/moonohos/main.mbt",
+      "codeLines": 387
+    },
+    {
+      "path": "cmd/moonohos/package.mbt",
+      "codeLines": 67
+    },
+    {
+      "path": "cmd/moonohos/runner.mbt",
+      "codeLines": 104
+    },
+    {
+      "path": "config.mbt",
+      "codeLines": 154
+    },
+    {
+      "path": "container_codegen.mbt",
+      "codeLines": 364
+    },
+    {
+      "path": "container_runtime.mbt",
+      "codeLines": 7
+    },
+    {
+      "path": "elf.mbt",
+      "codeLines": 346
+    },
+    {
+      "path": "environment.mbt",
+      "codeLines": 65
+    },
+    {
+      "path": "generate.mbt",
+      "codeLines": 205
+    },
+    {
+      "path": "generation_plan.mbt",
+      "codeLines": 216
+    },
+    {
+      "path": "interface.mbt",
+      "codeLines": 290
+    },
+    {
+      "path": "package_manifest.mbt",
+      "codeLines": 157
+    },
+    {
+      "path": "package_policy.mbt",
+      "codeLines": 113
+    },
+    {
+      "path": "project.mbt",
+      "codeLines": 243
+    },
+    {
+      "path": "record_codegen.mbt",
+      "codeLines": 143
+    },
+    {
+      "path": "reference.mbt",
+      "codeLines": 4
+    },
+    {
+      "path": "sha256.mbt",
+      "codeLines": 113
+    },
+    {
+      "path": "type_graph.mbt",
+      "codeLines": 151
+    }
+  ],
+  "total": 4055
+}

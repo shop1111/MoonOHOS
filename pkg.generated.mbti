@@ -183,8 +183,19 @@ pub struct ElfInfo {
   imports : Array[String]
   exports : Array[String]
   soname : String?
+  segments : Array[ElfSegment]
 }
 pub fn ElfInfo::to_json(Self) -> Json
+
+pub struct ElfSegment {
+  offset : Int
+  file_size : Int
+  memory_size : UInt64
+  address : UInt64
+  flags : Int
+  alignment : UInt64
+}
+pub fn ElfSegment::to_json(Self) -> Json
 
 pub struct EnvironmentFact {
   name : String

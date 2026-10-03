@@ -1,5 +1,6 @@
 import native from 'libmoonohos.so';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { runContainerChecks } from './ContainerChecks';
 
 function requireValue(condition: boolean, name: string): void {
   if (!condition) {
@@ -34,6 +35,7 @@ export function runNativeChecks(): string {
   expectRange('Infinity', () => { native.scale(Number.POSITIVE_INFINITY, 1); });
   expectRange('non-finite result', () => { native.scale(1e308, 1e308); });
   const references: number = runReferenceChecks();
+  const containers: number = runContainerChecks();
   const repeatedText: string = '中文😀\u0000尾';
   const repeatedBytes: Uint8Array = new Uint8Array([0, 127, 255]);
   for (let index: number = 0; index < 1000; index++) {
@@ -44,9 +46,9 @@ export function runNativeChecks(): string {
   }
   // Emit after startup traffic settles; device HiLog can throttle a busy process.
   setTimeout(() => {
-    hilog.info(0x0000, 'MoonOHOS', 'MOONOHOS_RUNTIME_PASS version=0.2.0 add=42 scalar_checks=13 reference_checks=%{public}d repeated_calls=1000', references);
+    hilog.info(0x0000, 'MoonOHOS', 'MOONOHOS_RUNTIME_PASS version=0.3.0 add=42 scalar_checks=13 reference_checks=%{public}d container_checks=%{public}d repeated_calls=1000', references, containers);
   }, 1500);
-  return '13 项标量 + ' + references + ' 项引用检查通过\n连续调用 1000 次';
+  return '13 项标量 + ' + references + ' 项引用 + ' + containers + ' 项容器检查通过\n连续调用 1000 次';
 }
 
 function requireBytes(left: Uint8Array, right: Uint8Array, name: string): void {

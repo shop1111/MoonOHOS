@@ -1,0 +1,215 @@
+{
+  "cases": 21,
+  "results": [
+    {
+      "command": "check",
+      "options": [
+        "--unknown",
+        "--json"
+      ],
+      "exitCode": 2,
+      "ok": false
+    },
+    {
+      "command": "build",
+      "options": [
+        "--sdk",
+        "--json"
+      ],
+      "exitCode": 2,
+      "ok": false
+    },
+    {
+      "command": "check",
+      "options": [
+        "--config",
+        "--json"
+      ],
+      "exitCode": 3,
+      "ok": false
+    },
+    {
+      "command": "check",
+      "options": [
+        "--config",
+        "--json"
+      ],
+      "exitCode": 0,
+      "ok": true
+    },
+    {
+      "command": "inspect",
+      "options": [
+        "--config",
+        "--json"
+      ],
+      "exitCode": 0,
+      "ok": true
+    },
+    {
+      "command": "plan",
+      "options": [
+        "--config",
+        "--abi",
+        "--json"
+      ],
+      "exitCode": 0,
+      "ok": true
+    },
+    {
+      "command": "doctor",
+      "options": [
+        "--sdk",
+        "--json"
+      ],
+      "exitCode": 0,
+      "ok": true
+    },
+    {
+      "command": "build",
+      "options": [
+        "--config",
+        "--sdk",
+        "--dry-run",
+        "--json"
+      ],
+      "exitCode": 0,
+      "ok": true
+    },
+    {
+      "command": "build",
+      "options": [
+        "--config",
+        "--sdk",
+        "--abi",
+        "--out",
+        "--cache",
+        "--json"
+      ],
+      "exitCode": 0,
+      "ok": true
+    },
+    {
+      "command": "build",
+      "options": [
+        "--config",
+        "--sdk",
+        "--abi",
+        "--out",
+        "--cache",
+        "--json"
+      ],
+      "exitCode": 0,
+      "ok": true
+    },
+    {
+      "command": "build",
+      "options": [
+        "--config",
+        "--sdk",
+        "--abi",
+        "--out",
+        "--cache",
+        "--json"
+      ],
+      "exitCode": 0,
+      "ok": true
+    },
+    {
+      "command": "build",
+      "options": [
+        "--config",
+        "--sdk",
+        "--abi",
+        "--out",
+        "--cache",
+        "--json"
+      ],
+      "exitCode": 0,
+      "ok": true
+    },
+    {
+      "command": "verify",
+      "options": [
+        "--out",
+        "--json"
+      ],
+      "exitCode": 0,
+      "ok": true
+    },
+    {
+      "command": "verify",
+      "options": [
+        "--out",
+        "--json"
+      ],
+      "exitCode": 3,
+      "ok": false
+    },
+    {
+      "command": "verify",
+      "options": [
+        "--out",
+        "--json"
+      ],
+      "exitCode": 3,
+      "ok": false
+    },
+    {
+      "command": "verify",
+      "options": [
+        "--out",
+        "--json"
+      ],
+      "exitCode": 3,
+      "ok": false
+    },
+    {
+      "command": "verify",
+      "options": [
+        "--out",
+        "--json"
+      ],
+      "exitCode": 3,
+      "ok": false
+    },
+    {
+      "command": "verify",
+      "options": [
+        "--out",
+        "--json"
+      ],
+      "exitCode": 3,
+      "ok": false
+    },
+    {
+      "command": "verify",
+      "options": [
+        "--out",
+        "--json"
+      ],
+      "exitCode": 3,
+      "ok": false
+    },
+    {
+      "command": "verify",
+      "options": [
+        "--out",
+        "--json"
+      ],
+      "exitCode": 3,
+      "ok": false
+    },
+    {
+      "command": "build",
+      "options": [
+        "--config",
+        "--sdk",
+        "--out",
+        "--json"
+      ],
+      "exitCode": 3,
+      "ok": false
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+name: Windows pinned Native
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: windows-2025
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: hustcer/setup-moonbit@v1.22
+        with:
+          version: '0.10.14+7d59c7ec9'
+          core-version: '0.10.14+7d59c7ec9'
+      - name: Fixed baseline
+        run: |
+          if (-not ((moon version) -match '0.1.20260920')) { throw 'Wrong Moon' }
+          if (-not ((moonc -v) -match 'v0.10.14\+7d59c7ec9')) { throw 'Wrong moonc' }
+          moon update
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Format, strict checks, tests and public interface
+        run: |
+          moon fmt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git diff --exit-code -- '*.mbt'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          moon check --target native --deny-warn --warn-list +73
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          moon test --target native --deny-warn
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          moon info --target native
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git diff --exit-code -- '*.mbti'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: CLI, packaging and production code gate
+        run: |
+          moon build --target native --release --deny-warn cmd/moonohos
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s tests -p test_count_production.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/count_production.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          moon package
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Real compiler containers and ASan
+        run: |
+          python scripts/verify_containers.py array_core array_bridge.cpp
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/verify_containers.py record_core record_bridge.cpp
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: host-evidence
+          path: _build/host-asan-v0.3/**/result.log

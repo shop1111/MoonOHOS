@@ -36,6 +36,8 @@ async fn build_cache_key(
   let entries : Array[@lib.ContentFingerprint] = []
   fingerprint_tree(staged, "source-and-dependencies", "", entries)
   fingerprint_tree(home + "/lib/core", "core", "", entries)
+  fingerprint_tree(sdk + "/sysroot/usr/include", "sdk-headers", "", entries)
+  fingerprint_tree(sdk + "/build", "sdk-build-configuration", "", entries)
   for file in @lib.runtime_files() {
     entries.push(
       @lib.fingerprint(

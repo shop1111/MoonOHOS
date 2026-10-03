@@ -50,6 +50,7 @@ fn make_generation_plan(project : Project) -> GenerationPlan raise ConfigError {
   let kinds = project.reachable_types()
   let types : Array[TypePlan] = []
   let symbols : Map[String, Bool] = Map([])
+  symbols["moonohos_initialize"] = true
   for index, kind in kinds {
     let symbol = "moonohos_type_" + index.to_string()
     types.push({
@@ -58,18 +59,35 @@ fn make_generation_plan(project : Project) -> GenerationPlan raise ConfigError {
       symbol,
       dependencies: direct_children(project, kind).map(k => type_index(kinds, k)),
     })
+    let suffixes = match kind {
+      List(_) => ["new", "push", "length", "get"]
+      Record(name) => {
+        let suffixes = ["new"]
+        for field_index in 0..<project.record_def(name).fields.length() {
+          suffixes.push("field_" + field_index.to_string())
+        }
+        suffixes
+      }
+      Scalar(_) => []
+    }
+    for suffix in suffixes {
+      symbols[symbol + "_" + suffix] = true
+      symbols["moonohos_raw_type_" + index.to_string() + "_" + suffix] = true
+    }
   }
   let calls : Array[CallPlan] = []
   for function in project.functions {
     let symbol = "moonohos_" + function.name
     if function.name.has_prefix("type_") ||
       function.name == "initialize" ||
-      symbols.contains(symbol) {
+      symbols.contains(symbol) ||
+      symbols.contains("moonohos_raw_" + function.name) {
       raise Invalid(
         "generation: reserved/colliding function symbol " + function.name,
       )
     }
     symbols[symbol] = true
+    symbols["moonohos_raw_" + function.name] = true
     let inputs = function.params.map(p => type_index(kinds, p.kind))
     let output = type_index(kinds, function.result)
     let bounded = function.params.any(p => {

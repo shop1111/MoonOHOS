@@ -5,6 +5,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import hashlib
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -57,6 +58,25 @@ def main():
     assert build("recovered")["cache"] == "miss"
     assert list((project / "_build/moonohos/cache").glob("*.corrupt-*"))
     run("verify", "--out", work / "recovered", "--json")
+    # Recompute file checksums after corrupting ELF metadata so these cases reach
+    # the binary parser rather than failing at the checksum gate.
+    library = work / "recovered/libs/x86_64/librecords.so"
+    original = library.read_bytes()
+    manifest_path = work / "recovered/manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    file_entry = next(f for f in manifest["files"] if f["path"].endswith("librecords.so"))
+    for offset, value, label in [(0, 0, "magic"), (4, 1, "class"), (5, 2, "endian"),
+                                  (16, 2, "executable"), (18, 183, "machine"), (47, 255, "section-offset")]:
+        data = bytearray(original)
+        data[offset] = value
+        library.write_bytes(data)
+        file_entry["sha256"] = hashlib.sha256(data).hexdigest()
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        report = run("verify", "--out", work / "recovered", "--json", code=3)
+        assert "elf:" in report["diagnostics"][0]["message"] or "architecture" in report["diagnostics"][0]["message"], label
+    library.write_bytes(original)
+    file_entry["sha256"] = hashlib.sha256(original).hexdigest()
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     library = work / "recovered/libs/x86_64/librecords.so"
     data = bytearray(library.read_bytes())
     data[-1] ^= 1

@@ -5,6 +5,29 @@ pub struct ElfInfo {
   imports : Array[String]
   exports : Array[String]
   soname : String?
+  segments : Array[ElfSegment]
+}
+
+///|
+pub struct ElfSegment {
+  offset : Int
+  file_size : Int
+  memory_size : UInt64
+  address : UInt64
+  flags : Int
+  alignment : UInt64
+}
+
+///|
+pub fn ElfSegment::to_json(self : ElfSegment) -> Json {
+  {
+    "offset": self.offset,
+    "fileSize": self.file_size,
+    "memorySize": self.memory_size.to_string(),
+    "address": self.address.to_string(),
+    "flags": self.flags,
+    "alignment": self.alignment.to_string(),
+  }
 }
 
 ///|
@@ -14,6 +37,8 @@ priv struct ElfSection {
   size : Int
   link : Int
   entry_size : Int
+  address : UInt64
+  flags : UInt64
 }
 
 ///|
@@ -96,6 +121,8 @@ fn elf_sections(bytes : Bytes) -> Array[ElfSection] raise ConfigError {
       size: elf_offset(bytes, start + 32, 8),
       link: elf_offset(bytes, start + 40, 4),
       entry_size: elf_offset(bytes, start + 56, 8),
+      address: elf_word(bytes, start + 16, 8),
+      flags: elf_word(bytes, start + 8, 8),
     }
     if section.kind != 8 {
       binary_range(bytes, section.offset, section.size)
@@ -103,6 +130,47 @@ fn elf_sections(bytes : Bytes) -> Array[ElfSection] raise ConfigError {
     sections.push(section)
   }
   sections
+}
+
+///|
+fn verify_section_mapping(
+  sections : Array[ElfSection],
+  segments : Array[ElfSegment],
+) -> Unit raise ConfigError {
+  for section in sections {
+    if section.size == 0 || (section.flags & 2UL) == 0UL {
+      continue
+    }
+    let size = section.size.to_uint64()
+    if section.address > 0xffffffffffffffffUL - size {
+      raise Invalid("elf: section virtual address overflow")
+    }
+    let mut mapped = false
+    for segment in segments {
+      if section.address >= segment.address &&
+        section.address - segment.address <= segment.memory_size &&
+        size <= segment.memory_size - (section.address - segment.address) {
+        if section.kind != 8 {
+          if section.offset < segment.offset ||
+            section.offset - segment.offset > segment.file_size ||
+            section.size > segment.file_size - (section.offset - segment.offset) {
+            continue
+          }
+        }
+        if (section.flags & 4UL) != 0UL && (segment.flags & 1) == 0 {
+          raise Invalid("elf: executable section in a non-executable segment")
+        }
+        if (section.flags & 1UL) != 0UL && (segment.flags & 2) == 0 {
+          raise Invalid("elf: writable section in a read-only segment")
+        }
+        mapped = true
+        break
+      }
+    }
+    if !mapped {
+      raise Invalid("elf: allocated section is outside mapped segments")
+    }
+  }
 }
 
 ///|
@@ -121,7 +189,7 @@ fn linked_strings(
 }
 
 ///|
-fn inspect_programs(bytes : Bytes) -> Unit raise ConfigError {
+fn inspect_programs(bytes : Bytes) -> Array[ElfSegment] raise ConfigError {
   let offset = elf_offset(bytes, 32, 8)
   let entry_size = elf_offset(bytes, 54, 2)
   let count = elf_offset(bytes, 56, 2)
@@ -130,6 +198,9 @@ fn inspect_programs(bytes : Bytes) -> Unit raise ConfigError {
   }
   binary_range(bytes, offset, count * entry_size)
   let mut dynamic = false
+  let segments : Array[ElfSegment] = []
+  let mut executable = false
+  let mut writable = false
   for index in 0..<count {
     let start = offset + index * entry_size
     let kind = elf_offset(bytes, start, 4)
@@ -142,10 +213,47 @@ fn inspect_programs(bytes : Bytes) -> Unit raise ConfigError {
     if kind == 2 {
       dynamic = true
     }
+    if kind == 1 {
+      let segment : ElfSegment = {
+        offset: file_offset,
+        file_size,
+        memory_size: elf_word(bytes, start + 40, 8),
+        address: elf_word(bytes, start + 16, 8),
+        flags: elf_offset(bytes, start + 4, 4),
+        alignment: elf_word(bytes, start + 48, 8),
+      }
+      if segment.memory_size < file_size.to_uint64() {
+        raise Invalid("elf: file image exceeds mapped segment")
+      }
+      if segment.flags > 7 || (segment.flags & 3) == 3 {
+        raise Invalid("elf: invalid or writable executable segment")
+      }
+      let alignment = segment.alignment
+      if alignment > 1UL {
+        if (alignment & (alignment - 1UL)) != 0UL ||
+          segment.address % alignment != file_offset.to_uint64() % alignment {
+          raise Invalid("elf: invalid load segment alignment")
+        }
+      }
+      if segment.address > 0xffffffffffffffffUL - segment.memory_size {
+        raise Invalid("elf: virtual address overflow")
+      }
+      if (segment.flags & 1) != 0 {
+        executable = true
+      }
+      if (segment.flags & 2) != 0 {
+        writable = true
+      }
+      segments.push(segment)
+    }
   }
   if !dynamic {
     raise Invalid("elf: shared library has no dynamic program segment")
   }
+  if !executable || !writable {
+    raise Invalid("elf: missing executable or writable load segment")
+  }
+  segments
 }
 
 ///|
@@ -167,8 +275,9 @@ pub fn inspect_elf(bytes : Bytes) -> ElfInfo raise ConfigError {
     62 => "x86_64"
     _ => raise Invalid("elf: unsupported machine architecture")
   }
-  inspect_programs(bytes)
+  let segments = inspect_programs(bytes)
   let sections = elf_sections(bytes)
+  verify_section_mapping(sections, segments)
   let dependencies : Array[String] = []
   let imports : Array[String] = []
   let exports : Array[String] = []
@@ -248,7 +357,7 @@ pub fn inspect_elf(bytes : Bytes) -> ElfInfo raise ConfigError {
       )
     }
   }
-  { abi, dependencies, imports, exports, soname, }
+  { abi, dependencies, imports, exports, soname, segments, }
 }
 
 ///|
@@ -259,5 +368,6 @@ pub fn ElfInfo::to_json(self : ElfInfo) -> Json {
     "imports": self.imports.to_json(),
     "exports": self.exports.to_json(),
     "soname": self.soname.to_json(),
+    "segments": self.segments.map(s => s.to_json()).to_json(),
   }
 }

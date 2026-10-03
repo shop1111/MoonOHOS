@@ -29,7 +29,7 @@ struct Value {
 using napi_value = Value *;
 struct Call { std::vector<napi_value> args; };
 using napi_callback_info = Call *;
-struct Env { std::string exception; int operations = 0; int fail_at = -1; bool pending = false; Value result; Value buffer; size_t exports = 0; std::vector<std::unique_ptr<Value>> arena; };
+struct Env { std::string exception; std::string message; int operations = 0; int fail_at = -1; bool pending = false; Value result; Value buffer; size_t exports = 0; std::vector<std::unique_ptr<Value>> arena; };
 using napi_env = Env *;
 using napi_callback = napi_value (*)(napi_env, napi_callback_info);
 struct napi_property_descriptor {
@@ -43,9 +43,9 @@ inline napi_status Step(napi_env e) {
   }
   return napi_ok;
 }
-inline napi_status napi_throw_error(napi_env e, const char *, const char *) { e->exception = "Error"; return napi_ok; }
-inline napi_status napi_throw_type_error(napi_env e, const char *, const char *) { e->exception = "TypeError"; return napi_ok; }
-inline napi_status napi_throw_range_error(napi_env e, const char *, const char *) { e->exception = "RangeError"; return napi_ok; }
+inline napi_status napi_throw_error(napi_env e, const char *, const char *message) { e->exception = "Error"; e->message = message; return napi_ok; }
+inline napi_status napi_throw_type_error(napi_env e, const char *, const char *message) { e->exception = "TypeError"; e->message = message; return napi_ok; }
+inline napi_status napi_throw_range_error(napi_env e, const char *, const char *message) { e->exception = "RangeError"; e->message = message; return napi_ok; }
 inline napi_status napi_get_cb_info(napi_env e, napi_callback_info info, size_t *argc, napi_value *argv, napi_value *, void **) {
   auto status = Step(e); if (status != napi_ok) return status;
   size_t count = *argc < info->args.size() ? *argc : info->args.size();
@@ -135,7 +135,7 @@ inline std::shared_ptr<Value> Clone(const Value &value) {
   if (value.buffer) { result->buffer_owner = Clone(*value.buffer); result->buffer = result->buffer_owner.get(); }
   return result;
 }
-inline std::string Key(napi_value v) { return std::string(v->text.begin(), v->text.end()); }
+inline std::string Key(napi_value v) { std::string result; for (char16_t unit : v->text) result.push_back(static_cast<char>(unit)); return result; }
 inline napi_status napi_create_string_utf8(napi_env e, const char *data, size_t size, napi_value *out) {
   auto s = Step(e); if (s != napi_ok) return s;
   Value v; v.type = napi_string; v.text.assign(data, data + size); *out = Allocate(e, std::move(v)); return s;

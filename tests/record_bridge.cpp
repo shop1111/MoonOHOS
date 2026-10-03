@@ -34,6 +34,10 @@ int main() {
   assert(Invoke(Call_select_box, {&box, &box}).properties.at("label")->text == box.properties.at("label")->text);
   auto summary = Invoke(Call_summarize, {&boxes}); assert(summary.properties.at("count")->number == 2 && summary.properties.at("total")->number == 84);
   Value missing = box; missing.properties.erase("meta"); Reject(Call_echo_box, {&missing}, "TypeError");
+  { Env e; Call call{{&missing}}; assert(!Call_echo_box(&e, &call)); assert(e.message.find("echo_box.v.meta") != std::string::npos); }
+  auto independent = Invoke(Call_echo_boxes, {&boxes});
+  independent.elements[0]->properties.at("meta")->properties.at("active")->boolean = false;
+  assert(independent.elements[1]->properties.at("meta")->properties.at("active")->boolean);
   Value wrong = box; wrong.properties["label"] = Clone(Number(7)); Reject(Call_select_box, {&box, &wrong}, "TypeError");
   Value null_value; null_value.type = napi_object; null_value.null_value = true; Reject(Call_echo_box, {&null_value}, "TypeError");
   Value shared = box; shared.sendable = true; Reject(Call_echo_box, {&shared}, "TypeError");

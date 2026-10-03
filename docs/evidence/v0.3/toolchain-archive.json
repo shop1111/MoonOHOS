@@ -1,0 +1,22 @@
+{
+  "archive": "https://cli.moonbitlang.com/binaries/0.10.14%2B7d59c7ec9/moonbit-windows-x86_64.zip",
+  "archiveSha256": "faae225a8287d0ce69e44b5b3f754af988e97f4446056d8f32ceb3ddb998fce7",
+  "files": {
+    "bin/moon.exe": {
+      "sha256": "b08924405369790f8180accd1e0fbafaa328eac0146c5fe2c25f3a44d5b0bcff",
+      "matchesLocal": true
+    },
+    "bin/moonc.exe": {
+      "sha256": "6b3a1dcc9ff45face804e0aab361277baeb463f841aa99be7944c61bd13f2bbb",
+      "matchesLocal": true
+    },
+    "include/moonbit.h": {
+      "sha256": "c713a6a0f3f5f73508099bc5678ca3c1171ea988da01fb8463cfd98469a7fd8d",
+      "matchesLocal": true
+    },
+    "lib/runtime/runtime.c": {
+      "sha256": "53f2aa0bb98eb4aecc6de35b82ca15eb250e0a52b5c1ad7333517d4745b76eca",
+      "matchesLocal": true
+    }
+  }
+}

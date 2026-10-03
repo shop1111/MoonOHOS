@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $taskRoot = Split-Path -Parent $PSScriptRoot
 if (-not $Hap) { $Hap = Join-Path $taskRoot 'examples/harmony/entry/build/default/outputs/default/entry-default-unsigned.hap' }
-if (-not $Evidence) { $Evidence = Join-Path $taskRoot '_build/validation-v0.2' }
+if (-not $Evidence) { $Evidence = Join-Path $taskRoot '_build/validation-v0.3' }
 New-Item -ItemType Directory -Force -Path $Evidence | Out-Null
 function Invoke-Device([string[]]$Arguments) {
   $taskStart = [Diagnostics.ProcessStartInfo]::new()
@@ -46,7 +46,7 @@ for ($taskRestart = 1; $taskRestart -le 2; $taskRestart++) {
   for ($taskAttempt = 0; $taskAttempt -lt 20; $taskAttempt++) {
     Start-Sleep -Seconds 1
     $taskLogs = Invoke-Device @('shell', 'hilog', '-x', '-T', 'MoonOHOS')
-    $taskMarkers = @($taskLogs -split "`n" | Where-Object { $_ -match 'MOONOHOS_RUNTIME_PASS version=0.2.0 add=42 scalar_checks=13 reference_checks=14 repeated_calls=1000' })
+    $taskMarkers = @($taskLogs -split "`n" | Where-Object { $_ -match 'MOONOHOS_RUNTIME_PASS version=0.3.0 add=42 scalar_checks=13 reference_checks=14 container_checks=10 repeated_calls=1000' })
     $taskLatest = @($taskMarkers | Select-Object -Last 1) -join ''
     if ($taskLatest -and $taskLatest -ne $taskPrevious) {
       $taskPrevious = $taskLatest

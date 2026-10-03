@@ -24,7 +24,7 @@ results = []
 source_hash = hashlib.sha256((run / "计算 库/core.mbt").read_bytes()).hexdigest()
 
 def execute(label, extra=(), success=True):
-    result = subprocess.run([str(cli), "build", "--config", str(config), "--sdk", str(sdk), *extra], capture_output=True, encoding="utf-8", timeout=120)
+    result = subprocess.run([str(cli), "build", "--config", str(config), "--sdk", str(sdk), "--json", *extra], capture_output=True, encoding="utf-8", timeout=120)
     (run / (label + ".log")).write_text(result.stdout + result.stderr, encoding="utf-8")
     assert (result.returncode == 0) == success, (label, result.stdout, result.stderr)
     results.append({"case": label, "passed": True, "exit": result.returncode})
@@ -37,7 +37,7 @@ package = run / "_build/moonohos/dist"
 manifest = json.loads((package / "manifest.json").read_text(encoding="utf-8"))
 assert [r["abi"] for r in manifest["results"]] == ["arm64-v8a", "x86_64"]
 assert all(r["runtime"] == "not_run" for r in manifest["results"])
-assert manifest["moonohosVersion"] == "0.2.0"
+assert manifest["moonohosVersion"] == "0.3.0"
 assert "Uint8Array" in (package / "types/libmoonohos/index.d.ts").read_text(encoding="utf-8")
 for abi, machine in [("arm64-v8a", 183), ("x86_64", 62)]:
     data = (package / "libs" / abi / "libmoonohos.so").read_bytes()
@@ -52,9 +52,9 @@ execute("existing-output", success=False)
 execute("unknown-abi", ["--abi", "wasm"], success=False)
 execute("duplicate-abi", ["--abi", "x86_64,x86_64"], success=False)
 bad = json.loads(json.dumps(seed))
-bad["functions"][0]["return"] = "Array[Int]"
+bad["functions"][0]["return"] = "Array[Unknown]"
 config.write_text(json.dumps(bad), encoding="utf-8")
-assert "unsupported type" in execute("unsupported-type", success=False)
+assert "undeclared record" in execute("unsupported-type", success=False)
 bad = json.loads(json.dumps(seed))
 bad["functions"][0]["params"][0]["type"] = "Double"
 config.write_text(json.dumps(bad), encoding="utf-8")
@@ -69,7 +69,7 @@ matrix = json.loads((run / "混合 类型/moonohos.json").read_text(encoding="ut
 matrix["module"] = "混合 类型"
 config.write_text(json.dumps(matrix, ensure_ascii=False), encoding="utf-8")
 output = execute("reference-return-matrix", ["--abi", "x86_64", "--out", "matrix-dist"])
-work = next(line.removeprefix("Evidence: ") for line in output.splitlines() if line.startswith("Evidence: "))
+work = json.loads(output)["result"]["evidence"]
 subprocess.run([sys.executable, str(root / "scripts/verify_host.py"), work, "matrix_bridge.cpp"], check=True)
 results.append({"case": "reference-matrix-asan", "passed": True})
 hap = root / "examples/harmony/entry/build/default/outputs/default/entry-default-unsigned.hap"

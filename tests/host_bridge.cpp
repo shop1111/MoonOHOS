@@ -2,6 +2,9 @@
 #include <cassert>
 #include <limits>
 #include <iostream>
+#ifndef MOONOHOS_EXPECTED_EXPORTS
+#define MOONOHOS_EXPECTED_EXPORTS 9
+#endif
 extern "C" size_t moonohos_live_allocations(void);
 
 static Value Text(std::u16string text) { Value v; v.type = napi_string; v.text = std::move(text); return v; }
@@ -82,7 +85,7 @@ int main() {
   Env pending; pending.fail_at = 0; pending.pending = true;
   assert(Call_add(&pending, &two) == nullptr && pending.exception == "PendingException");
   Value exports;
-  assert(Init(&env, &exports) == &exports && env.exports == 9);
+  assert(Init(&env, &exports) == &exports && env.exports == MOONOHOS_EXPECTED_EXPORTS);
   Env registration; registration.fail_at = 0;
   assert(Init(&registration, &exports) == nullptr && registration.exception == "Error");
   for (int i = 0; i < 10000; ++i) assert(Call_add(&env, &two)->number == 42);

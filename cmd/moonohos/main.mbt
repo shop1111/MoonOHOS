@@ -3,7 +3,7 @@ extern "C" fn native_exit(code : Int) -> Unit = "exit"
 
 ///|
 fn usage() -> String {
-  "MoonOHOS 0.2.0\nmoonohos build [--config moonohos.json] --sdk <SDK> [--abi arm64-v8a,x86_64] [--out <directory>] [--dry-run]\n"
+  "MoonOHOS 0.3.0\nmoonohos build [--config moonohos.json] --sdk <SDK> [--abi arm64-v8a,x86_64] [--out <directory>] [--dry-run] [--cache] [--json]\n"
 }
 
 ///|
@@ -61,6 +61,7 @@ async fn build(
     { "apiVersion": "26", .. } => ()
     _ => raise Failure("toolchain: only SDK API 26 is verified")
   }
+  doctor(@lib.parse_cli(["doctor"])) |> ignore
   let moon_version = command("toolchain", "moon", ["version"], base)
   let compiler_version = command("toolchain", "moonc", ["-v"], base)
   if !moon_version.contains("0.1.20260920") ||
@@ -252,7 +253,7 @@ async fn build(
   write(types + "/index.d.ts", artifacts.declarations)
   let type_manifest : Json = {
     "name": "lib" + config.native_module + ".so",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "types": "./index.d.ts",
   }
   write(types + "/oh-package.json5", type_manifest.stringify(indent=2))
@@ -266,7 +267,7 @@ async fn build(
   write(package_dir + "/cmake/MoonOHOS.cmake", imported)
   let manifest : Json = {
     "schema": "moonohos-build-v1",
-    "moonohosVersion": "0.2.0",
+    "moonohosVersion": "0.3.0",
     "module": config.native_module,
     "moon": moon_version.trim().to_owned(),
     "moonc": compiler_version.trim().to_owned(),
@@ -290,7 +291,7 @@ async fn build(
     config.native_module +
     " into entry/src/main/cpp/types/ and declare the local dependency in entry/oh-package.json5. Import lib" +
     config.native_module +
-    ".so from ArkTS. The CMake import is optional and does not package the library into a HAP.\n\nSynchronous scalar, String and Bytes functions. String uses length-delimited UTF-16 and preserves NUL and surrogate code units. Bytes accepts ordinary, attached Uint8Array views only. Input and output are copied; returned arrays are independent. ArrayBuffer, DataView, other typed arrays and shared buffers are unsupported.\n\nReference arguments are borrowed and reference results own one reference in the pinned compiler ABI. Buffers and references are released on failure. MoonBit panic or runtime allocation failure may terminate the process; typed MoonBit errors are unsupported. Runtime not verified by build.\n\nKeep NOTICE.NativeSDK.txt and NOTICE.MoonBit.txt with distributed libraries. Add the license of your own MoonBit code.\n",
+    ".so from ArkTS. The CMake import is optional and does not package the library into a HAP.\n\nSynchronous scalar, String, Bytes, Array and Struct functions. Arrays must be ordinary dense non-Sendable arrays. Records require own fields; extra fields are ignored. Containers are acyclic and bounded to depth 32, 1048576 nodes and 64 MiB copied data per conversion. All containers are copied. String uses length-delimited UTF-16 and preserves NUL and surrogate code units. Bytes accepts ordinary, attached Uint8Array views only. Input and output are copied; returned arrays are independent. ArrayBuffer, DataView, other typed arrays and shared buffers are unsupported.\n\nReference arguments are borrowed and reference results own one reference in the pinned compiler ABI. Buffers and references are released on failure. MoonBit panic or runtime allocation failure may terminate the process; typed MoonBit errors are unsupported. Runtime not verified by build.\n\nKeep NOTICE.NativeSDK.txt and NOTICE.MoonBit.txt with distributed libraries. Add the license of your own MoonBit code.\n",
   )
   if @fs.exists(out) {
     raise Failure(
@@ -354,7 +355,7 @@ async fn main {
         return
       }
       Version => {
-        println("MoonOHOS 0.2.0")
+        println("MoonOHOS 0.3.0")
         return
       }
       Build =>

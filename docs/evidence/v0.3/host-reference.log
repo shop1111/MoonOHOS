@@ -1,0 +1,2 @@
+HOST_BRIDGE_PASS scalar/bounds/type/status/registration/repeat=10000
+HOST_REFERENCE_PASS utf16/bytes/alias/status/allocation/repeat=10000 live_delta=0

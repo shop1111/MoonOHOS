@@ -4,14 +4,191 @@
   "package": "moonohos/demo",
   "nativeModule": "moonohos",
   "functions": [
-    {"name": "add", "params": [{"name": "left", "type": "Int"}, {"name": "right", "type": "Int"}], "return": "Int"},
-    {"name": "scale", "params": [{"name": "value", "type": "Double"}, {"name": "factor", "type": "Double"}], "return": "Double"},
-    {"name": "negate", "params": [{"name": "value", "type": "Bool"}], "return": "Bool"},
-    {"name": "ping", "params": [], "return": "Unit"},
-    {"name": "echo_text", "params": [{"name": "value", "type": "String"}], "return": "String"},
-    {"name": "join_text", "params": [{"name": "left", "type": "String"}, {"name": "right", "type": "String"}], "return": "String"},
-    {"name": "echo_bytes", "params": [{"name": "value", "type": "Bytes"}], "return": "Bytes"},
-    {"name": "concat_bytes", "params": [{"name": "left", "type": "Bytes"}, {"name": "right", "type": "Bytes"}], "return": "Bytes"},
-    {"name": "describe_bytes", "params": [{"name": "label", "type": "String"}, {"name": "value", "type": "Bytes"}], "return": "String"}
+    {
+      "name": "add",
+      "params": [
+        {
+          "name": "left",
+          "type": "Int"
+        },
+        {
+          "name": "right",
+          "type": "Int"
+        }
+      ],
+      "return": "Int"
+    },
+    {
+      "name": "scale",
+      "params": [
+        {
+          "name": "value",
+          "type": "Double"
+        },
+        {
+          "name": "factor",
+          "type": "Double"
+        }
+      ],
+      "return": "Double"
+    },
+    {
+      "name": "negate",
+      "params": [
+        {
+          "name": "value",
+          "type": "Bool"
+        }
+      ],
+      "return": "Bool"
+    },
+    {
+      "name": "ping",
+      "params": [],
+      "return": "Unit"
+    },
+    {
+      "name": "echo_text",
+      "params": [
+        {
+          "name": "value",
+          "type": "String"
+        }
+      ],
+      "return": "String"
+    },
+    {
+      "name": "join_text",
+      "params": [
+        {
+          "name": "left",
+          "type": "String"
+        },
+        {
+          "name": "right",
+          "type": "String"
+        }
+      ],
+      "return": "String"
+    },
+    {
+      "name": "echo_bytes",
+      "params": [
+        {
+          "name": "value",
+          "type": "Bytes"
+        }
+      ],
+      "return": "Bytes"
+    },
+    {
+      "name": "concat_bytes",
+      "params": [
+        {
+          "name": "left",
+          "type": "Bytes"
+        },
+        {
+          "name": "right",
+          "type": "Bytes"
+        }
+      ],
+      "return": "Bytes"
+    },
+    {
+      "name": "describe_bytes",
+      "params": [
+        {
+          "name": "label",
+          "type": "String"
+        },
+        {
+          "name": "value",
+          "type": "Bytes"
+        }
+      ],
+      "return": "String"
+    },
+    {
+      "name": "echo_samples",
+      "params": [
+        {
+          "name": "samples",
+          "type": "Array[Sample]"
+        }
+      ],
+      "return": "Array[Sample]"
+    },
+    {
+      "name": "analyze_samples",
+      "params": [
+        {
+          "name": "samples",
+          "type": "Array[Sample]"
+        }
+      ],
+      "return": "Analysis"
+    }
+  ],
+  "types": [
+    {
+      "name": "SampleMeta",
+      "fields": [
+        {
+          "name": "active",
+          "type": "Bool"
+        },
+        {
+          "name": "source",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "name": "Sample",
+      "fields": [
+        {
+          "name": "label",
+          "type": "String"
+        },
+        {
+          "name": "values",
+          "type": "Array[Double]"
+        },
+        {
+          "name": "meta",
+          "type": "SampleMeta"
+        },
+        {
+          "name": "bytes",
+          "type": "Bytes"
+        }
+      ]
+    },
+    {
+      "name": "Analysis",
+      "fields": [
+        {
+          "name": "count",
+          "type": "Int"
+        },
+        {
+          "name": "total",
+          "type": "Double"
+        },
+        {
+          "name": "labels",
+          "type": "Array[String]"
+        },
+        {
+          "name": "groups",
+          "type": "Array[Array[Double]]"
+        },
+        {
+          "name": "meta",
+          "type": "SampleMeta"
+        }
+      ]
+    }
   ]
 }
