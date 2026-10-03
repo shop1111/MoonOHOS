@@ -16,7 +16,8 @@ async fn build(
 ) -> Unit {
   let config_path = normalized(@fs.realpath(config_path))
   let base = parent(config_path)
-  let config = @lib.parse_config(read(config_path))
+  let config = @lib.parse_project(read(config_path))
+  config.validate()
   let module_root = normalized(@fs.realpath(resolve(base, config.module_dir)))
   let (module_name, source_dir) = module_metadata(module_root)
   if config.package_name != module_name &&
@@ -86,20 +87,7 @@ async fn build(
       raise Failure("toolchain: missing " + tool)
     }
   }
-  println(
-    "MoonOHOS: " +
-    config.package_name +
-    " -> lib" +
-    config.native_module +
-    ".so [" +
-    abi_text +
-    "]",
-  )
   if dry_run {
-    println(
-      "Validated config/toolchain. Steps: stage -> interface check -> moonc C emission -> OHOS CMake -> ELF inspection -> publish " +
-      out,
-    )
     return
   }
   if @fs.exists(out) {
@@ -113,6 +101,8 @@ async fn build(
     sequence += 1
   }
   let work = base + "/_build/moonohos/work-" + sequence.to_string()
+  command_logs.val = Some(work + "/commands")
+  let artifacts = config.generate()
   let staged = work + "/module"
   copy_tree(module_root, staged, module_tree=true)
   reject_stubs(staged)
@@ -126,12 +116,11 @@ async fn build(
   reject_stubs(staged + "/.mooncakes") catch {
     error => if @fs.exists(staged + "/.mooncakes") { raise error }
   }
-  @lib.verify_interface(
-    config,
+  config.verify_interface(
     read(source + "/" + package_relative + "/pkg.generated.mbti"),
   )
-  write(bridge + "/moon.pkg", @lib.wrapper_package(config))
-  write(bridge + "/main.mbt", @lib.wrapper_source(config))
+  write(bridge + "/moon.pkg", artifacts.package_file)
+  write(bridge + "/main.mbt", artifacts.wrapper)
   let plan = command(
     "plan",
     "moon",
@@ -170,14 +159,13 @@ async fn build(
   )
   let generated = work + "/native"
   write(generated + "/core.c", read(c_output))
-  write(generated + "/moonohos.h", @lib.c_header(config))
-  write(generated + "/embed.c", @lib.embed_source(config))
-  write(generated + "/napi_init.cpp", @lib.native_source(config))
-  write(generated + "/CMakeLists.txt", @lib.cmake_source(config))
+  write(generated + "/moonohos.h", artifacts.header)
+  write(generated + "/embed.c", artifacts.embed)
+  write(generated + "/napi_init.cpp", artifacts.native)
+  write(generated + "/CMakeLists.txt", artifacts.cmake)
   let package_dir = work + "/dist"
   let results : Array[Json] = []
   for abi in abis {
-    println("Building " + abi)
     let build_dir = work + "/cmake-" + abi
     let configure = command(
       "cmake-configure/" + abi,
@@ -239,7 +227,7 @@ async fn build(
     })
   }
   let types = package_dir + "/types/lib" + config.native_module
-  write(types + "/index.d.ts", @lib.declarations(config))
+  write(types + "/index.d.ts", artifacts.declarations)
   let type_manifest : Json = {
     "name": "lib" + config.native_module + ".so",
     "version": "0.2.0",
@@ -262,7 +250,7 @@ async fn build(
     "moonc": compiler_version.trim().to_owned(),
     "sdkApi": 26,
     "results": results.to_json(),
-    "functions": config.functions.map(f => @lib.signature(f)).to_json(),
+    "functions": config.functions.map(f => f.signature()).to_json(),
   }
   write(package_dir + "/manifest.json", manifest.stringify(indent=2))
   write(package_dir + "/NOTICE.NativeSDK.txt", read(native + "/NOTICE.txt"))
@@ -289,13 +277,6 @@ async fn build(
   }
   ensure_dir(parent(out))
   @fs.rename(package_dir, out)
-  println(
-    "Built Native package: " +
-    out +
-    "\nEvidence: " +
-    work +
-    "\nHarmonyOS runtime: not run",
-  )
 }
 
 ///|

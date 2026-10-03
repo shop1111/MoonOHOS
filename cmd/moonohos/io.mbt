@@ -47,36 +47,6 @@ async fn ensure_dir(path : String) -> Unit {
 }
 
 ///|
-async fn command(
-  stage : String,
-  exe : String,
-  args : Array[String],
-  cwd : String,
-) -> String {
-  let (code, stdout, stderr) = @process.collect_output(
-    exe,
-    args,
-    cwd~,
-    extra_env={ "MOONBIT_NEW_NATIVE": "0" },
-    no_console_window=true,
-  ) catch {
-    error =>
-      raise Failure(stage + ": cannot start " + exe + ": " + error.to_string())
-  }
-  if code != 0 {
-    raise Failure(
-      stage +
-      " (exit " +
-      code.to_string() +
-      "):\n" +
-      stdout.text() +
-      stderr.text(),
-    )
-  }
-  stdout.text()
-}
-
-///|
 async fn copy_tree(from : String, to : String, module_tree~ : Bool) -> Unit {
   ensure_dir(to)
   for name in @fs.readdir(from, include_hidden=true, sort=true) {
