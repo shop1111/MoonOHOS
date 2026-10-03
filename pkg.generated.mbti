@@ -124,6 +124,7 @@ pub struct Project {
 pub fn Project::business_adapters(Self) -> String raise ConfigError
 pub fn Project::business_header(Self) -> String raise ConfigError
 pub fn Project::business_wrapper(Self) -> String raise ConfigError
+pub fn Project::generate(Self) -> GeneratedArtifacts raise ConfigError
 pub fn Project::generate_arrays(Self) -> GeneratedArtifacts raise ConfigError
 pub fn Project::generation_plan(Self) -> Json raise ConfigError
 pub fn Project::reachable_types(Self) -> Array[TypeExpr] raise ConfigError

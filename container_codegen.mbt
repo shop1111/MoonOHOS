@@ -52,8 +52,10 @@ fn accessor_definitions(
           expression: "v[i]",
         })
       }
-      Record(name) =>
-        raise Invalid("generation: record backend is not enabled: " + name)
+      Record(_) =>
+        for accessor in record_accessors(plan.project, type_) {
+          result.push(accessor)
+        }
       Scalar(_) => ()
     }
   }
@@ -61,7 +63,7 @@ fn accessor_definitions(
 }
 
 ///|
-fn cpp_reader(type_ : TypePlan) -> String {
+fn cpp_reader(type_ : TypePlan, project : Project) -> String raise ConfigError {
   let index = type_.index.to_string()
   let mut source = "static bool Read_" +
     index +
@@ -69,8 +71,8 @@ fn cpp_reader(type_ : TypePlan) -> String {
   match type_.kind {
     Scalar(kind) => {
       let (wanted, reader, slot, width) = match kind {
-        Int32 => ("napi_number", "ReadInt", "integer", "sizeof(int32_t)")
-        Float64 => ("napi_number", "ReadNumber", "number", "sizeof(double)")
+        Int32 => ("napi_number", "ReadInteger", "integer", "sizeof(int32_t)")
+        Float64 => ("napi_number", "ReadFinite", "number", "sizeof(double)")
         Boolean => ("napi_boolean", "ReadBool", "integer", "sizeof(int32_t)")
         Text =>
           (
@@ -83,12 +85,20 @@ fn cpp_reader(type_ : TypePlan) -> String {
         source += "  if (!LeafType(env, value, " +
           wanted +
           ", path)) return false;\n"
+        if kind == Text || kind == Binary {
+          source += "  if (!" +
+            (if kind == Text { "PrepareText" } else { "PrepareBytes" }) +
+            "(env, value, budget, depth, path)) return false;\n"
+        }
         source += "  if (!" +
           reader +
           "(env, value, out." +
           slot +
+          (if kind == Int32 || kind == Float64 { ", path" } else { "" }) +
           ")) return false;\n"
-        source += "  budget.add(0, " + width + ", depth, path);\n"
+        if kind != Text && kind != Binary {
+          source += "  budget.add(0, " + width + ", depth, path);\n"
+        }
       }
     }
     List(_) => {
@@ -97,7 +107,7 @@ fn cpp_reader(type_ : TypePlan) -> String {
         child +
         "(env, child, out.children[i], budget, ancestors, depth + 1, child_path)) return false;\n  }\n"
     }
-    Record(_) => ()
+    Record(_) => source += record_reader(type_, project)
   }
   source + "  return true;\n}\n"
 }
@@ -140,13 +150,17 @@ fn cpp_make(type_ : TypePlan, types : Array[TypePlan]) -> String {
       }
       source += "  }\n  auto pointer = result.ptr; result.ptr = nullptr; return pointer;\n"
     }
-    Record(_) => ()
+    Record(_) => source += record_maker(type_, types)
   }
   source + "}\n"
 }
 
 ///|
-fn cpp_copy(type_ : TypePlan, types : Array[TypePlan]) -> String {
+fn cpp_copy(
+  type_ : TypePlan,
+  types : Array[TypePlan],
+  project : Project,
+) -> String raise ConfigError {
   let index = type_.index.to_string()
   let mut source = "static BridgeValue Copy_" +
     index +
@@ -188,13 +202,13 @@ fn cpp_copy(type_ : TypePlan, types : Array[TypePlan]) -> String {
       }
       source += "  }\n"
     }
-    Record(_) => ()
+    Record(_) => source += record_copier(type_, project, types)
   }
   source + "  return out;\n}\n"
 }
 
 ///|
-fn cpp_create(type_ : TypePlan) -> String {
+fn cpp_create(type_ : TypePlan, project : Project) -> String raise ConfigError {
   let index = type_.index.to_string()
   let mut source = "static bool Create_" +
     index +
@@ -216,7 +230,7 @@ fn cpp_create(type_ : TypePlan) -> String {
       source += "  if (!Check(env, napi_create_array_with_length(env, value.children.size(), &result))) return false;\n  for (size_t i = 0; i < value.children.size(); ++i) {\n    napi_value child;\n    if (!Create_" +
         type_.dependencies[0].to_string() +
         "(env, value.children[i], child)) return false;\n    if (!Check(env, napi_set_element(env, result, static_cast<uint32_t>(i), child))) return false;\n  }\n  return true;\n"
-    Record(_) => ()
+    Record(_) => source += record_creator(type_, project)
   }
   source + "}\n"
 }
@@ -308,7 +322,7 @@ fn cpp_callback(call : CallPlan, types : Array[TypePlan]) -> String {
 }
 
 ///|
-pub fn Project::generate_arrays(
+pub fn Project::generate(
   self : Project,
 ) -> GeneratedArtifacts raise ConfigError {
   let plan = make_generation_plan(self)
@@ -345,11 +359,11 @@ pub fn Project::generate_arrays(
   let mut native = native_prelude() + container_runtime()
   for type_ in plan.types {
     if type_.kind != Scalar(Void) {
-      native += cpp_reader(type_) +
+      native += cpp_reader(type_, self) +
         cpp_make(type_, plan.types) +
-        cpp_copy(type_, plan.types)
+        cpp_copy(type_, plan.types, self)
     }
-    native += cpp_create(type_)
+    native += cpp_create(type_, self)
   }
   for call in plan.calls {
     native += cpp_callback(call, plan.types)
@@ -365,7 +379,8 @@ pub fn Project::generate_arrays(
   native += "}; if (!Check(env, napi_define_properties(env, exports, sizeof(properties) / sizeof(properties[0]), properties))) return nullptr; return exports; }\nNAPI_MODULE(" +
     self.native_module +
     ", Init)\n"
-  let declarations = self.functions
+  let declarations = record_declarations(self) +
+    self.functions
     .map(f => {
       "export const " +
       f.name +
@@ -391,4 +406,11 @@ pub fn Project::generate_arrays(
     declarations,
     cmake: cmake_source(shell),
   }
+}
+
+///|
+pub fn Project::generate_arrays(
+  self : Project,
+) -> GeneratedArtifacts raise ConfigError {
+  self.generate()
 }

@@ -77,6 +77,41 @@ fn container_runtime() -> String {
     #|  if (actual != wanted) throw TypeFault(path + ": incorrect value type");
     #|  return true;
     #|}
+    #|static bool ReadInteger(napi_env env, napi_value value, int32_t &out, const std::string &path) {
+    #|  double number;
+    #|  if (!Check(env, napi_get_value_double(env, value, &number))) return false;
+    #|  if (!std::isfinite(number) || std::trunc(number) != number || number < INT32_MIN || number > INT32_MAX)
+    #|    throw RangeFault(path + ": signed 32-bit integer required");
+    #|  out = static_cast<int32_t>(number); return true;
+    #|}
+    #|static bool ReadFinite(napi_env env, napi_value value, double &out, const std::string &path) {
+    #|  if (!Check(env, napi_get_value_double(env, value, &out))) return false;
+    #|  if (!std::isfinite(out)) throw RangeFault(path + ": finite number required");
+    #|  return true;
+    #|}
+    #|static bool PrepareText(napi_env env, napi_value value, Budget &budget, size_t depth, const std::string &path) {
+    #|  size_t length;
+    #|  if (!Check(env, napi_get_value_string_utf16(env, value, nullptr, 0, &length))) return false;
+    #|  if (length > INT32_MAX) throw RangeFault(path + ": string length exceeded");
+    #|  budget.add(0, length * sizeof(char16_t), depth, path); return true;
+    #|}
+    #|static bool PrepareBytes(napi_env env, napi_value value, Budget &budget, size_t depth, const std::string &path) {
+    #|  bool typed, ordinary, sendable, detached;
+    #|  if (!Check(env, napi_is_typedarray(env, value, &typed))) return false;
+    #|  if (!typed) throw TypeFault(path + ": Uint8Array required");
+    #|  if (!Check(env, napi_is_sendable(env, value, &sendable))) return false;
+    #|  if (sendable) throw TypeFault(path + ": Sendable view unsupported");
+    #|  napi_typedarray_type type; size_t length, offset; void *data; napi_value buffer;
+    #|  if (!Check(env, napi_get_typedarray_info(env, value, &type, &length, &data, &buffer, &offset))) return false;
+    #|  if (!Check(env, napi_is_arraybuffer(env, buffer, &ordinary))) return false;
+    #|  if (type != napi_uint8_array || !ordinary) throw TypeFault(path + ": ordinary Uint8Array required");
+    #|  if (!Check(env, napi_is_sendable(env, buffer, &sendable))) return false;
+    #|  if (sendable) throw TypeFault(path + ": shared buffer unsupported");
+    #|  if (!Check(env, napi_is_detached_arraybuffer(env, buffer, &detached))) return false;
+    #|  if (detached) throw TypeFault(path + ": detached buffer");
+    #|  if (length > INT32_MAX) throw RangeFault(path + ": bytes length exceeded");
+    #|  budget.add(0, length, depth, path); return true;
+    #|}
     #|
   )
   .replace_all(old="__DEPTH__", new=conversion_limits().depth.to_string())

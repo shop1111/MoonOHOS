@@ -6,9 +6,9 @@ test "stable generation plan and opaque ABI" {
     ),
   )
   assert_eq(p.generation_plan().stringify(), p.generation_plan().stringify())
-  assert_true(p.business_header().contains("void * moonohos_echo(void * v)"))
+  assert_true(p.business_header().contains("void * moonohos_echo(void * arg0)"))
   assert_true(p.business_wrapper().contains("@core.echo(v)"))
-  assert_true(p.business_adapters().contains("return moonohos_raw_echo(v)"))
+  assert_true(p.business_adapters().contains("return moonohos_raw_echo(arg0)"))
 }
 
 ///|

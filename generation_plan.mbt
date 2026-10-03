@@ -149,7 +149,7 @@ fn c_parameters(fields : Array[FieldDef]) -> String {
   if fields.is_empty() {
     "void"
   } else {
-    fields.map(f => f.kind.c_name() + " " + f.name).join(", ")
+    fields.mapi((i, f) => f.kind.c_name() + " arg" + i.to_string()).join(", ")
   }
 }
 
@@ -159,7 +159,7 @@ fn raw_adapter(
   fields : Array[FieldDef],
   result : TypeExpr,
 ) -> String {
-  let args = fields.map(f => f.name).join(", ")
+  let args = fields.mapi((i, _) => "arg" + i.to_string()).join(", ")
   let expression = "moonohos_raw_" + name + "(" + args + ")"
   let body = if result == Scalar(Void) {
     "(void)" + expression + ";"

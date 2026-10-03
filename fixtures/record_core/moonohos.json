@@ -1,0 +1,8 @@
+{"version":1,"module":".","package":"moonohos/record_fixture","nativeModule":"records","types":[
+{"name":"Meta","fields":[{"name":"active","type":"Bool"}]},
+{"name":"Box","fields":[{"name":"label","type":"String"},{"name":"values","type":"Array[Int]"},{"name":"meta","type":"Meta"},{"name":"payload","type":"Bytes"}]},
+{"name":"Summary","fields":[{"name":"count","type":"Int"},{"name":"total","type":"Int"},{"name":"labels","type":"Array[String]"}]}],"functions":[
+{"name":"echo_box","params":[{"name":"v","type":"Box"}],"return":"Box"},
+{"name":"echo_boxes","params":[{"name":"v","type":"Array[Box]"}],"return":"Array[Box]"},
+{"name":"select_box","params":[{"name":"a","type":"Box"},{"name":"b","type":"Box"}],"return":"Box"},
+{"name":"summarize","params":[{"name":"v","type":"Array[Box]"}],"return":"Summary"}]}
