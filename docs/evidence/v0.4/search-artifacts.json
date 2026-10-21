@@ -1,6 +1,6 @@
 ﻿{
     "har":  "D:\\Code\\Moonbit\\MoonOHOS\\examples\\search\\harmony\\search\\build\\default\\outputs\\default\\search.har",
-    "harSha256":  "B3532512F6F90FE5C4FB1DC5C4DDC781D9E32AEF3347996D33FE4C7DACB1CE7D",
+    "harSha256":  "EF9B2EB2A8BFC195BAD848EE3C5DA0BE19CCBF439ADB748B2DFD12ACC739850A",
     "harEntries":  [
                        "package/BuildProfile.ets",
                        "package/Index.ets",
@@ -30,7 +30,7 @@
                        "package/src/main/cpp/types/libmoonsearch/oh-package.json5"
                    ],
     "hap":  "D:\\Code\\Moonbit\\MoonOHOS\\examples\\search-app\\entry\\build\\default\\outputs\\default\\entry-default-unsigned.hap",
-    "hapSha256":  "DEB2BF8A714681B737B0017603699CA60D335AF1AE45CCB5ECBFDC189FCEEF29",
+    "hapSha256":  "548028C5EEAE52C4DEE2CD0771AF7248296CFDB36BD62B5548E7DCA93AD04639",
     "hapNative":  [
                       "libs/arm64-v8a/libmoonsearch.so",
                       "libs/x86_64/libmoonsearch.so"
