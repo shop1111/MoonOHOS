@@ -1,0 +1,1 @@
+{"name":"entry","version":"1.0.0","description":"Independent HAR consumer probe","main":"","license":"Apache-2.0","dependencies":{"@moonohos/asyncprobe":"file:../../har/asyncprobe/build/default/outputs/default/asyncprobe.har"}}

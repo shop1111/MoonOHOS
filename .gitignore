@@ -8,6 +8,9 @@ dist/
 **/local.properties
 **/oh-package-lock.json5
 *.hap
+*.so
+*.har
+**/BuildProfile.ets
 *.p12
 *.p7b
 examples/harmony/entry/libs/
@@ -15,3 +18,4 @@ examples/harmony/entry/src/main/cpp/types/
 *.obj
 *.pdb
 __pycache__/
+submission/

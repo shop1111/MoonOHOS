@@ -1,0 +1,26 @@
+﻿{
+    "harEntries":  [
+                       "package/BuildProfile.ets",
+                       "package/Index.ets",
+                       "package/build-profile.json5",
+                       "package/hvigorfile.ts",
+                       "package/libs/",
+                       "package/oh-package-lock.json5",
+                       "package/oh-package.json5",
+                       "package/src/",
+                       "package/libs/arm64-v8a/",
+                       "package/libs/x86_64/",
+                       "package/src/main/",
+                       "package/libs/arm64-v8a/libasyncprobe.so",
+                       "package/libs/x86_64/libasyncprobe.so",
+                       "package/src/main/cpp/",
+                       "package/src/main/ets/",
+                       "package/src/main/module.json",
+                       "package/src/main/cpp/types/",
+                       "package/src/main/cpp/types/libasyncprobe/",
+                       "package/src/main/cpp/types/libasyncprobe/index.d.ts",
+                       "package/src/main/cpp/types/libasyncprobe/oh-package.json5"
+                   ],
+    "hap":  "16D303C22D7ACB15EF3A78E2AA0CE485B0A6C30E891E7E36D6D011A78427C87F",
+    "har":  "EC68631D9EA0051D58BFB7B2395F84C18D9190BC7D57EED8A51CC97E09E87B1D"
+}

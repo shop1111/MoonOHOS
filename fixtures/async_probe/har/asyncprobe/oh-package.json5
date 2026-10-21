@@ -1,0 +1,1 @@
+{"name":"@moonohos/asyncprobe","version":"0.4.0","description":"MoonOHOS async/HAR probe","main":"Index.ets","license":"Apache-2.0","dependencies":{"libasyncprobe.so":"file:./src/main/cpp/types/libasyncprobe"}}

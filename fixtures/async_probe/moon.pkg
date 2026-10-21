@@ -1,0 +1,9 @@
+pkgtype(kind: "executable")
+
+options(
+  link: {
+    "native": {
+      "exports": [ "moonohos_probe_busy", "moonohos_probe_depth", "moonohos_probe_sum" ],
+    },
+  },
+)
