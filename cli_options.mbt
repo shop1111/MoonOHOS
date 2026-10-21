@@ -6,6 +6,8 @@ pub(all) enum Command {
   Inspect
   Plan
   Verify
+  Init
+  Har
   Help
   Version
 } derive(Eq, Debug)
@@ -20,6 +22,16 @@ pub struct CliOptions {
   json : Bool
   dry_run : Bool
   cache : Bool
+  /// `init`: project directory, module name, package and platform module path.
+  target : String?
+  name : String?
+  package_name : String?
+  ohos : String?
+  /// `har`: verified dist, HAR module directory and optional hvigor assembly.
+  dist : String?
+  module_dir : String?
+  deveco : String?
+  assemble : Bool
 }
 
 ///|
@@ -59,6 +71,8 @@ pub fn command_name(command : Command) -> String {
     Inspect => "inspect"
     Plan => "plan"
     Verify => "verify"
+    Init => "init"
+    Har => "har"
     Help => "help"
     Version => "version"
   }
@@ -73,6 +87,8 @@ fn parse_command(text : String) -> Command raise ConfigError {
     "inspect" => Inspect
     "plan" => Plan
     "verify" => Verify
+    "init" => Init
+    "har" => Har
     "--help" | "-h" => Help
     "--version" => Version
     _ => raise Invalid("unknown command: " + text)
@@ -102,11 +118,18 @@ pub fn parse_abis(text : String) -> Array[String] raise ConfigError {
 fn allowed_option(command : Command, option : String) -> Bool {
   match option {
     "--json" => command != Help && command != Version
-    "--config" => command != Verify && command != Help && command != Version
+    "--config" =>
+      command != Verify &&
+      command != Help &&
+      command != Version &&
+      command != Init &&
+      command != Har
     "--sdk" => command == Build || command == Doctor || command == Plan
     "--abi" => command == Build || command == Plan
-    "--out" => command == Build || command == Verify
+    "--out" => command == Build || command == Verify || command == Har
     "--dry-run" | "--cache" => command == Build
+    "--name" | "--package" | "--ohos" => command == Init
+    "--dist" | "--module" | "--deveco" | "--assemble" => command == Har
     _ => false
   }
 }
@@ -122,12 +145,41 @@ pub fn parse_cli(args : Array[String]) -> CliOptions raise ConfigError {
   let mut json = false
   let mut dry_run = false
   let mut cache = false
+  let mut target : String? = None
+  let mut name : String? = None
+  let mut package_name : String? = None
+  let mut ohos : String? = None
+  let mut dist : String? = None
+  let mut module_dir : String? = None
+  let mut deveco : String? = None
+  let mut assemble = false
   let seen : Map[String, Bool] = Map([])
   let mut index = 1
+  if command == Init && args.length() > 1 && !args[1].has_prefix("--") {
+    target = Some(args[1])
+    index = 2
+  }
   while index < args.length() {
     let option = args[index]
     if option == "--help" || option == "-h" {
-      return { command: Help, config, sdk, abis, output, json, dry_run, cache, }
+      return {
+        command: Help,
+        config,
+        sdk,
+        abis,
+        output,
+        json,
+        dry_run,
+        cache,
+        target,
+        name,
+        package_name,
+        ohos,
+        dist,
+        module_dir,
+        deveco,
+        assemble,
+      }
     }
     if !allowed_option(command, option) {
       raise Invalid(
@@ -142,6 +194,7 @@ pub fn parse_cli(args : Array[String]) -> CliOptions raise ConfigError {
       "--json" => json = true
       "--dry-run" => dry_run = true
       "--cache" => cache = true
+      "--assemble" => assemble = true
       _ => {
         if index + 1 >= args.length() || args[index + 1].has_prefix("--") {
           raise Invalid("missing value for " + option)
@@ -156,6 +209,12 @@ pub fn parse_cli(args : Array[String]) -> CliOptions raise ConfigError {
           "--sdk" => sdk = Some(value)
           "--abi" => abis = parse_abis(value)
           "--out" => output = value
+          "--name" => name = Some(value)
+          "--package" => package_name = Some(value)
+          "--ohos" => ohos = Some(value)
+          "--dist" => dist = Some(value)
+          "--module" => module_dir = Some(value)
+          "--deveco" => deveco = Some(value)
           _ => raise Invalid("unknown option: " + option)
         }
       }
@@ -165,7 +224,33 @@ pub fn parse_cli(args : Array[String]) -> CliOptions raise ConfigError {
   if command == Build && sdk is None {
     raise Invalid("build requires --sdk <SDK directory>")
   }
-  { command, config, sdk, abis, output, json, dry_run, cache, }
+  if command == Init && target is None {
+    raise Invalid("init requires a project directory: moonohos init <dir>")
+  }
+  if command == Har && (dist is None || module_dir is None) {
+    raise Invalid("har requires --dist <package> and --module <HAR module>")
+  }
+  if assemble && deveco is None {
+    raise Invalid("--assemble requires --deveco <DevEco Studio directory>")
+  }
+  {
+    command,
+    config,
+    sdk,
+    abis,
+    output,
+    json,
+    dry_run,
+    cache,
+    target,
+    name,
+    package_name,
+    ohos,
+    dist,
+    module_dir,
+    deveco,
+    assemble,
+  }
 }
 
 ///|

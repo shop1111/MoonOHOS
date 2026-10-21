@@ -9,7 +9,12 @@ async fn collect_command(
   exe : String,
   args : Array[String],
   cwd : String,
+  env : Map[String, String],
 ) -> (Int, String, String) {
+  let extra_env : Map[String, String] = { "MOONBIT_NEW_NATIVE": "0" }
+  for key, value in env {
+    extra_env[key] = value
+  }
   let (out_reader, out_writer) = @process.read_from_process()
   let (err_reader, err_writer) = @process.read_from_process()
   @async.with_task_group() <| group => {
@@ -20,7 +25,7 @@ async fn collect_command(
         cwd~,
         stdout=out_writer,
         stderr=err_writer,
-        extra_env={ "MOONBIT_NEW_NATIVE": "0" },
+        extra_env~,
         no_console_window=true,
         cancel_handler=@process.hard_cancel(),
       )
@@ -44,13 +49,14 @@ async fn command(
   args : Array[String],
   cwd : String,
   timeout_ms? : Int = 300000,
+  env? : Map[String, String] = {},
 ) -> String {
   let started = @async.now()
   command_sequence.val += 1
   let sequence = command_sequence.val
   let (code, stdout, stderr) = @async.with_timeout(
     timeout_ms,
-    () => collect_command(exe, args, cwd),
+    () => collect_command(exe, args, cwd, env),
     error=Failure(
       stage +
       ": command timed out after " +

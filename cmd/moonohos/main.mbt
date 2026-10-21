@@ -5,7 +5,7 @@ extern "C" fn native_exit(code : Int) -> Unit = "exit"
 fn usage() -> String {
   "MoonOHOS " +
   @lib.moonohos_version() +
-  "\nmoonohos build [--config moonohos.json] --sdk <SDK> [--abi arm64-v8a,x86_64] [--out <directory>] [--dry-run] [--cache] [--json]\n"
+  "\nmoonohos init <dir> [--name <module>] [--package owner/name] [--ohos <MoonOHOS/ohos>] [--json]\nmoonohos build [--config moonohos.json] --sdk <SDK> [--abi arm64-v8a,x86_64] [--out <directory>] [--dry-run] [--cache] [--json]\nmoonohos har --dist <package> --module <HAR module> [--assemble --deveco <DevEco Studio>] [--json]\n"
 }
 
 ///|
@@ -372,7 +372,7 @@ async fn main {
       Help => {
         println(
           usage() +
-          "Commands: doctor, check, inspect, plan, verify. Analysis commands support --json.",
+          "Commands: init, build, har, doctor, check, inspect, plan, verify. Commands support --json.",
         )
         return
       }
@@ -392,6 +392,8 @@ async fn main {
       Doctor => doctor(options)
       Check | Inspect | Plan => analyze(options)
       Verify => verify_package(options.output)
+      Init => init_project(options)
+      Har => package_har(options)
     }
   } catch {
     error => {

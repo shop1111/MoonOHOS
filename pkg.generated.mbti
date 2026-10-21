@@ -38,9 +38,17 @@ pub fn fingerprint(String, String, Bytes) -> ContentFingerprint
 
 pub fn forbidden_build_hook(String) -> String?
 
+pub fn har_facade(String, String) -> String
+
+pub fn har_package_manifest(String, String) -> String raise ConfigError
+
+pub fn har_provenance(PackageManifest, String) -> Json
+
 pub fn identifier(String) -> Bool
 
 pub fn ignored_cache_component(String) -> Bool
+
+pub fn init_files(InitOptions) -> Array[(String, String)] raise ConfigError
 
 pub fn inspect_elf(Bytes) -> ElfInfo raise ConfigError
 
@@ -80,6 +88,8 @@ pub fn parse_type_expr(String, result? : Bool) -> TypeExpr raise ConfigError
 
 pub fn pinned_environment() -> Array[(String, String)]
 
+pub fn relative_path(String, String) -> String
+
 pub fn resolve_adapters(Project, Array[NativeDescriptor], Map[String, String]) -> Array[AdapterDef] raise ConfigError
 
 pub fn runtime_files() -> Array[String]
@@ -102,7 +112,11 @@ pub fn system_library_allowlist() -> Array[String]
 
 pub fn tokenize(String) -> Array[String] raise ConfigError
 
+pub fn valid_module_name(String) -> Bool
+
 pub fn validate_distribution_metadata(Json) -> Unit raise ConfigError
+
+pub fn validate_har_module(String) -> Unit raise ConfigError
 
 pub fn validate_package_path(String) -> Unit raise ConfigError
 
@@ -176,6 +190,14 @@ pub struct CliOptions {
   json : Bool
   dry_run : Bool
   cache : Bool
+  target : String?
+  name : String?
+  package_name : String?
+  ohos : String?
+  dist : String?
+  module_dir : String?
+  deveco : String?
+  assemble : Bool
 }
 
 pub(all) enum Command {
@@ -185,6 +207,8 @@ pub(all) enum Command {
   Inspect
   Plan
   Verify
+  Init
+  Har
   Help
   Version
 } derive(Eq, @debug.Debug)
@@ -274,6 +298,12 @@ pub struct GeneratedArtifacts {
   native : String
   declarations : String
   cmake : String
+}
+
+pub(all) struct InitOptions {
+  name : String
+  package_name : String
+  ohos : String?
 }
 
 pub struct InterfaceFunction {
