@@ -1,0 +1,3 @@
+﻿10-21 12:47:42.916 17725 17725 E A00000/MoonOHOS: MOONOHOS_RUNTIME_FAIL fraction: exception type
+10-21 12:49:56.348 19500 19500 I A00000/MoonOHOS: MOONOHOS_RUNTIME_PASS version=0.4.0 add=42 scalar_checks=13 reference_checks=14 container_checks=10 repeated_calls=1000
+

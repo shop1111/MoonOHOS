@@ -14,11 +14,13 @@ foreach ($taskKey in $taskEnv.Keys) {
     $taskPrevious[$taskKey] = [Environment]::GetEnvironmentVariable($taskKey, 'Process')
     [Environment]::SetEnvironmentVariable($taskKey, $taskEnv[$taskKey], 'Process')
 }
+# Native tools write warnings to stderr; judge them by exit code (Windows PowerShell 5.1 and 7).
+$ErrorActionPreference = 'Continue'
 Push-Location -LiteralPath $taskExample
 try {
-    & "$taskDevEco\tools\node\node.exe" "$taskDevEco\tools\ohpm\bin\pm-cli.js" install
+    & "$taskDevEco\tools\node\node.exe" "$taskDevEco\tools\ohpm\bin\pm-cli.js" install 2>&1 | Out-Host
     if ($LASTEXITCODE -ne 0) { throw 'ohpm install failed' }
-    & "$taskDevEco\tools\node\node.exe" "$taskDevEco\tools\hvigor\bin\hvigorw.js" --mode module -p 'module=entry@default' -p 'product=default' -p 'buildMode=debug' --no-daemon assembleHap
+    & "$taskDevEco\tools\node\node.exe" "$taskDevEco\tools\hvigor\bin\hvigorw.js" --mode module -p 'module=entry@default' -p 'product=default' -p 'buildMode=debug' --no-daemon assembleHap 2>&1 | Out-Host
     if ($LASTEXITCODE -ne 0) { throw 'Hvigor assembleHap failed' }
 } finally {
     Pop-Location

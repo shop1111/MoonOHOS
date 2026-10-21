@@ -37,7 +37,7 @@ package = run / "_build/moonohos/dist"
 manifest = json.loads((package / "manifest.json").read_text(encoding="utf-8"))
 assert [r["abi"] for r in manifest["results"]] == ["arm64-v8a", "x86_64"]
 assert all(r["runtime"] == "not_run" for r in manifest["results"])
-assert manifest["moonohosVersion"] == "0.3.0"
+assert manifest["moonohosVersion"] == "0.4.0"
 assert "Uint8Array" in (package / "types/libmoonohos/index.d.ts").read_text(encoding="utf-8")
 for abi, machine in [("arm64-v8a", 183), ("x86_64", 62)]:
     data = (package / "libs" / abi / "libmoonohos.so").read_bytes()

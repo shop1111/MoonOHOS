@@ -46,7 +46,7 @@ export function runNativeChecks(): string {
   }
   // Emit after startup traffic settles; device HiLog can throttle a busy process.
   setTimeout(() => {
-    hilog.info(0x0000, 'MoonOHOS', 'MOONOHOS_RUNTIME_PASS version=0.3.0 add=42 scalar_checks=13 reference_checks=%{public}d container_checks=%{public}d repeated_calls=1000', references, containers);
+    hilog.info(0x0000, 'MoonOHOS', 'MOONOHOS_RUNTIME_PASS version=0.4.0 add=42 scalar_checks=13 reference_checks=%{public}d container_checks=%{public}d repeated_calls=1000', references, containers);
   }, 1500);
   return '13 项标量 + ' + references + ' 项引用 + ' + containers + ' 项容器检查通过\n连续调用 1000 次';
 }

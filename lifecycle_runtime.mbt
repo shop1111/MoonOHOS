@@ -154,16 +154,18 @@ fn lifecycle_napi() -> String {
     #|  catch (...) { message = "native operation failed"; return Outcome::Native; }
     #|}
     #|static napi_value MakeError(napi_env env, Outcome outcome, const std::string &message, const std::u16string &business) {
+    #|  // ArkRuntime rejects a null code for napi_create_*_error, so always pass one.
     #|  const char *code_text = outcome == Outcome::Cancelled ? "ERR_MOONOHOS_CANCELLED"
     #|    : outcome == Outcome::Closed ? "ERR_MOONOHOS_CLOSED"
     #|    : outcome == Outcome::Business ? "ERR_MOONOHOS_BUSINESS"
-    #|    : outcome == Outcome::Native ? "ERR_MOONOHOS_NATIVE" : nullptr;
+    #|    : outcome == Outcome::Type ? "ERR_MOONOHOS_TYPE"
+    #|    : outcome == Outcome::Range ? "ERR_MOONOHOS_RANGE" : "ERR_MOONOHOS_NATIVE";
     #|  napi_value code = nullptr, text = nullptr, error = nullptr;
     #|  napi_status status = outcome == Outcome::Business
     #|    ? napi_create_string_utf16(env, business.data(), business.size(), &text)
     #|    : napi_create_string_utf8(env, message.data(), message.size(), &text);
     #|  if (status != napi_ok) return nullptr;
-    #|  if (code_text && napi_create_string_utf8(env, code_text, NAPI_AUTO_LENGTH, &code) != napi_ok) return nullptr;
+    #|  if (napi_create_string_utf8(env, code_text, NAPI_AUTO_LENGTH, &code) != napi_ok) return nullptr;
     #|  status = outcome == Outcome::Type ? napi_create_type_error(env, code, text, &error)
     #|    : outcome == Outcome::Range ? napi_create_range_error(env, code, text, &error)
     #|    : napi_create_error(env, code, text, &error);
@@ -178,6 +180,8 @@ fn lifecycle_napi() -> String {
     #|  std::string message;
     #|  std::u16string business;
     #|  Outcome outcome = Classify(std::current_exception(), message, business);
+    #|  if (outcome == Outcome::Type) { napi_throw_type_error(env, nullptr, message.c_str()); return; }
+    #|  if (outcome == Outcome::Range) { napi_throw_range_error(env, nullptr, message.c_str()); return; }
     #|  napi_value error = MakeError(env, outcome, message, business);
     #|  if (!error || napi_throw(env, error) != napi_ok) napi_throw_error(env, nullptr, "Node-API operation failed");
     #|}

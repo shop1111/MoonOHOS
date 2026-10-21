@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $taskRoot = Split-Path -Parent $PSScriptRoot
 if (-not $Hap) { $Hap = Join-Path $taskRoot 'examples/harmony/entry/build/default/outputs/default/entry-default-unsigned.hap' }
-if (-not $Evidence) { $Evidence = Join-Path $taskRoot '_build/validation-v0.3' }
+if (-not $Evidence) { $Evidence = Join-Path $taskRoot '_build/validation-v0.4' }
 New-Item -ItemType Directory -Force -Path $Evidence | Out-Null
 function Invoke-Device([string[]]$Arguments) {
   $taskStart = [Diagnostics.ProcessStartInfo]::new()
@@ -18,7 +18,8 @@ function Invoke-Device([string[]]$Arguments) {
   $taskStart.RedirectStandardError = $true
   $taskStart.StandardOutputEncoding = [Text.Encoding]::UTF8
   $taskStart.StandardErrorEncoding = [Text.Encoding]::UTF8
-  foreach ($taskArgument in (@('-t', $Target) + $Arguments)) { $taskStart.ArgumentList.Add($taskArgument) }
+  # Quoted argument string works on Windows PowerShell 5.1 and PowerShell 7.
+  $taskStart.Arguments = ((@('-t', $Target) + $Arguments) | ForEach-Object { if ($_ -match '\s') { '"' + $_ + '"' } else { $_ } }) -join ' '
   $taskProcess = [Diagnostics.Process]::new()
   $taskProcess.StartInfo = $taskStart
   try {
@@ -46,7 +47,7 @@ for ($taskRestart = 1; $taskRestart -le 2; $taskRestart++) {
   for ($taskAttempt = 0; $taskAttempt -lt 20; $taskAttempt++) {
     Start-Sleep -Seconds 1
     $taskLogs = Invoke-Device @('shell', 'hilog', '-x', '-T', 'MoonOHOS')
-    $taskMarkers = @($taskLogs -split "`n" | Where-Object { $_ -match 'MOONOHOS_RUNTIME_PASS version=0.3.0 add=42 scalar_checks=13 reference_checks=14 container_checks=10 repeated_calls=1000' })
+    $taskMarkers = @($taskLogs -split "`n" | Where-Object { $_ -match 'MOONOHOS_RUNTIME_PASS version=0.4.0 add=42 scalar_checks=13 reference_checks=14 container_checks=10 repeated_calls=1000' })
     $taskLatest = @($taskMarkers | Select-Object -Last 1) -join ''
     if ($taskLatest -and $taskLatest -ne $taskPrevious) {
       $taskPrevious = $taskLatest
