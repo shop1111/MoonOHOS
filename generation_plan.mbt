@@ -12,6 +12,8 @@ priv struct CallPlan {
   symbol : String
   inputs : Array[Int]
   output : Int
+  /// Type crossing the C boundary; differs from `output` for raising calls.
+  raw_output : Int
   bounded : Bool
 }
 
@@ -39,7 +41,7 @@ fn direct_children(
   kind : TypeExpr,
 ) -> Array[TypeExpr] raise ConfigError {
   match kind {
-    Scalar(_) => []
+    Scalar(_) | Handle(_) | External(_, _) => []
     List(element) => [element]
     Record(name) => project.record_def(name).fields.map(f => f.kind)
   }
@@ -50,7 +52,13 @@ fn make_generation_plan(project : Project) -> GenerationPlan raise ConfigError {
   let kinds = project.reachable_types()
   let types : Array[TypePlan] = []
   let symbols : Map[String, Bool] = Map([])
-  symbols["moonohos_initialize"] = true
+  for
+    reserved in [
+      "moonohos_initialize", "moonohos_business_error", "moonohos_bridge_cancelled",
+      "moonohos_diagnostics",
+    ] {
+    symbols[reserved] = true
+  }
   for index, kind in kinds {
     let symbol = "moonohos_type_" + index.to_string()
     types.push({
@@ -68,7 +76,7 @@ fn make_generation_plan(project : Project) -> GenerationPlan raise ConfigError {
         }
         suffixes
       }
-      Scalar(_) => []
+      _ => []
     }
     for suffix in suffixes {
       symbols[symbol + "_" + suffix] = true
@@ -90,6 +98,7 @@ fn make_generation_plan(project : Project) -> GenerationPlan raise ConfigError {
     symbols["moonohos_raw_" + function.name] = true
     let inputs = function.params.map(p => type_index(kinds, p.kind))
     let output = type_index(kinds, function.result)
+    let raw_output = type_index(kinds, function.raw_result())
     let bounded = function.params.any(p => {
         match p.kind {
           List(_) | Record(_) => true
@@ -100,7 +109,7 @@ fn make_generation_plan(project : Project) -> GenerationPlan raise ConfigError {
         List(_) | Record(_) => true
         _ => false
       })
-    calls.push({ function, symbol, inputs, output, bounded, })
+    calls.push({ function, symbol, inputs, output, raw_output, bounded, })
   }
   { project, types, calls, }
 }
@@ -136,7 +145,15 @@ fn CallPlan::to_json(self : CallPlan) -> Json {
     "inputs": self.inputs.to_json(),
     "output": self.output,
     "boundedContainers": self.bounded,
-    "stages": ["read-arkts", "locked-runtime-call-and-copy", "create-arkts"].to_json(),
+    "async": self.function.is_async,
+    "raises": self.function.raises,
+    "stages": (if self.function.is_async {
+      [
+        "read-arkts", "queue-async-work", "worker-locked-call-and-copy", "complete-create-arkts",
+      ]
+    } else {
+      ["read-arkts", "locked-runtime-call-and-copy", "create-arkts"]
+    }).to_json(),
   }
 }
 
@@ -217,16 +234,32 @@ fn moon_export(
 pub fn Project::business_wrapper(self : Project) -> String raise ConfigError {
   let plan = make_generation_plan(self)
   let mut source = "///|\nfn main { () }\n"
+  if self.functions.any(f => f.raises) {
+    source += "///|\n#borrow(message)\nextern \"C\" fn moonohos_business_error(message : String) -> Unit = \"moonohos_business_error\"\n"
+  }
   for call in plan.calls {
-    source += moon_export(
-      call.function.name,
-      call.function.params,
-      call.function.result,
-      "@core." +
+    let invocation = "@core." +
       call.function.name +
       "(" +
       call.function.params.map(p => p.name).join(", ") +
-      ")",
+      ")"
+    let expression = if !call.function.raises {
+      invocation
+    } else {
+      // Raising calls report the error text and return an empty envelope.
+      let value = if call.function.result == Scalar(Void) {
+        "{ " + invocation + "; [true] }"
+      } else {
+        "[" + invocation + "]"
+      }
+      value +
+      " catch { e => { let error : Error = e; moonohos_business_error(error.to_string()); [] } }"
+    }
+    source += moon_export(
+      call.function.name,
+      call.function.params,
+      call.function.raw_result(),
+      expression,
     )
   }
   source
@@ -237,7 +270,7 @@ pub fn Project::business_header(self : Project) -> String raise ConfigError {
   let plan = make_generation_plan(self)
   let mut source = "#pragma once\n#include <stdint.h>\n#include <moonbit.h>\n#ifdef __cplusplus\nextern \"C\" {\n#endif\nvoid moonohos_initialize(void);\n"
   for call in plan.calls {
-    source += call.function.result.c_name() +
+    source += call.function.raw_result().c_name() +
       " " +
       call.symbol +
       "(" +
@@ -251,6 +284,8 @@ pub fn Project::business_header(self : Project) -> String raise ConfigError {
 pub fn Project::business_adapters(self : Project) -> String raise ConfigError {
   let plan = make_generation_plan(self)
   plan.calls
-  .map(c => raw_adapter(c.function.name, c.function.params, c.function.result))
+  .map(c => {
+    raw_adapter(c.function.name, c.function.params, c.function.raw_result())
+  })
   .join("")
 }

@@ -129,34 +129,3 @@ async fn module_metadata(root : String) -> (String, String) {
     raise Failure("stage: no moon.mod / moon.mod.json")
   }
 }
-
-///|
-async fn reject_stubs(root : String) -> Unit {
-  for name in @fs.readdir(root, include_hidden=true) {
-    let path = root + "/" + name
-    if @fs.kind(path) == Directory {
-      if name != "_build" && name != ".git" {
-        reject_stubs(path)
-      }
-    } else if name == "moon.pkg" ||
-      name == "moon.pkg.json" ||
-      name == "moon.mod" ||
-      name == "moon.mod.json" {
-      let text = read(path)
-      let compact = text
-        .replace_all(old=" ", new="")
-        .replace_all(old="\n", new="")
-        .replace_all(old="\r", new="")
-        .replace_all(old="\t", new="")
-      if text.contains("native-stub") ||
-        text.contains("native_stub") ||
-        text.contains("pre-build") ||
-        compact.contains("dev_build(") ||
-        compact.contains("rule(") {
-        raise Failure(
-          "stage: Native stubs/pre-build hooks unsupported: " + path,
-        )
-      }
-    }
-  }
-}

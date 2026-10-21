@@ -41,29 +41,41 @@ async fn create_work(base : String, purpose : String) -> String {
 
 ///|
 async fn verify_selected(selected : SelectedProject, work : String) -> Unit {
-  let staged = work + "/module"
-  copy_tree(selected.root, staged, module_tree=true)
-  reject_stubs(staged)
-  command("interface", "moon", ["info", "--target", "native"], staged) |> ignore
-  if @fs.exists(staged + "/.mooncakes") {
-    reject_stubs(staged + "/.mooncakes")
-  }
-  let source = staged + "/" + selected.source_dir
-  selected.project.verify_interface(
-    read(source + "/" + selected.relative_package + "/pkg.generated.mbti"),
+  let staged = stage_project(
+    selected.project,
+    selected.base,
+    selected.root,
+    selected.source_dir,
+    work,
   )
+  command("interface", "moon", ["info", "--target", "native"], staged.root)
+  |> ignore
+  let found : Array[NativePackage] = []
+  discover_native(staged.root, found)
+  let source = staged.source
+  let interface_text = read(
+    source + "/" + selected.relative_package + "/pkg.generated.mbti",
+  )
+  selected.project.verify_interface(interface_text)
   let bridge = source + "/moonohos_bridge"
   if @fs.exists(bridge) {
     raise Failure("interface: reserved package moonohos_bridge already exists")
   }
-  let generated = selected.project.generate()
+  let project = selected.project.with_adapters(
+    @lib.resolve_adapters(
+      selected.project,
+      known_descriptors(found),
+      @lib.interface_imports(interface_text),
+    ),
+  )
+  let generated = project.generate()
   write(bridge + "/main.mbt", generated.wrapper)
   write(bridge + "/moon.pkg", generated.package_file)
   command(
     "wrapper-check",
     "moon",
     ["check", "--target", "native", "--deny-warn"],
-    staged,
+    staged.root,
   )
   |> ignore
   write(

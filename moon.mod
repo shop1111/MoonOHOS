@@ -1,6 +1,6 @@
 name = "shop1111/moonohos"
 
-version = "0.3.0"
+version = "0.4.0"
 
 preferred_target = "native"
 
@@ -12,7 +12,7 @@ keywords = [ "harmonyos", "native", "ffi", "node-api", "code-generation" ]
 
 license = "Apache-2.0"
 
-description = "Build MoonBit computation libraries for HarmonyOS Native/Node-API."
+description = "HarmonyOS Native module framework for MoonBit: async tasks, platform modules and HAR packaging."
 
 readme = "README.md"
 

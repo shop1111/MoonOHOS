@@ -120,7 +120,6 @@ fn native_prelude() -> String {
       #|#include <limits>
       #|#include <stdexcept>
       #|#include "moonohos.h"
-      #|static std::mutex gate;
       #|static std::once_flag initialized;
       #|static bool Check(napi_env env, napi_status status) {
       #|  if (status == napi_ok) return true;
@@ -163,7 +162,7 @@ fn native_prelude() -> String {
 
 ///|
 pub fn native_source(config : Config) -> String {
-  let mut text = native_prelude()
+  let mut text = native_prelude() + "static std::mutex gate;\n"
   for fn_ in config.functions {
     text += "static napi_value Call_" +
       fn_.name +
@@ -294,7 +293,41 @@ pub fn native_source(config : Config) -> String {
 
 ///|
 pub fn cmake_source(config : Config) -> String {
-  let target = config.native_module
+  native_cmake(config.native_module, empty_native_build())
+}
+
+///|
+/// CMake for the generated bridge plus sources and NDK libraries contributed by
+/// validated native dependency descriptors.
+pub fn native_cmake(target : String, native : NativeBuild) -> String {
+  let quote = (items : Array[String]) => {
+    items.map(item => " \"${CMAKE_CURRENT_SOURCE_DIR}/" + item + "\"").join("")
+  }
+  let mut extra = ""
+  if !native.sources.is_empty() {
+    extra += "target_sources(" +
+      target +
+      " PRIVATE" +
+      quote(native.sources) +
+      ")\n"
+  }
+  if !native.include_dirs.is_empty() {
+    extra += "target_include_directories(" +
+      target +
+      " PRIVATE" +
+      quote(native.include_dirs) +
+      ")\n"
+  }
+  let definitions = ["MOONOHOS_BRIDGE=1", "MOONOHOS_TARGET_OHOS=1"]
+  definitions.append(native.defines)
+  extra += "target_compile_definitions(" +
+    target +
+    " PRIVATE " +
+    definitions.join(" ") +
+    ")\n"
+  let libraries = ["libace_napi.z.so"]
+  libraries.append(native.libraries)
+  libraries.push("m")
   (
     #|cmake_minimum_required(VERSION 3.16)
     #|project(MoonOHOS LANGUAGES C CXX)
@@ -307,7 +340,10 @@ pub fn cmake_source(config : Config) -> String {
     #|target_compile_definitions(__TARGET__ PRIVATE _GNU_SOURCE MOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_SYSTEM MOONBIT_NATIVE_EXIT_ON_PANIC)
     #|target_compile_options(__TARGET__ PRIVATE -fwrapv -fno-strict-aliasing -fvisibility=hidden -Werror=implicit-function-declaration)
     #|target_link_options(__TARGET__ PRIVATE -Wl,--no-undefined)
-    #|target_link_libraries(__TARGET__ PRIVATE libace_napi.z.so m)
+    #|target_link_libraries(__TARGET__ PRIVATE __LIBRARIES__)
     #|
-  ).replace_all(old="__TARGET__", new=target)
+  )
+  .replace_all(old="__TARGET__", new=target)
+  .replace_all(old="__LIBRARIES__", new=libraries.join(" ")) +
+  extra.replace_all(old="__TARGET__", new=target)
 }

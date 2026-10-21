@@ -6,7 +6,7 @@ pub fn validate_distribution_metadata(json : Json) -> Unit raise ConfigError {
   }
   let permitted = [
     "schema", "moonohosVersion", "module", "moon", "moonc", "sdkApi", "results",
-    "functions", "files",
+    "functions", "files", "exports", "handles", "nativeDependencies",
   ]
   for key, _ in fields {
     if !permitted.contains(key) {
@@ -109,9 +109,13 @@ pub fn verify_library(
   if info.soname is Some(name) && name != "lib" + manifest.module_name + ".so" {
     raise Invalid("package: wrong SONAME")
   }
+  // 0.2/0.3 packages may carry these through the SDK defaults.
   let allowed = [
     "libace_napi.z.so", "libc.so", "libm.so", "libdl.so", "libhilog_ndk.z.so", "libdeviceinfo_ndk.z.so",
   ]
+  for library in manifest.libraries {
+    allowed.push(library)
+  }
   for dependency in info.dependencies {
     if !allowed.contains(dependency) {
       raise Invalid("package: unexpected dynamic dependency " + dependency)

@@ -56,7 +56,7 @@ fn accessor_definitions(
         for accessor in record_accessors(plan.project, type_) {
           result.push(accessor)
         }
-      Scalar(_) => ()
+      _ => ()
     }
   }
   result
@@ -108,6 +108,7 @@ fn cpp_reader(type_ : TypePlan, project : Project) -> String raise ConfigError {
         "(env, child, out.children[i], budget, ancestors, depth + 1, child_path)) return false;\n  }\n"
     }
     Record(_) => source += record_reader(type_, project)
+    Handle(_) | External(_, _) => ()
   }
   source + "  return true;\n}\n"
 }
@@ -151,6 +152,7 @@ fn cpp_make(type_ : TypePlan, types : Array[TypePlan]) -> String {
       source += "  }\n  auto pointer = result.ptr; result.ptr = nullptr; return pointer;\n"
     }
     Record(_) => source += record_maker(type_, types)
+    Handle(_) | External(_, _) => ()
   }
   source + "}\n"
 }
@@ -203,6 +205,7 @@ fn cpp_copy(
       source += "  }\n"
     }
     Record(_) => source += record_copier(type_, project, types)
+    Handle(_) | External(_, _) => ()
   }
   source + "  return out;\n}\n"
 }
@@ -231,94 +234,9 @@ fn cpp_create(type_ : TypePlan, project : Project) -> String raise ConfigError {
         type_.dependencies[0].to_string() +
         "(env, value.children[i], child)) return false;\n    if (!Check(env, napi_set_element(env, result, static_cast<uint32_t>(i), child))) return false;\n  }\n  return true;\n"
     Record(_) => source += record_creator(type_, project)
+    Handle(_) | External(_, _) => ()
   }
   source + "}\n"
-}
-
-///|
-fn cpp_callback(call : CallPlan, types : Array[TypePlan]) -> String {
-  let count = call.inputs.length().to_string()
-  let mut source = "static napi_value Call_" +
-    call.function.name +
-    "(napi_env env, napi_callback_info info) {\n try {\n  Budget input_budget{" +
-    (if call.bounded { "true" } else { "false" }) +
-    "}, output_budget{" +
-    (if call.bounded { "true" } else { "false" }) +
-    "};\n  Ancestors ancestors{env, {}};\n  BridgeValue result_value;\n"
-  if !call.inputs.is_empty() {
-    source += "  size_t argc = " +
-      count +
-      "; napi_value argv[" +
-      count +
-      "] = {};\n  if (!Check(env, napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr))) return nullptr;\n  if (argc < " +
-      count +
-      ") throw TypeFault(\"" +
-      call.function.name +
-      ": missing arguments\");\n"
-  }
-  for index, type_index in call.inputs {
-    let suffix = index.to_string()
-    source += "  BridgeValue arg" +
-      suffix +
-      ";\n  if (!Read_" +
-      type_index.to_string() +
-      "(env, argv[" +
-      suffix +
-      "], arg" +
-      suffix +
-      ", input_budget, ancestors, 0, \"" +
-      call.function.name +
-      "." +
-      call.function.params[index].name +
-      "\")) return nullptr;\n"
-  }
-  source += "  { std::lock_guard<std::mutex> lock(gate); std::call_once(initialized, moonohos_initialize);\n"
-  let args : Array[String] = []
-  for index, type_index in call.inputs {
-    let type_ = types[type_index]
-    let suffix = index.to_string()
-    if type_.kind.is_reference() {
-      source += "    MoonOwner<" +
-        type_.kind.c_name() +
-        "> owned" +
-        suffix +
-        "{Make_" +
-        type_index.to_string() +
-        "(arg" +
-        suffix +
-        ")};\n"
-      args.push("owned" + suffix + ".ptr")
-    } else {
-      args.push("Make_" + type_index.to_string() + "(arg" + suffix + ")")
-    }
-  }
-  let result = types[call.output]
-  let expression = call.symbol + "(" + args.join(", ") + ")"
-  if result.kind == Scalar(Void) {
-    source += "    " + expression + ";\n"
-  } else if result.kind.is_reference() {
-    source += "    MoonOwner<" +
-      result.kind.c_name() +
-      "> returned{" +
-      expression +
-      "};\n    result_value = Copy_" +
-      call.output.to_string() +
-      "(returned.ptr, output_budget, 0, \"" +
-      call.function.name +
-      ".return\");\n"
-  } else {
-    source += "    result_value = Copy_" +
-      call.output.to_string() +
-      "(" +
-      expression +
-      ", output_budget, 0, \"" +
-      call.function.name +
-      ".return\");\n"
-  }
-  source += "  }\n  napi_value result;\n  if (!Create_" +
-    call.output.to_string() +
-    "(env, result_value, result)) return nullptr;\n  return result;\n } catch (const TypeFault &e) { Check(env, napi_throw_type_error(env, nullptr, e.what())); return nullptr; }\n catch (const RangeFault &e) { Check(env, napi_throw_range_error(env, nullptr, e.what())); return nullptr; }\n catch (const std::length_error &e) { Check(env, napi_throw_range_error(env, nullptr, e.what())); return nullptr; }\n catch (const std::exception &) { Check(env, napi_throw_error(env, nullptr, \"native allocation failed\")); return nullptr; }\n}\n"
-  source
 }
 
 ///|
@@ -351,13 +269,26 @@ pub fn Project::generate(
     embed += raw_adapter(accessor.name, accessor.params, accessor.result)
   }
   header += "#ifdef __cplusplus\n}\n#endif\n"
-  let package_file = "import { \"" +
-    self.package_name +
-    "\" @core, }\npkgtype(kind: \"executable\")\noptions(link: { \"native\": { \"exports\": [" +
+  let imports = ["\"" + self.package_name + "\" @core"]
+  for adapter in self.adapters {
+    let line = "\"" + adapter.pkg + "\" @" + adapter.pkg_alias
+    if !imports.contains(line) {
+      imports.push(line)
+    }
+  }
+  let package_file = "import { " +
+    imports.join(", ") +
+    ", }\npkgtype(kind: \"executable\")\noptions(link: { \"native\": { \"exports\": [" +
     exports.join(", ") +
     "] } })\n"
-  let mut native = native_prelude() + container_runtime()
+  let mut native = native_prelude() +
+    lifecycle_core() +
+    container_runtime() +
+    lifecycle_napi()
   for type_ in plan.types {
+    if type_.kind.is_opaque() {
+      continue
+    }
     if type_.kind != Scalar(Void) {
       native += cpp_reader(type_, self) +
         cpp_make(type_, plan.types) +
@@ -365,32 +296,8 @@ pub fn Project::generate(
     }
     native += cpp_create(type_, self)
   }
-  for call in plan.calls {
-    native += cpp_callback(call, plan.types)
-  }
-  native += "static napi_value Init(napi_env env, napi_value exports) { napi_property_descriptor properties[] = {\n"
-  for call in plan.calls {
-    native += "{\"" +
-      call.function.name +
-      "\", nullptr, Call_" +
-      call.function.name +
-      ", nullptr, nullptr, nullptr, napi_default, nullptr},\n"
-  }
-  native += "}; if (!Check(env, napi_define_properties(env, exports, sizeof(properties) / sizeof(properties[0]), properties))) return nullptr; return exports; }\nNAPI_MODULE(" +
-    self.native_module +
-    ", Init)\n"
-  let declarations = record_declarations(self) +
-    self.functions
-    .map(f => {
-      "export const " +
-      f.name +
-      ": (" +
-      f.params.map(p => p.name + ": " + p.kind.ark_name()).join(", ") +
-      ") => " +
-      f.result.ark_name() +
-      ";\n"
-    })
-    .join("")
+  native += bridge_callbacks(plan) + init_source(plan)
+  let declarations = bridge_declarations(self)
   let shell : Config = {
     module_dir: self.module_dir,
     package_name: self.package_name,

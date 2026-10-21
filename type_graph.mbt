@@ -43,6 +43,11 @@ fn type_depth(
     Scalar(Void) =>
       raise Invalid("type: Unit is not a container element or field")
     Scalar(_) => depth
+    Handle(name) | External(_, name) if depth > 0 =>
+      raise Invalid(
+        "type: " + name + " is opaque and cannot be nested in arrays or records",
+      )
+    Handle(_) | External(_, _) => depth
     List(element) => type_depth(project, element, path, depth + 1, heights)
     Record(name) => {
       if path.contains(name) {
@@ -92,13 +97,37 @@ pub fn Project::validate(self : Project) -> Unit raise ConfigError {
   for record in self.records {
     type_depth(self, Record(record.name), [], 0, heights) |> ignore
   }
+  for handle in self.handles {
+    if names.contains(handle) {
+      raise Invalid("type: " + handle + " is declared as record and handle")
+    }
+  }
   for function in self.functions {
+    if ["createCancelToken", "moonohos_diagnostics"].contains(function.name) {
+      raise Invalid("type: reserved export name " + function.name)
+    }
     for param in function.params {
       type_depth(self, param.kind, [], 0, heights) |> ignore
+    }
+    if function.result is External(_, name) {
+      raise Invalid("type: platform value " + name + " cannot be returned")
     }
     if function.result != Scalar(Void) {
       type_depth(self, function.result, [], 0, heights) |> ignore
     }
+  }
+}
+
+///|
+/// Result type crossing the C boundary: raising functions return a one-element
+/// array envelope (empty on error); Unit results use Bool elements.
+pub fn Callable::raw_result(self : Callable) -> TypeExpr {
+  if !self.raises {
+    self.result
+  } else if self.result == Scalar(Void) {
+    List(Scalar(Boolean))
+  } else {
+    List(self.result)
   }
 }
 
@@ -115,7 +144,7 @@ fn collect_type(
   }
   seen[key] = true
   match kind {
-    Scalar(_) => ()
+    Scalar(_) | Handle(_) | External(_, _) => ()
     List(element) => collect_type(project, element, seen, result)
     Record(name) =>
       for field in project.record_def(name).fields {
@@ -138,6 +167,7 @@ pub fn Project::reachable_types(
       collect_type(self, param.kind, seen, result)
     }
     collect_type(self, function.result, seen, result)
+    collect_type(self, function.raw_result(), seen, result)
   }
   result
 }
@@ -162,7 +192,8 @@ pub fn Callable::signature(self : Callable) -> String {
   "(" +
   self.params.map(p => p.kind.moon_name()).join(", ") +
   ") -> " +
-  self.result.moon_name()
+  self.result.moon_name() +
+  (if self.raises { " raise" } else { "" })
 }
 
 ///|

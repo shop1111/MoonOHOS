@@ -7,10 +7,13 @@ pub struct PackageFile {
 
 ///|
 pub struct PackageManifest {
+  schema : Int
   module_name : String
   version : String
   abis : Array[String]
   files : Array[PackageFile]
+  /// System libraries declared by native dependencies (schema 2).
+  libraries : Array[String]
 }
 
 ///|
@@ -82,16 +85,27 @@ pub fn parse_package_manifest(
     _ => raise Invalid("package: invalid manifest JSON")
   }
   validate_distribution_metadata(json)
-  let (module_name, version, results, entries) = match json {
+  let (schema, module_name, version, results, entries) = match json {
     {
-      "schema": "moonohos-build-v1",
+      "schema": String(schema),
       "module": String(module_name),
       "moonohosVersion": String(version),
       "sdkApi": Number(26, ..),
       "results": Array(results),
       "files": Array(entries),
       ..
-    } => (module_name, version, results, entries)
+    } if schema == "moonohos-build-v1" || schema == "moonohos-build-v2" =>
+      (
+        if schema == "moonohos-build-v1" {
+          1
+        } else {
+          2
+        },
+        module_name,
+        version,
+        results,
+        entries,
+      )
     _ =>
       raise Invalid(
         "package: unsupported or incomplete manifest; checksums are required",
@@ -100,8 +114,35 @@ pub fn parse_package_manifest(
   if !identifier(module_name) {
     raise Invalid("package: invalid native module name")
   }
-  if version != "0.2.0" && version != "0.3.0" {
+  let supported = if schema == 1 {
+    version == "0.2.0" || version == "0.3.0"
+  } else {
+    version == moonohos_version()
+  }
+  if !supported {
     raise Invalid("package: unsupported generator version " + version)
+  }
+  let libraries : Array[String] = []
+  match json {
+    { "nativeDependencies": Array(dependencies), .. } if schema == 2 =>
+      for dependency in dependencies {
+        match dependency {
+          { "systemLibraries": Array(names), .. } =>
+            for name in names {
+              match name {
+                String(library) if system_library_allowlist().contains(library) =>
+                  if !libraries.contains(library) {
+                    libraries.push(library)
+                  }
+                _ => raise Invalid("package: undeclared system library")
+              }
+            }
+          _ => raise Invalid("package: malformed native dependency")
+        }
+      }
+    { "nativeDependencies": _, .. } =>
+      raise Invalid("package: native dependencies require schema v2")
+    _ => ()
   }
   let abis : Array[String] = []
   for result in results {
@@ -144,7 +185,7 @@ pub fn parse_package_manifest(
       raise Invalid("package: manifest omits required file " + required)
     }
   }
-  { module_name, version, abis, files, }
+  { schema, module_name, version, abis, files, libraries, }
 }
 
 ///|

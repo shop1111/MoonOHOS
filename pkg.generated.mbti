@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn abi_triple(String) -> String
+
 pub fn build_stages(Project, Array[String]) -> Array[BuildStage] raise ConfigError
 
 pub fn c_header(Config) -> String
@@ -24,6 +26,8 @@ pub fn declarations(Config) -> String
 
 pub fn embed_source(Config) -> String
 
+pub fn empty_native_build() -> NativeBuild
+
 pub fn environment_fact(String, String, String, Bool) -> EnvironmentFact
 
 pub fn environment_report(Array[EnvironmentFact]) -> Json
@@ -32,13 +36,27 @@ pub fn failure_report(String, Diagnostic, parameter? : Bool) -> Json
 
 pub fn fingerprint(String, String, Bytes) -> ContentFingerprint
 
+pub fn forbidden_build_hook(String) -> String?
+
 pub fn identifier(String) -> Bool
 
 pub fn ignored_cache_component(String) -> Bool
 
 pub fn inspect_elf(Bytes) -> ElfInfo raise ConfigError
 
+pub fn interface_imports(String) -> Map[String, String]
+
+pub fn linked_packages(Array[String]) -> Array[(String, String)]
+
+pub fn moonohos_version() -> String
+
+pub fn native_cmake(String, NativeBuild) -> String
+
+pub fn native_descriptor_file() -> String
+
 pub fn native_source(Config) -> String
+
+pub fn native_stubs(String) -> Array[String]
 
 pub fn package_file(String, Bytes) -> PackageFile raise ConfigError
 
@@ -50,6 +68,8 @@ pub fn parse_cli(Array[String]) -> CliOptions raise ConfigError
 
 pub fn parse_config(String) -> Config raise ConfigError
 
+pub fn parse_native_descriptor(String, String, Array[String]) -> NativeDescriptor raise ConfigError
+
 pub fn parse_package_interface(String) -> PackageInterface
 
 pub fn parse_package_manifest(String) -> PackageManifest raise ConfigError
@@ -59,6 +79,8 @@ pub fn parse_project(String) -> Project raise ConfigError
 pub fn parse_type_expr(String, result? : Bool) -> TypeExpr raise ConfigError
 
 pub fn pinned_environment() -> Array[(String, String)]
+
+pub fn resolve_adapters(Project, Array[NativeDescriptor], Map[String, String]) -> Array[AdapterDef] raise ConfigError
 
 pub fn runtime_files() -> Array[String]
 
@@ -72,7 +94,11 @@ pub fn sha256(Bytes) -> String
 
 pub fn signature(Function) -> String
 
+pub fn staged_workspace(Int) -> String
+
 pub fn success_report(String, Json) -> Json
+
+pub fn system_library_allowlist() -> Array[String]
 
 pub fn tokenize(String) -> Array[String] raise ConfigError
 
@@ -90,6 +116,8 @@ pub fn verify_library(ElfInfo, PackageManifest, String) -> Unit raise ConfigErro
 
 pub fn verify_type_package(String, PackageManifest) -> Unit raise ConfigError
 
+pub fn workspace_members(String) -> Array[String] raise ConfigError
+
 pub fn wrapper_package(Config) -> String
 
 pub fn wrapper_source(Config) -> String
@@ -102,6 +130,24 @@ pub(all) suberror ConfigError {
 pub fn ConfigError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+pub struct AdapterDef {
+  pkg_alias : String
+  type_name : String
+  pkg : String
+  ark_type : String
+  ark_import : String
+  acquire : String
+  release : String
+}
+
+pub struct AdapterSpec {
+  type_name : String
+  ark_type : String
+  ark_import : String
+  acquire : String
+  release : String
+}
+
 pub struct BuildStage {
   id : String
   description : String
@@ -115,7 +161,10 @@ pub struct Callable {
   name : String
   params : Array[FieldDef]
   result : TypeExpr
+  is_async : Bool
+  raises : Bool
 }
+pub fn Callable::raw_result(Self) -> TypeExpr
 pub fn Callable::signature(Self) -> String
 
 pub struct CliOptions {
@@ -231,6 +280,7 @@ pub struct InterfaceFunction {
   name : String
   params : Array[TypeExpr]
   result : TypeExpr
+  raises : Bool
   unsupported : String?
 }
 
@@ -239,6 +289,29 @@ pub struct InterfaceRecord {
   fields : Array[FieldDef]
   unsupported : String?
 }
+
+pub struct InterfaceType {
+  name : String
+  generic : Bool
+}
+
+pub(all) struct NativeBuild {
+  sources : Array[String]
+  include_dirs : Array[String]
+  defines : Array[String]
+  libraries : Array[String]
+}
+
+pub struct NativeDescriptor {
+  pkg : String
+  sources : Array[String]
+  include_dirs : Array[String]
+  defines : Array[String]
+  libraries : Array[String]
+  abis : Array[String]
+  adapters : Array[AdapterSpec]
+}
+pub fn NativeDescriptor::to_json(Self) -> Json
 
 pub struct PackageFile {
   path : String
@@ -251,13 +324,16 @@ pub fn PackageFile::verify(Self, Bytes) -> Unit raise ConfigError
 pub struct PackageInterface {
   functions : Array[InterfaceFunction]
   records : Array[InterfaceRecord]
+  types : Array[InterfaceType]
 }
 
 pub struct PackageManifest {
+  schema : Int
   module_name : String
   version : String
   abis : Array[String]
   files : Array[PackageFile]
+  libraries : Array[String]
 }
 
 pub struct Parameter {
@@ -266,11 +342,15 @@ pub struct Parameter {
 }
 
 pub struct Project {
+  version : Int
   module_dir : String
   package_name : String
   native_module : String
+  workspace : String?
   records : Array[RecordDef]
+  handles : Array[String]
   functions : Array[Callable]
+  adapters : Array[AdapterDef]
 }
 pub fn Project::build_plan(Self, Array[String]) -> Json raise ConfigError
 pub fn Project::business_adapters(Self) -> String raise ConfigError
@@ -285,6 +365,7 @@ pub fn Project::record_order(Self) -> Array[RecordDef] raise ConfigError
 pub fn Project::summary(Self) -> Json raise ConfigError
 pub fn Project::validate(Self) -> Unit raise ConfigError
 pub fn Project::verify_interface(Self, String) -> Unit raise ConfigError
+pub fn Project::with_adapters(Self, Array[AdapterDef]) -> Self
 
 pub struct RecordDef {
   name : String
@@ -304,11 +385,14 @@ pub(all) enum TypeExpr {
   Scalar(ValueType)
   List(TypeExpr)
   Record(String)
+  Handle(String)
+  External(String, String)
 } derive(Eq, @debug.Debug)
 pub fn TypeExpr::ark_name(Self) -> String
 pub fn TypeExpr::c_name(Self) -> String
 #deprecated
 pub fn TypeExpr::equal(Self, Self) -> Bool
+pub fn TypeExpr::is_opaque(Self) -> Bool
 pub fn TypeExpr::is_reference(Self) -> Bool
 pub fn TypeExpr::moon_name(Self) -> String
 #deprecated

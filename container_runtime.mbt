@@ -11,6 +11,7 @@ fn container_runtime() -> String {
     #|  std::u16string text;
     #|  std::vector<uint8_t> bytes;
     #|  std::vector<BridgeValue> children;
+    #|  std::shared_ptr<HandlePin> pin; // set for handle arguments
     #|};
     #|struct Budget {
     #|  bool enabled;

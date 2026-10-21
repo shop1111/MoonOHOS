@@ -76,7 +76,7 @@ async fn build_cache_key(
     (name, text) in [
       ("manifest", config),
       ("abis", abis.to_json().stringify()),
-      ("generator-version", "0.3.0"),
+      ("generator-version", @lib.moonohos_version()),
       ("wrapper", artifacts.wrapper),
       ("wrapper-package", artifacts.package_file),
       ("native", artifacts.native),

@@ -3,6 +3,10 @@ pub(all) enum TypeExpr {
   Scalar(ValueType)
   List(TypeExpr)
   Record(String)
+  /// Opaque MoonBit value owned by an ArkTS handle object with `close()`.
+  Handle(String)
+  /// Platform value acquired by a native adapter, e.g. `@rawfile.Manager`.
+  External(String, String)
 } derive(Eq, Debug)
 
 ///|
@@ -22,15 +26,21 @@ pub struct Callable {
   name : String
   params : Array[FieldDef]
   result : TypeExpr
+  is_async : Bool
+  raises : Bool
 }
 
 ///|
 pub struct Project {
+  version : Int
   module_dir : String
   package_name : String
   native_module : String
+  workspace : String?
   records : Array[RecordDef]
+  handles : Array[String]
   functions : Array[Callable]
+  adapters : Array[AdapterDef]
 }
 
 ///|
@@ -103,6 +113,13 @@ fn TypeCursor::expression(
     "Unit" if unit => Scalar(Void)
     "Unit" => raise Invalid("type: Unit is only supported as a function result")
     name if identifier(name) => Record(name)
+    name if name.has_prefix("@") => {
+      let parts = name[1:].split(".").map(s => s.to_owned()).to_array()
+      if parts.length() != 2 || !identifier(parts[0]) || !identifier(parts[1]) {
+        raise Invalid("type: platform types are written @package.Type")
+      }
+      External(parts[0], parts[1])
+    }
     name => raise Invalid("type: unsupported expression " + name)
   }
 }
@@ -125,7 +142,8 @@ pub fn TypeExpr::moon_name(self : TypeExpr) -> String {
   match self {
     Scalar(kind) => kind.moon_name()
     List(element) => "Array[" + element.moon_name() + "]"
-    Record(name) => name
+    Record(name) | Handle(name) => name
+    External(pkg_alias, name) => "@" + pkg_alias + "." + name
   }
 }
 
@@ -134,7 +152,8 @@ pub fn TypeExpr::wrapper_name(self : TypeExpr) -> String {
   match self {
     Scalar(kind) => kind.moon_name()
     List(element) => "Array[" + element.wrapper_name() + "]"
-    Record(name) => "@core." + name
+    Record(name) | Handle(name) => "@core." + name
+    External(pkg_alias, name) => "@" + pkg_alias + "." + name
   }
 }
 
@@ -142,7 +161,7 @@ pub fn TypeExpr::wrapper_name(self : TypeExpr) -> String {
 pub fn TypeExpr::c_name(self : TypeExpr) -> String {
   match self {
     Scalar(kind) => kind.c_name()
-    List(_) | Record(_) => "void *"
+    List(_) | Record(_) | Handle(_) | External(_, _) => "void *"
   }
 }
 
@@ -151,7 +170,26 @@ pub fn TypeExpr::ark_name(self : TypeExpr) -> String {
   match self {
     Scalar(kind) => kind.ark_name()
     List(element) => "Array<" + element.ark_name() + ">"
-    Record(name) => name
+    Record(name) | Handle(name) | External(_, name) => name
+  }
+}
+
+///|
+/// Handles and adapters cross the bridge by reference and are never copied.
+pub fn TypeExpr::is_opaque(self : TypeExpr) -> Bool {
+  match self {
+    Handle(_) | External(_, _) => true
+    List(element) => element.is_opaque()
+    _ => false
+  }
+}
+
+///|
+fn TypeExpr::bind_handles(self : TypeExpr, handles : Array[String]) -> TypeExpr {
+  match self {
+    Record(name) if handles.contains(name) => Handle(name)
+    List(element) => List(element.bind_handles(handles))
+    other => other
   }
 }
 
@@ -196,13 +234,31 @@ fn parse_fields(
 }
 
 ///|
+fn optional_flag(
+  value : Json,
+  key : String,
+  version : Int,
+  context : String,
+) -> Bool raise ConfigError {
+  match field(value, key) {
+    None => false
+    Some(_) if version < 2 =>
+      raise Invalid(context + ": " + key + " requires version 2")
+    Some(True) => true
+    Some(False) => false
+    _ => raise Invalid(context + ": " + key + " must be a boolean")
+  }
+}
+
+///|
 pub fn parse_project(text : String) -> Project raise ConfigError {
   let json = @json.parse(text) catch {
     _ => raise Invalid("config: invalid JSON")
   }
-  match field(json, "version") {
-    Some(Number(1.0, ..)) => ()
-    _ => raise Invalid("config: version must be 1")
+  let version = match field(json, "version") {
+    Some(Number(1.0, ..)) => 1
+    Some(Number(2.0, ..)) => 2
+    _ => raise Invalid("config: version must be 1 or 2")
   }
   let module_dir = required_string(json, "module")
   let package_name = required_string(json, "package")
@@ -218,25 +274,48 @@ pub fn parse_project(text : String) -> Project raise ConfigError {
   if !identifier(native_module) {
     raise Invalid("config: invalid nativeModule")
   }
+  let workspace = match field(json, "workspace") {
+    None => None
+    Some(_) if version < 2 =>
+      raise Invalid("config: workspace requires version 2")
+    Some(String(path)) if path != "" => Some(path)
+    _ => raise Invalid("config: workspace must be a path")
+  }
+  let reserved = ["Int", "Double", "Bool", "String", "Bytes", "Unit", "Array"]
+  let names : Map[String, Bool] = Map([])
+  let handles : Array[String] = []
+  match field(json, "handles") {
+    None => ()
+    Some(_) if version < 2 => raise Invalid("config: handles require version 2")
+    Some(Array(entries)) =>
+      for entry in entries {
+        let name = checked_name(entry, "handles")
+        if names.contains(name) || reserved.contains(name) {
+          raise Invalid("handles: duplicate/reserved type " + name)
+        }
+        names[name] = true
+        handles.push(name)
+      }
+    _ => raise Invalid("config: handles must be an array")
+  }
   let entries = match field(json, "types") {
     None => []
     Some(Array(entries)) => entries
     _ => raise Invalid("config: types must be an array")
   }
   let records : Array[RecordDef] = []
-  let names : Map[String, Bool] = Map([])
   for entry in entries {
     let name = checked_name(entry, "types")
-    if names.contains(name) ||
-      ["Int", "Double", "Bool", "String", "Bytes", "Unit", "Array"].contains(
-        name,
-      ) {
+    if names.contains(name) || reserved.contains(name) {
       raise Invalid("types: duplicate/reserved type " + name)
     }
     names[name] = true
     records.push({
       name,
-      fields: parse_fields(entry, "fields", "types." + name),
+      fields: parse_fields(entry, "fields", "types." + name).map(f => {
+        name: f.name,
+        kind: f.kind.bind_handles(handles),
+      }),
     })
   }
   let entries = match field(json, "functions") {
@@ -251,28 +330,60 @@ pub fn parse_project(text : String) -> Project raise ConfigError {
       raise Invalid("functions: duplicate function " + name)
     }
     names[name] = true
+    let context = "functions." + name
+    let result = parse_type_expr(required_string(entry, "return"), result=true)
     functions.push({
       name,
-      params: parse_fields(entry, "params", "functions." + name),
-      result: parse_type_expr(required_string(entry, "return"), result=true),
+      params: parse_fields(entry, "params", context).map(p => {
+        name: p.name,
+        kind: p.kind.bind_handles(handles),
+      }),
+      result: result.bind_handles(handles),
+      is_async: optional_flag(entry, "async", version, context),
+      raises: optional_flag(entry, "raises", version, context),
     })
   }
-  { module_dir, package_name, native_module, records, functions, }
+  {
+    version,
+    module_dir,
+    package_name,
+    native_module,
+    workspace,
+    records,
+    handles,
+    functions,
+    adapters: [],
+  }
 }
 
 ///|
 pub fn Config::to_project(self : Config) -> Project {
   {
+    version: 1,
     module_dir: self.module_dir,
     package_name: self.package_name,
     native_module: self.native_module,
+    workspace: None,
     records: [],
+    handles: [],
     functions: self.functions.map(f => {
       name: f.name,
       params: f.params.map(p => { name: p.name, kind: Scalar(p.kind), }),
       result: Scalar(f.result),
+      is_async: false,
+      raises: false,
     }),
+    adapters: [],
   }
+}
+
+///|
+/// Attaches platform adapters discovered from native dependency descriptors.
+pub fn Project::with_adapters(
+  self : Project,
+  adapters : Array[AdapterDef],
+) -> Project {
+  { ..self, adapters, }
 }
 
 ///|

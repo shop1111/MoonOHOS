@@ -3,7 +3,9 @@ extern "C" fn native_exit(code : Int) -> Unit = "exit"
 
 ///|
 fn usage() -> String {
-  "MoonOHOS 0.3.0\nmoonohos build [--config moonohos.json] --sdk <SDK> [--abi arm64-v8a,x86_64] [--out <directory>] [--dry-run] [--cache] [--json]\n"
+  "MoonOHOS " +
+  @lib.moonohos_version() +
+  "\nmoonohos build [--config moonohos.json] --sdk <SDK> [--abi arm64-v8a,x86_64] [--out <directory>] [--dry-run] [--cache] [--json]\n"
 }
 
 ///|
@@ -104,26 +106,32 @@ async fn build(
   }
   let work = base + "/_build/moonohos/work-" + sequence.to_string()
   command_logs.val = Some(work + "/commands")
-  let artifacts = config.generate()
-  let staged = work + "/module"
-  copy_tree(module_root, staged, module_tree=true)
-  reject_stubs(staged)
-  let source = staged + "/" + source_dir
+  let staged = stage_project(config, base, module_root, source_dir, work)
+  let source = staged.source
   let bridge = source + "/moonohos_bridge"
   if @fs.exists(bridge) {
     raise Failure("stage: reserved package moonohos_bridge already exists")
   }
   // Resolve normal MoonBit dependencies in the disposable copy, then audit them.
-  command("interface", "moon", ["info", "--target", "native"], staged) |> ignore
-  reject_stubs(staged + "/.mooncakes") catch {
-    error => if @fs.exists(staged + "/.mooncakes") { raise error }
-  }
-  config.verify_interface(
-    read(source + "/" + package_relative + "/pkg.generated.mbti"),
+  command("interface", "moon", ["info", "--target", "native"], staged.root)
+  |> ignore
+  let found : Array[NativePackage] = []
+  discover_native(staged.root, found)
+  let interface_text = read(
+    source + "/" + package_relative + "/pkg.generated.mbti",
   )
+  config.verify_interface(interface_text)
+  let config = config.with_adapters(
+    @lib.resolve_adapters(
+      config,
+      known_descriptors(found),
+      @lib.interface_imports(interface_text),
+    ),
+  )
+  let artifacts = config.generate()
   let cache_entry = if cache {
     let key = build_cache_key(
-      staged,
+      staged.root,
       native,
       moon_home,
       read(config_path),
@@ -153,9 +161,9 @@ async fn build(
       "native",
       "--release",
       "--dry-run",
-      source_dir + "/moonohos_bridge",
+      staged.bridge_path,
     ],
-    staged,
+    staged.root,
   )
   // Do not persist dry-run environment dumps from unrelated host compiler steps.
   let commands = @lib.compiler_commands(plan, moon_home)
@@ -165,7 +173,7 @@ async fn build(
     let mut index = 0
     while index < args.length() {
       if args[index] == "-o" && index + 1 < args.length() {
-        let output = resolve(staged, args[index + 1])
+        let output = resolve(staged.root, args[index + 1])
         ensure_dir(parent(output))
         if args[0] == "link-core" {
           c_output = output
@@ -174,18 +182,25 @@ async fn build(
       index += 1
     }
     compiler_log.push(args.to_json())
-    command("moonbit", "moonc", args, staged) |> ignore
+    command("moonbit", "moonc", args, staged.root) |> ignore
   }
   write(
     work + "/compiler-commands.json",
     compiler_log.to_json().stringify(indent=2),
   )
+  let linked = linked_native(commands.last().unwrap(), staged.root, found, abis)
   let generated = work + "/native"
+  let (native_build, native_manifest) = prepare_native(
+    linked, generated, native, abis,
+  )
   write(generated + "/core.c", read(c_output))
   write(generated + "/moonohos.h", artifacts.header)
   write(generated + "/embed.c", artifacts.embed)
   write(generated + "/napi_init.cpp", artifacts.native)
-  write(generated + "/CMakeLists.txt", artifacts.cmake)
+  write(
+    generated + "/CMakeLists.txt",
+    @lib.native_cmake(config.native_module, native_build),
+  )
   let package_dir = work + "/dist"
   let results : Array[Json] = []
   for abi in abis {
@@ -253,7 +268,7 @@ async fn build(
   write(types + "/index.d.ts", artifacts.declarations)
   let type_manifest : Json = {
     "name": "lib" + config.native_module + ".so",
-    "version": "0.3.0",
+    "version": @lib.moonohos_version(),
     "types": "./index.d.ts",
   }
   write(types + "/oh-package.json5", type_manifest.stringify(indent=2))
@@ -266,14 +281,21 @@ async fn build(
     ".so\")\n"
   write(package_dir + "/cmake/MoonOHOS.cmake", imported)
   let manifest : Json = {
-    "schema": "moonohos-build-v1",
-    "moonohosVersion": "0.3.0",
+    "schema": "moonohos-build-v2",
+    "moonohosVersion": @lib.moonohos_version(),
     "module": config.native_module,
     "moon": moon_version.trim().to_owned(),
     "moonc": compiler_version.trim().to_owned(),
     "sdkApi": 26,
     "results": results.to_json(),
     "functions": config.functions.map(f => f.signature()).to_json(),
+    "exports": config.functions
+    .map(f => {
+      ({ "name": f.name, "async": f.is_async, "raises": f.raises } : Json)
+    })
+    .to_json(),
+    "handles": config.handles.to_json(),
+    "nativeDependencies": native_manifest.to_json(),
   }
   write(package_dir + "/manifest.json", manifest.stringify(indent=2))
   write(package_dir + "/NOTICE.NativeSDK.txt", read(native + "/NOTICE.txt"))
@@ -355,7 +377,7 @@ async fn main {
         return
       }
       Version => {
-        println("MoonOHOS 0.3.0")
+        println("MoonOHOS " + @lib.moonohos_version())
         return
       }
       Build =>

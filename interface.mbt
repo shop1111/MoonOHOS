@@ -3,7 +3,15 @@ pub struct InterfaceFunction {
   name : String
   params : Array[TypeExpr]
   result : TypeExpr
+  raises : Bool
   unsupported : String?
+}
+
+///|
+/// Any declared type name, including abstract `type X` and external types.
+pub struct InterfaceType {
+  name : String
+  generic : Bool
 }
 
 ///|
@@ -17,6 +25,7 @@ pub struct InterfaceRecord {
 pub struct PackageInterface {
   functions : Array[InterfaceFunction]
   records : Array[InterfaceRecord]
+  types : Array[InterfaceType]
 }
 
 ///|
@@ -128,6 +137,16 @@ fn InterfaceCursor::kind(
     let element = self.kind(depth + 1)
     self.expect("]")
     List(element)
+  } else if name.has_prefix("@") && self.peek() == "." {
+    self.take() |> ignore
+    let type_name = self.take()
+    if !identifier(name[1:].to_owned()) ||
+      !identifier(type_name) ||
+      self.peek() == "[" ||
+      self.peek() == "?" {
+      raise Invalid("interface: unsupported qualified type " + name)
+    }
+    External(name[1:].to_owned(), type_name)
   } else {
     let kind = parse_type_expr(name, result=true)
     if self.peek() == "[" ||
@@ -148,6 +167,7 @@ fn parse_interface_function(tokens : Array[String]) -> InterfaceFunction {
   let mut name = ""
   let params : Array[TypeExpr] = []
   let mut result = Scalar(Void)
+  let mut raises = false
   let unsupported = try {
     name = cursor.take()
     if !identifier(name) {
@@ -171,14 +191,30 @@ fn parse_interface_function(tokens : Array[String]) -> InterfaceFunction {
     cursor.expect("-")
     cursor.expect(">")
     result = cursor.kind(0)
+    if cursor.peek() == "raise" {
+      cursor.take() |> ignore
+      raises = true
+      // Optional error type: `Error`, `E` or `@pkg.E`.
+      if cursor.offset < tokens.length() {
+        let error = cursor.take()
+        if error.has_prefix("@") {
+          cursor.expect(".")
+          cursor.take() |> ignore
+        } else if !identifier(error) {
+          raise Invalid("unsupported raise clause")
+        }
+      }
+    }
     if cursor.offset != tokens.length() {
-      raise Invalid("raises, labels and other signature syntax are unsupported")
+      raise Invalid(
+        "labels, polymorphic effects and other signature syntax are unsupported",
+      )
     }
     None
   } catch {
     Invalid(message) => Some(message)
   }
-  { name, params, result, unsupported, }
+  { name, params, result, raises, unsupported, }
 }
 
 ///|
@@ -227,29 +263,38 @@ pub fn parse_package_interface(text : String) -> PackageInterface {
   let tokens = interface_tokens(text)
   let functions : Array[InterfaceFunction] = []
   let records : Array[InterfaceRecord] = []
+  let types : Array[InterfaceType] = []
+  // Abstract types (`type X`) and other non-pub items also end a declaration.
+  let boundaries = [
+    "pub", "#", "type", "fn", "struct", "enum", "suberror", "trait", "impl", "let",
+    "const", "typealias", "fnalias", "async",
+  ]
   let mut index = 0
   let mut value_type = false
   while index < tokens.length() {
-    if tokens[index] == "#" && tokens.get(index + 1) == Some("value") {
-      value_type = true
-    }
-    if tokens[index] != "pub" {
-      index += 1
+    if tokens[index] == "#" {
+      if tokens.get(index + 1) == Some("value") {
+        value_type = true
+      }
+      index += 2
       continue
     }
-    index += 1
-    if tokens.get(index) == Some("(") {
-      while index < tokens.length() && tokens[index] != ")" {
+    if tokens[index] == "pub" {
+      index += 1
+      if tokens.get(index) == Some("(") {
+        while index < tokens.length() && tokens[index] != ")" {
+          index += 1
+        }
         index += 1
       }
+    } else if !boundaries.contains(tokens[index]) {
       index += 1
+      continue
     }
     let category = tokens.get(index).unwrap_or("")
     index += 1
     let start = index
-    while index < tokens.length() &&
-          tokens[index] != "pub" &&
-          tokens[index] != "#" {
+    while index < tokens.length() && !boundaries.contains(tokens[index]) {
       index += 1
     }
     let declaration = tokens[start:index].to_owned()
@@ -258,9 +303,42 @@ pub fn parse_package_interface(text : String) -> PackageInterface {
       "struct" => records.push(parse_interface_record(declaration, value_type))
       _ => ()
     }
+    if ["struct", "type", "enum", "suberror"].contains(category) &&
+      !declaration.is_empty() {
+      types.push({
+        name: declaration[0],
+        generic: declaration.get(1) == Some("["),
+      })
+    }
     value_type = false
   }
-  { functions, records, }
+  { functions, records, types, }
+}
+
+///|
+/// Maps default package aliases (last path segment) to imported packages.
+pub fn interface_imports(text : String) -> Map[String, String] {
+  let result : Map[String, String] = Map([])
+  let mut inside = false
+  for line in text.split("\n") {
+    let line = line.trim().to_owned()
+    if line.has_prefix("import {") {
+      inside = true
+      continue
+    }
+    if inside {
+      if line.has_prefix("}") {
+        inside = false
+        continue
+      }
+      let pkg = line.trim_end(chars=",").trim(chars="\"").to_owned()
+      let pkg_alias = pkg.split("/").last().unwrap_or("").to_owned()
+      if pkg_alias != "" {
+        result[pkg_alias] = pkg
+      }
+    }
+  }
+  result
 }
 
 ///|
@@ -280,11 +358,31 @@ pub fn Project::verify_interface(
     if actual.unsupported is Some(reason) {
       raise Invalid("interface: " + expected.name + ": " + reason)
     }
-    if actual.params != expected.params.map(p => p.kind) ||
-      actual.result != expected.result {
+    // Handles are declared opaque in the manifest but appear as names in mbti.
+    if actual.params.map(k => k.moon_name()) !=
+      expected.params.map(p => p.kind.moon_name()) ||
+      actual.result.moon_name() != expected.result.moon_name() {
       raise Invalid(
         "interface: signature mismatch; expected " + expected.signature(),
       )
+    }
+    if actual.raises != expected.raises {
+      raise Invalid(
+        "interface: " +
+        expected.name +
+        (if actual.raises {
+          " raises; declare \"raises\": true (manifest version 2)"
+        } else {
+          " does not raise; remove \"raises\""
+        }),
+      )
+    }
+  }
+  for handle in self.handles {
+    match interface.types.search_by(t => t.name == handle) {
+      Some(i) if !interface.types[i].generic => ()
+      Some(_) => raise Invalid("interface: generic handle type " + handle)
+      None => raise Invalid("interface: missing public type " + handle)
     }
   }
   for expected in self.records {
