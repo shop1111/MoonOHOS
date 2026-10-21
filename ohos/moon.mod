@@ -12,4 +12,6 @@ keywords = [ "harmonyos", "hilog", "rawfile", "native" ]
 
 license = "Apache-2.0"
 
+readme = "README.md"
+
 description = "HarmonyOS platform packages (HiLog, RawFile, task cancellation) for MoonOHOS native modules."
