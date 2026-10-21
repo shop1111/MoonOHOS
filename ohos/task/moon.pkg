@@ -1,0 +1,3 @@
+options(
+  "native-stub": [ "task_stub.c" ],
+)

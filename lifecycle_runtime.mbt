@@ -316,13 +316,15 @@ fn lifecycle_napi() -> String {
     #|  pending_tasks.fetch_sub(1);
     #|  napi_delete_async_work(env, task->work);
     #|  if (status == napi_cancelled) task->outcome = Outcome::Cancelled;
+    #|  if (task->outcome == Outcome::Cancelled) task->message = "task cancelled";
     #|  (task->outcome == Outcome::Cancelled ? cancelled_tasks : completed_tasks).fetch_add(1);
     #|  if (task->state->Closing()) return;
     #|  if (task->outcome == Outcome::Ok) {
     #|    napi_value value = nullptr;
     #|    bool created = false;
     #|    try { created = create(env, *task, value); } catch (...) { task->outcome = Classify(std::current_exception(), task->message, task->business); }
-    #|    if (created) { napi_resolve_deferred(env, task->deferred, value); return; }
+    #|    if (created && napi_resolve_deferred(env, task->deferred, value) == napi_ok) return;
+    #|    if (created) { task->outcome = Outcome::Native; task->message = "cannot resolve promise"; }
     #|  }
     #|  napi_value error = nullptr;
     #|  if (task->outcome == Outcome::Ok) {

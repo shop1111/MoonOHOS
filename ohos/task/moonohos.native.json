@@ -1,0 +1,6 @@
+{
+  "schema": "moonohos-native-v1",
+  "package": "shop1111/moonohos_ohos/task",
+  "sources": ["task_stub.c"],
+  "abis": ["arm64-v8a", "x86_64"]
+}

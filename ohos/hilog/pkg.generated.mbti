@@ -1,0 +1,44 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/hilog"
+
+import {
+  "moonbitlang/core/builtin",
+}
+
+// Values
+
+// Errors
+pub(all) suberror HilogError {
+  InvalidDomain(Int)
+  InvalidTag(String)
+}
+pub fn HilogError::output(Self, &@builtin.Logger) -> Unit
+pub fn HilogError::to_string(Self) -> String
+pub impl Show for HilogError
+
+// Types and methods
+pub(all) enum Level {
+  Debug
+  Info
+  Warn
+  Error
+  Fatal
+}
+
+pub struct Logger {
+  domain : Int
+  tag : String
+  // private fields
+}
+pub fn Logger::debug(Self, String) -> Unit
+pub fn Logger::error(Self, String) -> Unit
+pub fn Logger::fatal(Self, String) -> Unit
+pub fn Logger::info(Self, String) -> Unit
+pub fn Logger::is_loggable(Self, Level) -> Bool
+pub fn Logger::log(Self, Level, String) -> Unit
+pub fn Logger::new(Int, String) -> Self raise HilogError
+pub fn Logger::warn(Self, String) -> Unit
+
+// Type aliases
+
+// Traits

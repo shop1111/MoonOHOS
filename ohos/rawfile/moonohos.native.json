@@ -1,0 +1,16 @@
+{
+  "schema": "moonohos-native-v1",
+  "package": "shop1111/moonohos_ohos/rawfile",
+  "sources": ["rawfile_stub.c"],
+  "systemLibraries": ["librawfile.z.so"],
+  "abis": ["arm64-v8a", "x86_64"],
+  "adapters": [
+    {
+      "type": "Manager",
+      "arkType": "resourceManager.ResourceManager",
+      "arkImport": "import { resourceManager } from '@kit.LocalizationKit';",
+      "acquire": "moonohos_rawfile_acquire",
+      "release": "moonohos_rawfile_release"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/task"
+
+// Values
+pub fn cancelled() -> Bool
+
+pub fn check() -> Unit raise Cancelled
+
+pub fn host_set_cancelled(Bool) -> Unit
+
+// Errors
+pub(all) suberror Cancelled
+pub fn Cancelled::output(Self, &Logger) -> Unit
+pub fn Cancelled::to_string(Self) -> String
+pub impl Show for Cancelled
+
+// Types and methods
+
+// Type aliases
+
+// Traits

@@ -15,7 +15,7 @@ else:
 generated = work / "native"
 home = Path(os.environ.get("MOON_HOME", Path.home() / ".moon"))
 test_source = root / "tests" / (sys.argv[2] if len(sys.argv) > 2 else "host_bridge.cpp")
-build = root / "_build/host-asan-v0.3"
+build = root / "_build/host-asan-v0.4"
 if test_source.name != "host_bridge.cpp":
     build = build / test_source.stem
 build.mkdir(parents=True, exist_ok=True)
@@ -35,12 +35,21 @@ compiler = shutil.which("cl.exe", path=env["PATH"])
 if not compiler:
     raise RuntimeError("MSVC C++ tools with AddressSanitizer required")
 sources = [generated / "embed.c"] + [home / "lib/runtime" / name for name in ("runtime.c", "env.c", "backtrace.c", "sync_io.c", "utf.c")]
+# Native dependency stubs build in bridge mode with host fallbacks (no OHOS SDK).
+dependency_flags = []
+deps_file = generated / "deps.json"
+if deps_file.exists():
+    import json
+    for dep in json.loads(deps_file.read_text(encoding="utf-8")):
+        base = Path(dep["dir"])
+        sources += [base / name for name in dep["sources"]]
+        dependency_flags += ["/I" + str(base)] + ["/I" + str(base / name) for name in dep["includeDirs"]]
 objects = []
-flags = ["/nologo", "/fsanitize=address", "/O1", "/Zi", "/MT", "/utf-8", "/DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_SYSTEM", "/DMOONBIT_NATIVE_EXIT_ON_PANIC", "/D_CRT_SECURE_NO_WARNINGS", "/I" + str(home / "include"), "/I" + str(generated)]
+flags = ["/nologo", "/fsanitize=address", "/O1", "/Zi", "/MT", "/utf-8", "/DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_SYSTEM", "/DMOONBIT_NATIVE_EXIT_ON_PANIC", "/DMOONOHOS_BRIDGE=1", "/D_CRT_SECURE_NO_WARNINGS", "/I" + str(home / "include"), "/I" + str(generated)] + dependency_flags
 exports = len(re.findall(r'\{"[^"\n]+", nullptr, Call_', (generated / "napi_init.cpp").read_text(encoding="utf-8")))
 flags.append(f"/DMOONOHOS_EXPECTED_EXPORTS={exports}")
 for source in sources:
-    output = build / (source.stem + ".obj")
+    output = build / (source.parent.name + "-" + source.stem + ".obj")
     subprocess.run([compiler, *flags, "/FI" + str(root / "tests/alloc_probe.h"), "/std:c11", "/c", str(source), "/Fo" + str(output)], check=True, env=env, cwd=build)
     objects.append(str(output))
 exe = build / "host_bridge.exe"

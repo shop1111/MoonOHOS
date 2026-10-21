@@ -1,0 +1,7 @@
+{
+  "schema": "moonohos-native-v1",
+  "package": "shop1111/moonohos_ohos/hilog",
+  "sources": ["hilog_stub.c"],
+  "systemLibraries": ["libhilog_ndk.z.so"],
+  "abis": ["arm64-v8a", "x86_64"]
+}

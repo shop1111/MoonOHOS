@@ -282,7 +282,7 @@ fn async_callback(
     bounded_text(call) +
     "};\n    { GateLock lock; CancelScope scope(task->cancel.get());\n" +
     locked_body(call, plan, slots) +
-    "    if (task->cancel->cancelled.load() && task->handle_result) { moonbit_decref(task->handle_result); task->handle_result = nullptr; }\n    }\n    task->outcome = task->cancel->cancelled.load() ? Outcome::Cancelled : Outcome::Ok;\n  } catch (...) { task->outcome = Classify(std::current_exception(), task->message, task->business); }\n}\n"
+    "    if (task->cancel->cancelled.load() && task->handle_result) { moonbit_decref(task->handle_result); task->handle_result = nullptr; }\n    }\n    task->outcome = task->cancel->cancelled.load() ? Outcome::Cancelled : Outcome::Ok;\n  } catch (...) {\n    // A cancelled task reports cancellation even when MoonBit raised (e.g. @task.check()).\n    task->outcome = Classify(std::current_exception(), task->message, task->business);\n    if (task->cancel->cancelled.load()) task->outcome = Outcome::Cancelled;\n  }\n}\n"
   source += "static bool Result_" +
     name +
     "(napi_env env, AsyncTask &task, napi_value &result) {\n  return " +

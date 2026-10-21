@@ -1,0 +1,14 @@
+{"version":2,"module":".","package":"moonohos/async_fixture","nativeModule":"asyncfix","workspace":"moon.work",
+ "handles":[{"name":"Counter"}],
+ "functions":[
+  {"name":"open_counter","params":[{"name":"start","type":"Int"}],"return":"Counter"},
+  {"name":"open_counter_later","params":[{"name":"start","type":"Int"}],"return":"Counter","async":true},
+  {"name":"add","params":[{"name":"counter","type":"Counter"},{"name":"value","type":"Int"}],"return":"Int"},
+  {"name":"add_later","params":[{"name":"counter","type":"Counter"},{"name":"value","type":"Int"}],"return":"Int","async":true},
+  {"name":"reset","params":[{"name":"counter","type":"Counter"}],"return":"Unit","raises":true},
+  {"name":"spin","params":[{"name":"rounds","type":"Int"}],"return":"Int","async":true,"raises":true},
+  {"name":"checked_div","params":[{"name":"a","type":"Int"},{"name":"b","type":"Int"}],"return":"Int","raises":true},
+  {"name":"read_doc","params":[{"name":"resources","type":"@rawfile.Manager"},{"name":"path","type":"String"}],"return":"String","async":true,"raises":true},
+  {"name":"count_docs","params":[{"name":"resources","type":"@rawfile.Manager"},{"name":"dir","type":"String"}],"return":"Int","raises":true},
+  {"name":"echo_words","params":[{"name":"words","type":"Array[String]"}],"return":"Array[String]","async":true}
+ ]}

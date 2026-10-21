@@ -1,0 +1,47 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonohos/async_fixture"
+
+import {
+  "shop1111/moonohos_ohos/rawfile",
+  "shop1111/moonohos_ohos/task",
+}
+
+// Values
+pub fn add(Counter, Int) -> Int
+
+pub fn add_later(Counter, Int) -> Int
+
+pub fn checked_div(Int, Int) -> Int raise FixtureError
+
+pub fn count_docs(@rawfile.Manager, String) -> Int raise @rawfile.RawFileError
+
+pub fn echo_words(Array[String]) -> Array[String]
+
+pub fn open_counter(Int) -> Counter
+
+pub fn open_counter_later(Int) -> Counter
+
+pub fn read_doc(@rawfile.Manager, String) -> String raise @rawfile.RawFileError
+
+pub fn reset(Counter) -> Unit raise FixtureError
+
+pub fn spin(Int) -> Int raise @task.Cancelled
+
+// Errors
+pub(all) suberror FixtureError {
+  DivisionByZero
+  Negative(Int)
+}
+pub fn FixtureError::output(Self, &Logger) -> Unit
+pub fn FixtureError::to_string(Self) -> String
+pub impl Show for FixtureError
+
+// Types and methods
+pub struct Counter {
+  mut total : Int
+  history : Array[Int]
+}
+
+// Type aliases
+
+// Traits

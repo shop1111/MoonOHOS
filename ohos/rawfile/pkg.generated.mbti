@@ -1,0 +1,31 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/rawfile"
+
+// Values
+pub fn host_manager(String) -> Manager
+
+pub fn list(Manager, String) -> Array[String] raise RawFileError
+
+pub fn read(Manager, String) -> Bytes raise RawFileError
+
+pub fn read_text(Manager, String) -> String raise RawFileError
+
+// Errors
+pub(all) suberror RawFileError {
+  InvalidPath(String)
+  NotFound(String)
+  TooLarge(String)
+  ReadFailed(String)
+  InvalidText(String)
+}
+pub fn RawFileError::output(Self, &Logger) -> Unit
+pub fn RawFileError::to_string(Self) -> String
+pub impl Show for RawFileError
+
+// Types and methods
+#external
+pub type Manager
+
+// Type aliases
+
+// Traits
