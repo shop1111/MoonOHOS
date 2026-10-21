@@ -45,6 +45,7 @@
 | `verify_cli.py`：Unicode/空格路径、缓存、损坏恢复、ELF 篡改、init、工作区平台构建、5 类 Native 依赖拒绝、受描述 stub 接受、v1 清单兼容、HAR 准备 | 41 个场景通过 | [cli-results](evidence/v0.4/cli-results.json) |
 | `verify_integration.py`：中文路径双 ABI 构建、错误配置、引用矩阵 ASan、HAP 双 ABI | 11 项通过 | — |
 | `verify_init_flow.ps1`：新目录 init → 双 ABI build → har --assemble | 通过；HAR 含两 ABI 库、类型包、生成门面与来源记录 | [init-flow](evidence/v0.4/init-flow-summary.json) |
+| 注册表消费：独立模块从 Mooncakes 安装 `shop1111/moonohos_ohos@0.4.0` 并运行宿主测试；`init`（不带 `--ohos`）工程从注册表解析平台包并完成构建 | 通过 | — |
 | 生产代码统计（排除测试、示例、fixture、生成代码、注释和纯字符串行） | 5983 行（门槛 4000） | [production-lines](evidence/v0.4/production-lines.json) |
 
 ## 模拟器
@@ -83,7 +84,6 @@
 - 旧 SDK、独立 OpenHarmony 产品。
 - 在 ArkTS Worker 中加载生成模块的完整场景（只用探针库验证了 Worker 终止顺序）。
 - Option、Int64、枚举、类、回调、零复制缓冲区。
-- `ohos` 模块与 0.4 CLI 尚未发布到 Mooncakes；GitHub 未推送。
 
 ## 复现
 

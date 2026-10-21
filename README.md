@@ -26,19 +26,20 @@
 
 ## 快速开始
 
+CLI 和平台模块已发布到 Mooncakes：`shop1111/moonohos@0.4.0`、`shop1111/moonohos_ohos@0.4.0`。
+
 ```powershell
-moon build --target native --release --deny-warn cmd/moonohos
-$cli = '.\_build\native\release\build\cmd\moonohos\moonohos.exe'
-& $cli init ..\textkit --package alice/textkit --ohos .\ohos
-& $cli build --config ..\textkit\moonohos.json --sdk 'D:\apps\DevEco Studio\sdk' --out _build/dist
-& $cli har --dist ..\textkit\_build\dist --module ..\textkit\harmony\textkit --assemble --deveco 'D:\apps\DevEco Studio'
+moon install shop1111/moonohos/cmd/moonohos@0.4.0     # 或在源码仓库中 moon build --target native --release cmd/moonohos
+moonohos init textkit --package alice/textkit
+moonohos build --config textkit\moonohos.json --sdk 'D:\apps\DevEco Studio\sdk' --out _build/dist
+moonohos har --dist textkit\_build\dist --module textkit\harmony\textkit --assemble --deveco 'D:\apps\DevEco Studio'
 ```
 
 生成的工程：
 
 ```text
 textkit/
-  moon.work                 # core + 本地 ohos 平台模块
+  moon.work                 # 工作区；--ohos 时加入本地 ohos 平台模块
   moonohos.json             # 桥接清单（version 2）
   core/                     # MoonBit 库：同步 greet，异步可取消 count_words（使用 HiLog）
   harmony/                  # Hvigor 工程
@@ -59,7 +60,7 @@ const words: number = await textkit.count_words(longText, token);  // 工作线�
 token.cancel();                                                     // 页面退出时取消
 ```
 
-`ohos` 平台模块尚未发布到 Mooncakes，`--ohos` 让工程通过 `moon.work` 引用本地目录；构建时工作区全部成员被复制到隔离目录，原始文件不被修改。
+生成的 `core/moon.mod` 从 Mooncakes 依赖 `shop1111/moonohos_ohos@0.4.0`。修改平台模块时可加 `--ohos <MoonOHOS/ohos>`，让工作区引用本地目录；构建时工作区全部成员被复制到隔离目录，原始文件不被修改。
 
 ### 与 0.3 手工接入的对比
 

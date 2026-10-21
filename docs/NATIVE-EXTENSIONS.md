@@ -60,4 +60,4 @@ MoonOHOS 0.4 允许 MoonBit 包携带 C stub 进入 HarmonyOS 动态库，但只
 | `rawfile` | `read`、`read_text`、`list`；`Manager` 由 ArkTS `resourceManager` 适配获得；路径必须在 rawfile 目录内，单文件上限 64 MiB | `librawfile.z.so` |
 | `task` | `cancelled()`、`check()`，读取当前异步任务的 `CancelToken`；同步调用中始终为未取消 | 无 |
 
-`ohos` 模块尚未发布到 Mooncakes；示例和 `moonohos init --ohos <路径>` 通过 `moon.work` 工作区引用本地目录。构建时工作区全部成员被复制到 `work/ws/m<序号>`，原始目录不被修改。
+`ohos` 模块已发布为 Mooncakes 包 `shop1111/moonohos_ohos@0.4.0`，`moonohos init` 生成的工程默认从注册表依赖它；仓库内示例和 `moonohos init --ohos <路径>` 通过 `moon.work` 工作区引用本地目录。构建时工作区全部成员被复制到 `work/ws/m<序号>`，原始目录不被修改。
