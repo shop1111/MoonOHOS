@@ -21,3 +21,10 @@ __pycache__/
 !.gitignore
 !.moonignore
 submission/
+examples/search-app/entry/src/main/resources/rawfile/docs/
+examples/search-app/entry/src/main/resources/rawfile/docs_large/
+**/harmony/*/libs/
+**/harmony/*/src/main/cpp/types/
+**/harmony/*/src/main/ets/generated/
+**/harmony/*/NOTICE.*.txt
+**/harmony/*/moonohos-har.json

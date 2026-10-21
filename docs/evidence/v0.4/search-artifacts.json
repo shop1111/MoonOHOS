@@ -1,0 +1,39 @@
+﻿{
+    "har":  "D:\\Code\\Moonbit\\MoonOHOS\\examples\\search\\harmony\\search\\build\\default\\outputs\\default\\search.har",
+    "harSha256":  "B3532512F6F90FE5C4FB1DC5C4DDC781D9E32AEF3347996D33FE4C7DACB1CE7D",
+    "harEntries":  [
+                       "package/BuildProfile.ets",
+                       "package/Index.ets",
+                       "package/NOTICE.MoonBit.txt",
+                       "package/NOTICE.NativeSDK.txt",
+                       "package/build-profile.json5",
+                       "package/hvigorfile.ts",
+                       "package/libs/",
+                       "package/moonohos-har.json",
+                       "package/oh-package-lock.json5",
+                       "package/oh-package.json5",
+                       "package/src/",
+                       "package/libs/arm64-v8a/",
+                       "package/libs/x86_64/",
+                       "package/src/main/",
+                       "package/libs/arm64-v8a/libmoonsearch.so",
+                       "package/libs/x86_64/libmoonsearch.so",
+                       "package/src/main/cpp/",
+                       "package/src/main/ets/",
+                       "package/src/main/module.json",
+                       "package/src/main/cpp/types/",
+                       "package/src/main/ets/generated/",
+                       "package/src/main/ets/SearchSession.ets",
+                       "package/src/main/cpp/types/libmoonsearch/",
+                       "package/src/main/ets/generated/Native.ets",
+                       "package/src/main/cpp/types/libmoonsearch/index.d.ts",
+                       "package/src/main/cpp/types/libmoonsearch/oh-package.json5"
+                   ],
+    "hap":  "D:\\Code\\Moonbit\\MoonOHOS\\examples\\search-app\\entry\\build\\default\\outputs\\default\\entry-default-unsigned.hap",
+    "hapSha256":  "DEB2BF8A714681B737B0017603699CA60D335AF1AE45CCB5ECBFDC189FCEEF29",
+    "hapNative":  [
+                      "libs/arm64-v8a/libmoonsearch.so",
+                      "libs/x86_64/libmoonsearch.so"
+                  ],
+    "corpus":  "CORPUS files=2000 bytes=8571784 sha256=b27706087996e4eaac7ba69755d9ed7dc7dafca01a005e3e4d013248c8557abe"
+}

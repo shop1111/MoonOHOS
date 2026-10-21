@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "module": "core",
+  "package": "moonohos/search",
+  "nativeModule": "moonsearch",
+  "workspace": "moon.work",
+  "handles": [{"name": "SearchIndex"}],
+  "types": [
+    {"name": "Hit", "fields": [
+      {"name": "path", "type": "String"},
+      {"name": "title", "type": "String"},
+      {"name": "score", "type": "Double"},
+      {"name": "snippet", "type": "String"}
+    ]},
+    {"name": "IndexStats", "fields": [
+      {"name": "documents", "type": "Int"},
+      {"name": "terms", "type": "Int"},
+      {"name": "postings", "type": "Int"},
+      {"name": "characters", "type": "Int"}
+    ]}
+  ],
+  "functions": [
+    {"name": "build_index", "params": [{"name": "resources", "type": "@rawfile.Manager"}, {"name": "dir", "type": "String"}], "return": "SearchIndex", "async": true, "raises": true},
+    {"name": "search", "params": [{"name": "index", "type": "SearchIndex"}, {"name": "query", "type": "String"}, {"name": "limit", "type": "Int"}], "return": "Array[Hit]", "async": true},
+    {"name": "search_now", "params": [{"name": "index", "type": "SearchIndex"}, {"name": "query", "type": "String"}, {"name": "limit", "type": "Int"}], "return": "Array[Hit]"},
+    {"name": "stats", "params": [{"name": "index", "type": "SearchIndex"}], "return": "IndexStats"}
+  ]
+}
