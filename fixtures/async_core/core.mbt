@@ -12,10 +12,11 @@ pub(all) suberror FixtureError {
 }
 
 ///|
-pub impl Show for FixtureError with output(self, logger) {
+pub impl Show for FixtureError with fn output(self, logger) {
   match self {
     DivisionByZero => logger.write_string("division by zero")
-    Negative(value) => logger.write_string("negative total " + value.to_string())
+    Negative(value) =>
+      logger.write_string("negative total " + value.to_string())
   }
 }
 
@@ -24,7 +25,7 @@ pub extend FixtureError with Show::{to_string, output}
 
 ///|
 pub fn open_counter(start : Int) -> Counter {
-  { total: start, history: [start] }
+  { total: start, history: [start], }
 }
 
 ///|

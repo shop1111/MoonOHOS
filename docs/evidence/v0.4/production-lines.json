@@ -1,0 +1,162 @@
+{
+  "definition": "tracked production MoonBit tokens outside comments and string/template bodies",
+  "files": [
+    {
+      "path": "adapter.mbt",
+      "codeLines": 93
+    },
+    {
+      "path": "bridge_codegen.mbt",
+      "codeLines": 366
+    },
+    {
+      "path": "build_plan.mbt",
+      "codeLines": 123
+    },
+    {
+      "path": "cache_key.mbt",
+      "codeLines": 42
+    },
+    {
+      "path": "cli_options.mbt",
+      "codeLines": 255
+    },
+    {
+      "path": "cmd/moonohos/analysis.mbt",
+      "codeLines": 95
+    },
+    {
+      "path": "cmd/moonohos/cache.mbt",
+      "codeLines": 134
+    },
+    {
+      "path": "cmd/moonohos/doctor.mbt",
+      "codeLines": 101
+    },
+    {
+      "path": "cmd/moonohos/har.mbt",
+      "codeLines": 114
+    },
+    {
+      "path": "cmd/moonohos/init.mbt",
+      "codeLines": 49
+    },
+    {
+      "path": "cmd/moonohos/io.mbt",
+      "codeLines": 112
+    },
+    {
+      "path": "cmd/moonohos/main.mbt",
+      "codeLines": 392
+    },
+    {
+      "path": "cmd/moonohos/package.mbt",
+      "codeLines": 67
+    },
+    {
+      "path": "cmd/moonohos/runner.mbt",
+      "codeLines": 108
+    },
+    {
+      "path": "cmd/moonohos/stage.mbt",
+      "codeLines": 288
+    },
+    {
+      "path": "config.mbt",
+      "codeLines": 154
+    },
+    {
+      "path": "container_codegen.mbt",
+      "codeLines": 282
+    },
+    {
+      "path": "container_runtime.mbt",
+      "codeLines": 7
+    },
+    {
+      "path": "elf.mbt",
+      "codeLines": 362
+    },
+    {
+      "path": "environment.mbt",
+      "codeLines": 55
+    },
+    {
+      "path": "generate.mbt",
+      "codeLines": 235
+    },
+    {
+      "path": "generation_plan.mbt",
+      "codeLines": 243
+    },
+    {
+      "path": "har_layout.mbt",
+      "codeLines": 78
+    },
+    {
+      "path": "init_template.mbt",
+      "codeLines": 163
+    },
+    {
+      "path": "interface.mbt",
+      "codeLines": 374
+    },
+    {
+      "path": "lifecycle_runtime.mbt",
+      "codeLines": 8
+    },
+    {
+      "path": "native_deps.mbt",
+      "codeLines": 360
+    },
+    {
+      "path": "ohos/hilog/hilog.mbt",
+      "codeLines": 80
+    },
+    {
+      "path": "ohos/rawfile/rawfile.mbt",
+      "codeLines": 99
+    },
+    {
+      "path": "ohos/task/task.mbt",
+      "codeLines": 18
+    },
+    {
+      "path": "package_manifest.mbt",
+      "codeLines": 192
+    },
+    {
+      "path": "package_policy.mbt",
+      "codeLines": 111
+    },
+    {
+      "path": "project.mbt",
+      "codeLines": 342
+    },
+    {
+      "path": "record_codegen.mbt",
+      "codeLines": 143
+    },
+    {
+      "path": "reference.mbt",
+      "codeLines": 4
+    },
+    {
+      "path": "sha256.mbt",
+      "codeLines": 113
+    },
+    {
+      "path": "type_graph.mbt",
+      "codeLines": 190
+    },
+    {
+      "path": "version.mbt",
+      "codeLines": 2
+    },
+    {
+      "path": "workspace.mbt",
+      "codeLines": 29
+    }
+  ],
+  "total": 5983
+}

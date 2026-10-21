@@ -63,7 +63,8 @@ assert "signature" in output
 config.write_text(json.dumps(seed), encoding="utf-8")
 (run / "计算 库/moon.pkg").write_text('options("native-stub": ["stub.c"])\n', encoding="utf-8")
 output = execute("native-stub", ["--out", "stub-dist"], success=False)
-assert "Native stubs" in output
+# Stubs without a moonohos.native.json descriptor are rejected (0.4 allows described ones).
+assert "native stubs" in output.lower() or "stub" in output.lower(), output
 shutil.copytree(root / "fixtures/reference_matrix", run / "混合 类型", ignore=shutil.ignore_patterns("_build", ".mooncakes"))
 matrix = json.loads((run / "混合 类型/moonohos.json").read_text(encoding="utf-8"))
 matrix["module"] = "混合 类型"

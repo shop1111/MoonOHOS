@@ -1,0 +1,27 @@
+﻿{
+    "steps":  [
+                  "init",
+                  "build",
+                  "har"
+              ],
+    "har":  "D:/Code/Moonbit/MoonOHOS/_build/init-flow-v0.4/textkit/harmony/textkit/build/default/outputs/default/textkit.har",
+    "sha256":  "961eae96b3e4c9c1e66c7a445040d14fdeeb0da1c0eb90214d6a247c8ab6d089",
+    "size":  500495,
+    "entries":  [
+                    "package/BuildProfile.ets",
+                    "package/Index.ets",
+                    "package/NOTICE.MoonBit.txt",
+                    "package/NOTICE.NativeSDK.txt",
+                    "package/build-profile.json5",
+                    "package/hvigorfile.ts",
+                    "package/moonohos-har.json",
+                    "package/oh-package-lock.json5",
+                    "package/oh-package.json5",
+                    "package/libs/arm64-v8a/libtextkit.so",
+                    "package/libs/x86_64/libtextkit.so",
+                    "package/src/main/module.json",
+                    "package/src/main/ets/generated/Native.ets",
+                    "package/src/main/cpp/types/libtextkit/index.d.ts",
+                    "package/src/main/cpp/types/libtextkit/oh-package.json5"
+                ]
+}

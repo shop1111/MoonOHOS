@@ -307,7 +307,7 @@ test "package manifest v2 accepts declared NDK libraries only" {
       @moonohos.parse_package_manifest(manifest) |> ignore
       false
     } catch {
-      @moonohos.Invalid(message) => message.contains("omits required file")
+      Invalid(message) => message.contains("omits required file")
     },
   )
   let bad = manifest.replace(old="librawfile.z.so", new="libssl.so")
@@ -316,7 +316,98 @@ test "package manifest v2 accepts declared NDK libraries only" {
       @moonohos.parse_package_manifest(bad) |> ignore
       false
     } catch {
-      @moonohos.Invalid(message) => message.contains("system library")
+      Invalid(message) => message.contains("system library")
+    },
+  )
+}
+
+///|
+test "init templates describe a workspace project and HAR module" {
+  let files = @moonohos.init_files({
+    name: "textkit",
+    package_name: "alice/textkit",
+    ohos: Some("../MoonOHOS/ohos"),
+  })
+  let paths = files.map(f => f.0)
+  for
+    path in [
+      "moon.work", "moonohos.json", "core/moon.mod", "core/lib.mbt", "harmony/build-profile.json5",
+      "harmony/textkit/oh-package.json5", "harmony/textkit/Index.ets", "harmony/textkit/src/main/module.json5",
+    ] {
+    assert_true(paths.contains(path))
+  }
+  let config = files
+    .search_by(f => f.0 == "moonohos.json")
+    .map(i => files[i].1)
+    .unwrap()
+  let project = @moonohos.parse_project(config)
+  assert_eq(project.native_module, "textkit")
+  assert_true(project.functions[1].is_async && project.functions[1].raises)
+  let work = files
+    .search_by(f => f.0 == "moon.work")
+    .map(i => files[i].1)
+    .unwrap()
+  assert_eq(@moonohos.workspace_members(work), ["./core", "../MoonOHOS/ohos"])
+  let har = files
+    .search_by(f => f.0 == "harmony/textkit/oh-package.json5")
+    .map(i => files[i].1)
+    .unwrap()
+  assert_true(har.contains("\"name\": \"@alice/textkit\""))
+  let rejected : Array[@moonohos.InitOptions] = [
+    { name: "Text", package_name: "alice/textkit", ohos: None, },
+    { name: "textkit", package_name: "textkit", ohos: None, },
+  ]
+  for bad in rejected {
+    assert_true(
+      try {
+        @moonohos.init_files(bad) |> ignore
+        false
+      } catch {
+        _ => true
+      },
+    )
+  }
+  assert_eq(@moonohos.relative_path("D:/a/b/proj", "D:/a/ohos"), "../../ohos")
+  assert_eq(@moonohos.relative_path("D:/a", "D:/a"), ".")
+}
+
+///|
+test "har layout rewrites the type dependency and generates a facade" {
+  let updated = @moonohos.har_package_manifest(
+    "{\"name\":\"@a/b\",\"main\":\"Index.ets\",\"dependencies\":{\"other\":\"1.0.0\"}}",
+    "search",
+  )
+  assert_true(
+    updated.contains(
+      "\"libsearch.so\": \"file:./src/main/cpp/types/libsearch\"",
+    ),
+  )
+  assert_true(updated.contains("\"other\": \"1.0.0\""))
+  assert_true(
+    try {
+      @moonohos.har_package_manifest("{\"main\":\"index.js\"}", "search")
+      |> ignore
+      false
+    } catch {
+      _ => true
+    },
+  )
+  let facade = @moonohos.har_facade(
+    "search", "export interface Hit {\n}\nexport interface SearchIndex {\n}\nexport const f: () => void;\n",
+  )
+  assert_true(
+    facade.contains("export { Hit, SearchIndex } from 'libsearch.so';"),
+  )
+  assert_true(facade.contains("export default native;"))
+  @moonohos.validate_har_module(
+    "{\"module\": {\"name\": \"x\", \"type\": \"har\"}}",
+  )
+  assert_true(
+    try {
+      @moonohos.validate_har_module("{\"module\": {\"type\": \"entry\"}}")
+      false
+    } catch {
+      _ => true
     },
   )
 }
