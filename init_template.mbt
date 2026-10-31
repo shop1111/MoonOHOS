@@ -219,10 +219,12 @@ pub fn init_files(
           #|
           #|```bash
           #|moonohos build --sdk "<DevEco>/sdk" --out _build/dist
-          #|moonohos har --dist _build/dist --module harmony/__NAME__ --assemble --deveco "<DevEco>"
+          #|moonohos har --dist _build/dist --module harmony/__NAME__ --assemble --app --deveco "<DevEco>"
           #|```
           #|
           #|The HAR is written to `harmony/__NAME__/build/default/outputs/default/__NAME__.har`.
+          #|`--app` also builds the demo app in `harmony/entry` (an unsigned debug HAP);
+          #|open `harmony/` in DevEco Studio to sign and run it.
           #|An application adds `"__HAR__": "file:<path>/__NAME__.har"` to its
           #|`oh-package.json5` and imports it:
           #|
@@ -244,7 +246,10 @@ pub fn init_files(
           #|    "products": [{"name": "default", "compatibleSdkVersion": "26.0.0", "targetSdkVersion": "26.0.0", "runtimeOS": "HarmonyOS"}],
           #|    "buildModeSet": [{"name": "debug"}, {"name": "release"}]
           #|  },
-          #|  "modules": [{"name": "__NAME__", "srcPath": "./__NAME__"}]
+          #|  "modules": [
+          #|    {"name": "__NAME__", "srcPath": "./__NAME__"},
+          #|    {"name": "entry", "srcPath": "./entry", "targets": [{"name": "default", "applyToProducts": ["default"]}]}
+          #|  ]
           #|}
           #|
         ),
@@ -276,6 +281,100 @@ pub fn init_files(
     ),
     (
       "harmony/AppScope/resources/base/media/app_icon.svg", "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><rect width=\"64\" height=\"64\" rx=\"14\" fill=\"#2f6fdd\"/><circle cx=\"32\" cy=\"32\" r=\"14\" fill=\"#f5f8fb\"/></svg>\n",
+    ),
+    (
+      "harmony/entry/oh-package.json5",
+      template(
+        "{\"name\": \"entry\", \"version\": \"0.1.0\", \"description\": \"Demo app consuming the __HAR__ HAR\", \"main\": \"\", \"license\": \"Apache-2.0\", \"dependencies\": {\"__HAR__\": \"file:../__NAME__\"}}\n",
+      ),
+    ),
+    (
+      "harmony/entry/build-profile.json5", "{\"apiType\": \"stageMode\", \"buildOption\": {}, \"targets\": [{\"name\": \"default\"}]}\n",
+    ),
+    (
+      "harmony/entry/hvigorfile.ts", "import { hapTasks } from '@ohos/hvigor-ohos-plugin';\nexport default { system: hapTasks, plugins: [] };\n",
+    ),
+    (
+      "harmony/entry/src/main/module.json5",
+      (
+        #|{
+        #|  "module": {
+        #|    "name": "entry", "type": "entry", "mainElement": "EntryAbility", "deviceTypes": ["phone", "tablet", "2in1"],
+        #|    "deliveryWithInstall": true, "installationFree": false, "pages": "$profile:main_pages",
+        #|    "abilities": [{"name": "EntryAbility", "srcEntry": "./ets/entryability/EntryAbility.ets", "icon": "$media:app_icon",
+        #|      "label": "$string:app_name", "startWindowIcon": "$media:app_icon", "startWindowBackground": "$color:start_window_background",
+        #|      "exported": true, "skills": [{"entities": ["entity.system.home"], "actions": ["action.system.home"]}]}]
+        #|  }
+        #|}
+        #|
+      ),
+    ),
+    (
+      "harmony/entry/src/main/resources/base/element/color.json", "{\"color\": [{\"name\": \"start_window_background\", \"value\": \"#F5F8FB\"}]}\n",
+    ),
+    (
+      "harmony/entry/src/main/resources/base/profile/main_pages.json", "{\"src\": [\"pages/Index\"]}\n",
+    ),
+    (
+      "harmony/entry/src/main/ets/entryability/EntryAbility.ets",
+      (
+        #|import { UIAbility } from '@kit.AbilityKit';
+        #|import { window } from '@kit.ArkUI';
+        #|
+        #|export default class EntryAbility extends UIAbility {
+        #|  onWindowStageCreate(windowStage: window.WindowStage): void {
+        #|    windowStage.loadContent('pages/Index');
+        #|  }
+        #|}
+        #|
+      ),
+    ),
+    (
+      "harmony/entry/src/main/ets/pages/Index.ets",
+      template(
+        (
+          #|// Demo page: a synchronous call and a cancellable async call into MoonBit.
+          #|import native, { CancelToken } from '__HAR__';
+          #|
+          #|@Entry
+          #|@Component
+          #|struct Index {
+          #|  @State greeting: string = '';
+          #|  @State words: string = 'Tap to count words on a worker thread';
+          #|  private token: CancelToken | undefined = undefined;
+          #|
+          #|  aboutToAppear(): void {
+          #|    this.greeting = native.greet('ArkTS');
+          #|  }
+          #|
+          #|  aboutToDisappear(): void {
+          #|    this.token?.cancel();
+          #|  }
+          #|
+          #|  build() {
+          #|    Column({ space: 16 }) {
+          #|      Text(this.greeting).fontSize(22)
+          #|      Button('Count words in MoonBit')
+          #|        .onClick(async () => {
+          #|          const token: CancelToken = native.createCancelToken();
+          #|          this.token = token;
+          #|          try {
+          #|            const count: number = await native.count_words('MoonBit runs on a Node-API worker thread', token);
+          #|            this.words = `${count} words`;
+          #|          } catch (error) {
+          #|            this.words = `Failed: ${JSON.stringify(error)}`;
+          #|          }
+          #|        })
+          #|      Text(this.words).fontSize(18)
+          #|    }
+          #|    .width('100%')
+          #|    .height('100%')
+          #|    .justifyContent(FlexAlign.Center)
+          #|  }
+          #|}
+          #|
+        ),
+      ),
     ),
     (
       "harmony/__NAME__/oh-package.json5".replace_all(old="__NAME__", new=name),

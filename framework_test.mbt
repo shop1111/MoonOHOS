@@ -411,3 +411,46 @@ test "har layout rewrites the type dependency and generates a facade" {
     },
   )
 }
+
+///|
+test "init adds a demo app module that depends on the HAR module" {
+  let files = @moonohos.init_files({
+    name: "textkit",
+    package_name: "alice/textkit",
+    ohos: None,
+  })
+  let text = (path : String) => {
+    files.search_by(f => f.0 == path).map(i => files[i].1).unwrap_or("")
+  }
+  assert_true(
+    text("harmony/build-profile.json5").contains(
+      "{\"name\": \"entry\", \"srcPath\": \"./entry\"",
+    ),
+  )
+  assert_true(
+    text("harmony/entry/oh-package.json5").contains(
+      "\"@alice/textkit\": \"file:../textkit\"",
+    ),
+  )
+  let page = text("harmony/entry/src/main/ets/pages/Index.ets")
+  assert_true(
+    page.contains("import native, { CancelToken } from '@alice/textkit';"),
+  )
+  assert_true(page.contains("native.count_words("))
+  assert_true(page.contains("this.token?.cancel();"))
+  assert_true(
+    text("harmony/entry/src/main/module.json5").contains("EntryAbility"),
+  )
+  let app = @moonohos.parse_cli([
+    "har", "--dist", "d", "--module", "m", "--assemble", "--app", "--deveco", "x",
+  ])
+  assert_true(app.app)
+  let rejected = try {
+    @moonohos.parse_cli(["har", "--dist", "d", "--module", "m", "--app"])
+    |> ignore
+    false
+  } catch {
+    _ => true
+  }
+  assert_true(rejected)
+}

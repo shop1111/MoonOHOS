@@ -56,8 +56,10 @@ moonohos init textkit --package alice/textkit       # MoonBit module + manifest 
 cd textkit
 moonohos check                                      # no SDK needed: strict compile of the generated wrapper
 moonohos build --sdk "$DEVECO/sdk" --out _build/dist
-moonohos har --dist _build/dist --module harmony/textkit --assemble --deveco "$DEVECO"
+moonohos har --dist _build/dist --module harmony/textkit --assemble --app --deveco "$DEVECO"
 ```
+
+`--app` also builds the demo app in `harmony/entry` (an unsigned debug HAP) whose page calls the synchronous `greet` and the cancellable async `count_words`; open `harmony/` in DevEco Studio to sign and run it.
 
 Generated project:
 
@@ -67,6 +69,7 @@ textkit/
   moonohos.json        # bridge manifest (version 2)
   core/                # MoonBit library: sync greet, async cancellable count_words (logs via HiLog)
   harmony/textkit/     # Hvigor HAR module; Index.ets re-exports the native module
+  harmony/entry/       # demo Stage app depending on the HAR module
 ```
 
 Use the HAR from an app's `oh-package.json5`:

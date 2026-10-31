@@ -46,8 +46,10 @@ moonohos init textkit --package alice/textkit       # 生成 MoonBit 模块、�
 cd textkit
 moonohos check                                      # 不需要 SDK：严格编译生成的包装层
 moonohos build --sdk "$DEVECO/sdk" --out _build/dist
-moonohos har --dist _build/dist --module harmony/textkit --assemble --deveco "$DEVECO"
+moonohos har --dist _build/dist --module harmony/textkit --assemble --app --deveco "$DEVECO"
 ```
+
+`--app` 同时构建 `harmony/entry` 演示应用（未签名调试 HAP），页面调用同步 `greet` 和可取消的异步 `count_words`；在 DevEco Studio 打开 `harmony/` 签名后即可运行。
 
 每个命令都支持 `--help` 和 `--json`；失败时输出分类错误码（如 `toolchain`、`interface`、`config`）和下一步建议。
 
@@ -60,6 +62,7 @@ textkit/
   core/                     # MoonBit 库：同步 greet，异步可取消 count_words（使用 HiLog）
   harmony/                  # Hvigor 工程
     textkit/                # HAR 模块：Index.ets 重导出原生模块
+    entry/                  # 演示应用：以本地依赖使用上面的 HAR
 ```
 
 应用接入 HAR：

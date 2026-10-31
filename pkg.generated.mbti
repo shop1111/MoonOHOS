@@ -232,6 +232,7 @@ pub struct CliOptions {
   module_dir : String?
   deveco : String?
   assemble : Bool
+  app : Bool
   help_topic : Command?
 }
 

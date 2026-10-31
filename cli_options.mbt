@@ -32,6 +32,8 @@ pub struct CliOptions {
   module_dir : String?
   deveco : String?
   assemble : Bool
+  /// `har --app`: also assemble the demo app module `entry`.
+  app : Bool
   /// `help`: the command whose help was requested, if any.
   help_topic : Command?
 }
@@ -131,7 +133,8 @@ fn allowed_option(command : Command, option : String) -> Bool {
     "--out" => command == Build || command == Verify || command == Har
     "--dry-run" | "--cache" => command == Build
     "--name" | "--package" | "--ohos" => command == Init
-    "--dist" | "--module" | "--deveco" | "--assemble" => command == Har
+    "--dist" | "--module" | "--deveco" | "--assemble" | "--app" =>
+      command == Har
     _ => false
   }
 }
@@ -155,6 +158,7 @@ pub fn parse_cli(args : Array[String]) -> CliOptions raise ConfigError {
   let mut module_dir : String? = None
   let mut deveco : String? = None
   let mut assemble = false
+  let mut app = false
   let mut help_topic : Command? = None
   let seen : Map[String, Bool] = Map([])
   let mut index = 1
@@ -194,6 +198,7 @@ pub fn parse_cli(args : Array[String]) -> CliOptions raise ConfigError {
         module_dir,
         deveco,
         assemble,
+        app,
       }
     }
     if !allowed_option(command, option) {
@@ -210,6 +215,7 @@ pub fn parse_cli(args : Array[String]) -> CliOptions raise ConfigError {
       "--dry-run" => dry_run = true
       "--cache" => cache = true
       "--assemble" => assemble = true
+      "--app" => app = true
       _ => {
         if index + 1 >= args.length() || args[index + 1].has_prefix("--") {
           raise Invalid("missing value for " + option)
@@ -245,6 +251,9 @@ pub fn parse_cli(args : Array[String]) -> CliOptions raise ConfigError {
   if command == Har && (dist is None || module_dir is None) {
     raise Invalid("har requires --dist <package> and --module <HAR module>")
   }
+  if app && !assemble {
+    raise Invalid("--app requires --assemble")
+  }
   if assemble && deveco is None {
     raise Invalid("--assemble requires --deveco <DevEco Studio directory>")
   }
@@ -265,6 +274,7 @@ pub fn parse_cli(args : Array[String]) -> CliOptions raise ConfigError {
     module_dir,
     deveco,
     assemble,
+    app,
     help_topic,
   }
 }
@@ -319,10 +329,11 @@ fn command_doc(command : Command) -> (String, String, Array[String]) {
     Har =>
       (
         "place a verified build into a HAR module, optionally running hvigor",
-        "moonohos har --dist <package> --module <HAR module> [--assemble --deveco <DevEco Studio>] [--json]",
+        "moonohos har --dist <package> --module <HAR module> [--assemble [--app] --deveco <DevEco Studio>] [--json]",
         [
           "--dist      output directory of `moonohos build`", "--module    Hvigor HAR module directory (e.g. harmony/<name>)",
           "--assemble  run ohpm install and hvigor assembleHar", "--deveco    DevEco Studio installation (required by --assemble)",
+          "--app       also build the demo app module `entry` created by init (HAP)",
         ],
       )
     Doctor =>

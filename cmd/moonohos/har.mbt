@@ -113,7 +113,7 @@ async fn package_har(options : @lib.CliOptions) -> Json {
     raise Failure("har: hvigor finished without " + har)
   }
   let data = @fs.read_file(har).binary()
-  {
+  let result : Map[String, Json] = {
     "module": module_root,
     "prepared": true,
     "assembled": true,
@@ -122,4 +122,44 @@ async fn package_har(options : @lib.CliOptions) -> Json {
     "sha256": @lib.sha256(data),
     "abis": Json(manifest.abis),
   }
+  if options.app {
+    let entry = project + "/entry"
+    if !@fs.exists(entry + "/src/main/module.json5") {
+      raise Failure(
+        "har: --app needs the demo app module " +
+        entry +
+        " (created by moonohos init)",
+      )
+    }
+    command(
+      "hvigor-app",
+      node,
+      [
+        tools.hvigor_cli,
+        "--mode",
+        "module",
+        "-p",
+        "module=entry@default",
+        "-p",
+        "product=default",
+        "-p",
+        "buildMode=debug",
+        "--no-daemon",
+        "assembleHap",
+      ],
+      project,
+      timeout_ms=600000,
+      env~,
+    )
+    |> ignore
+    let hap = entry +
+      "/build/default/outputs/default/entry-default-unsigned.hap"
+    if !@fs.exists(hap) {
+      raise Failure("har: hvigor finished without " + hap)
+    }
+    let app = @fs.read_file(hap).binary()
+    result["hap"] = Json(hap)
+    result["hapSha256"] = Json(@lib.sha256(app))
+  }
+  Json::object(result)
 }

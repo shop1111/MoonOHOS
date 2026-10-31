@@ -29,6 +29,10 @@ All notable changes to MoonOHOS are recorded here. The format follows
   bridge now has one `Impl_` per export behind `Call_` and `Method_` entry
   points. Host ASan suite `async_core` / `method_bridge.cpp`; the search
   example uses methods.
+- `moonohos init` also generates `harmony/entry`, a demo Stage app that
+  depends on the HAR module and calls `greet` and a cancellable `count_words`;
+  `moonohos har --assemble --app` builds its HAP. `verify_init_flow.ps1` now
+  checks the HAP contains both ABI libraries.
 - Platform packages `deviceinfo` (device and OS properties), `netconn`
   (default network, metered) and `vibrator` (play, cancel), with host
   fallbacks and tests; `libnet_connection.so` and `libohvibrator.z.so` join the
