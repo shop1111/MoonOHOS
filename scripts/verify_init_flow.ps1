@@ -1,5 +1,5 @@
 param(
-  [string]$DevEco = 'D:\apps\DevEco Studio',
+  [string]$DevEco = $(if ($env:DEVECO_STUDIO) { $env:DEVECO_STUDIO } elseif (Test-Path 'C:\Program Files\Huawei\DevEco Studio') { 'C:\Program Files\Huawei\DevEco Studio' } else { 'D:\apps\DevEco Studio' }),
   [string]$Evidence = (Join-Path (Split-Path -Parent $PSScriptRoot) '_build\init-flow-v0.4')
 )
 # Clean-room developer flow: moonohos init -> build (both ABIs) -> har --assemble.

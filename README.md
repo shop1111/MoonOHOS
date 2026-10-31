@@ -1,5 +1,12 @@
 # MoonOHOS：面向 HarmonyOS 的 MoonBit Native 模块开发框架
 
+[![Windows](https://github.com/shop1111/MoonOHOS/actions/workflows/windows.yml/badge.svg)](https://github.com/shop1111/MoonOHOS/actions/workflows/windows.yml)
+[![Linux and macOS](https://github.com/shop1111/MoonOHOS/actions/workflows/cross-platform.yml/badge.svg)](https://github.com/shop1111/MoonOHOS/actions/workflows/cross-platform.yml)
+[![Mooncakes](https://img.shields.io/badge/mooncakes-shop1111%2Fmoonohos-orange)](https://mooncakes.io/docs/shop1111/moonohos)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+
+中文 | [English](README.en.md)
+
 开发者用 MoonBit 编写可复用的 Native 模块；MoonOHOS 负责鸿蒙宿主适配、系统能力扩展、构建与打包，最终以 HAR 形式通过 ArkTS 接口接入应用。ArkTS 负责界面和系统交互，MoonBit 负责检索、解析、计算等业务核心。
 
 0.4 在 0.3 的接口生成与双 ABI 构建底座之上，新增：
@@ -20,20 +27,29 @@
 
 ## 环境
 
-- Windows x64；moonc **≥ 0.10.16**（已测试 Moon `0.1.20261028`、moonc `v0.10.18+6c83a7f62`），async `0.21.0`；CLI 由 Moon 调用 MSVC 构建，需要 C++ Build Tools。
-- DevEco Studio 26（HarmonyOS SDK API 26、hvigor、ohpm）；目标 ABI `arm64-v8a`、`x86_64`。
-- moonc 低于 0.10.16 或 SDK API 低于 26 时停止；更新的版本可以使用，`doctor` 会标出未经测试的组件。不修改全局开发环境。已在 x86_64 模拟器（API 26）验证，ARM64 真机尚未验证。
+| 组件 | 要求 | 说明 |
+|---|---|---|
+| MoonBit | moonc **≥ 0.10.16** | 已测试 Moon `0.1.20261028`、moonc `v0.10.18+6c83a7f62`；更新版本可用，`doctor` 标为 untested |
+| 主机 | Windows x64（完整验证）；Linux、macOS（CI 覆盖 CLI 与库） | CLI 是 MoonBit Native 程序，Windows 需 MSVC C++ Build Tools，其他平台需 cc/clang |
+| HarmonyOS SDK | API **≥ 26** | DevEco Studio 自带，或 command-line-tools；`build`、`har` 需要，`init`/`check`/`inspect`/`plan`/`verify` 不需要 |
+| 目标 ABI | `arm64-v8a`、`x86_64` | 已在 x86_64 模拟器（API 26）运行；ARM64 真机尚未验证 |
+
+工具链不满足要求时命令停止并给出修复提示，不修改全局开发环境。运行 `moonohos doctor --sdk <SDK> --json` 查看每一项。
 
 ## 快速开始
 
-CLI 和平台模块已发布到 Mooncakes：`shop1111/moonohos@0.4.0`、`shop1111/moonohos_ohos@0.4.0`。
+CLI 和平台模块已发布到 Mooncakes：`shop1111/moonohos`、`shop1111/moonohos_ohos`。下面的 `DEVECO` 是 DevEco Studio 安装目录（Windows 如 `C:\Program Files\Huawei\DevEco Studio`，macOS 为 `/Applications/DevEco-Studio.app`，Linux 为 command-line-tools 目录）。
 
-```powershell
-moon install shop1111/moonohos/cmd/moonohos@0.4.0     # 或在源码仓库中 moon build --target native --release cmd/moonohos
-moonohos init textkit --package alice/textkit
-moonohos build --config textkit\moonohos.json --sdk 'D:\apps\DevEco Studio\sdk' --out _build/dist
-moonohos har --dist textkit\_build\dist --module textkit\harmony\textkit --assemble --deveco 'D:\apps\DevEco Studio'
+```bash
+moon install shop1111/moonohos/cmd/moonohos        # 或在本仓库中：moon build --target native --release cmd/moonohos
+moonohos init textkit --package alice/textkit       # 生成 MoonBit 模块、清单和 HAR 工程
+cd textkit
+moonohos check                                      # 不需要 SDK：严格编译生成的包装层
+moonohos build --sdk "$DEVECO/sdk" --out _build/dist
+moonohos har --dist _build/dist --module harmony/textkit --assemble --deveco "$DEVECO"
 ```
+
+每个命令都支持 `--help` 和 `--json`；失败时输出分类错误码（如 `toolchain`、`interface`、`config`）和下一步建议。
 
 生成的工程：
 
@@ -60,7 +76,7 @@ const words: number = await textkit.count_words(longText, token);  // 工作线�
 token.cancel();                                                     // 页面退出时取消
 ```
 
-生成的 `core/moon.mod` 从 Mooncakes 依赖 `shop1111/moonohos_ohos@0.4.0`。修改平台模块时可加 `--ohos <MoonOHOS/ohos>`，让工作区引用本地目录；构建时工作区全部成员被复制到隔离目录，原始文件不被修改。
+生成的 `core/moon.mod` 从 Mooncakes 依赖 `shop1111/moonohos_ohos@0.4.1`。修改平台模块时可加 `--ohos <MoonOHOS/ohos>`，让工作区引用本地目录；构建时工作区全部成员被复制到隔离目录，原始文件不被修改。
 
 ### 与 0.3 手工接入的对比
 
@@ -115,19 +131,20 @@ version 1 清单保持不变；version 2 增加工作区、句柄、异步和业
 
 ## 命令
 
-```powershell
-& $cli init <dir> [--name <module>] [--package owner/name] [--ohos <path>] [--json]
-& $cli build --config moonohos.json --sdk <SDK> [--abi arm64-v8a,x86_64] [--out <dir>] [--dry-run] [--cache] [--json]
-& $cli har --dist <package> --module <HAR module> [--assemble --deveco <DevEco Studio>] [--json]
-& $cli doctor --sdk <SDK> --json
-& $cli check | inspect | plan --config moonohos.json --json
-& $cli verify --out <package> --json
+```text
+moonohos init <dir> [--name <module>] [--package owner/name] [--ohos <path>] [--json]
+moonohos build --sdk <SDK> [--config moonohos.json] [--abi arm64-v8a,x86_64] [--out <dir>] [--dry-run] [--cache] [--json]
+moonohos har --dist <package> --module <HAR module> [--assemble --deveco <DevEco Studio>] [--json]
+moonohos doctor [--sdk <SDK>] [--json]
+moonohos check | inspect | plan [--config moonohos.json] [--json]
+moonohos verify --out <package> [--json]
+moonohos <command> --help
 ```
 
 - `build` 默认构建两个 ABI，输出目录必须不存在；`--dry-run` 只验证配置和工具链；`--cache` 按源码、依赖、清单、编译器、运行时、SDK 与生成器内容计算缓存键，命中前验证整个包，损坏条目改名保留后重建。
 - `har` 先 `verify` 包，再把库、类型包、NOTICE、来源记录（`moonohos-har.json`）和生成的 `src/main/ets/generated/Native.ets` 写入 HAR 模块；`--assemble` 依次运行 DevEco 的 ohpm install 与 hvigor `assembleHar`，报告 `.har` 的 SHA256。
 - `check` 严格编译临时包装包；`inspect` 输出接口摘要；`plan` 输出有序构建阶段；`verify` 无需 SDK，核对清单、SHA256、类型包、CMake 导入、ELF64 架构、段和动态依赖。
-- 成功退出 0，参数错误退出 2，诊断或构建失败退出 3；`--json` 输出单个结构化报告。外部进程以参数数组启动并带超时，阶段日志写入工作目录，分发包不含机器相关日志。
+- 成功退出 0，参数错误退出 2，诊断或构建失败退出 3；`--json` 输出单个结构化报告，`diagnostics[].code` 是错误类别，`context` 是修复建议。外部进程以参数数组启动并带超时，阶段日志写入工作目录，分发包不含机器相关日志。
 
 ## 产物
 
@@ -157,16 +174,30 @@ dist/
 
 ## 验证
 
+脚本从环境变量 `DEVECO_STUDIO` 读取 DevEco Studio 目录（未设置时尝试默认安装位置）。
+
 ```powershell
 moon fmt; moon check --target native --deny-warn; moon test --target native --deny-warn; moon info --target native
 python scripts\verify_containers.py async_core async_bridge.cpp
-python scripts\verify_cli.py --sdk 'D:\apps\DevEco Studio\sdk'
-python scripts\verify_integration.py 'D:\apps\DevEco Studio\sdk'
+python scripts\verify_cli.py --sdk "$env:DEVECO_STUDIO\sdk"
+python scripts\verify_integration.py "$env:DEVECO_STUDIO\sdk"
 .\scripts\verify_init_flow.ps1
-.\scripts\verify_device.ps1 -Hdc 'D:\apps\DevEco Studio\sdk\default\openharmony\toolchains\hdc.exe'
+.\scripts\verify_device.ps1 -Hdc "$env:DEVECO_STUDIO\sdk\default\openharmony\toolchains\hdc.exe"
 ```
 
-宿主测试在 MSVC AddressSanitizer 下运行实际生成的 MoonBit C 代码和桥接回调，使用 Node-API 替身（async work 在真实线程执行）；设备脚本在模拟器上安装应用并读取 HiLog 标记。Windows CI 执行格式、严格检查、测试、接口一致性、CLI 构建、打包、代码量门槛和宿主 ASan；SDK、HAP 与模拟器检查在本机执行。各层证明范围见 [VALIDATION-0.4.md](docs/VALIDATION-0.4.md)。
+宿主测试在 MSVC AddressSanitizer 下运行实际生成的 MoonBit C 代码和桥接回调，使用 Node-API 替身（async work 在真实线程执行）；设备脚本在模拟器上安装应用并读取 HiLog 标记。
+
+| CI | 内容 |
+|---|---|
+| Windows（固定工具链） | 格式、严格检查、测试、接口一致性、CLI 构建、打包、代码量门槛、宿主 ASan |
+| Linux、macOS | 格式、严格检查、框架/平台模块/示例测试、接口一致性、CLI 构建、无 SDK 的 init → check → inspect → plan |
+| 最新 MoonBit | 用最新发布的工具链检查和测试，提前发现不兼容（不阻塞合并） |
+
+SDK、HAP 与模拟器检查在本机执行。各层证明范围见 [VALIDATION-0.4.md](docs/VALIDATION-0.4.md)。
+
+## 参与贡献
+
+欢迎提交问题和 PR，见 [CONTRIBUTING.md](CONTRIBUTING.md)；版本变化见 [CHANGELOG.md](CHANGELOG.md)，安全问题见 [SECURITY.md](SECURITY.md)。
 
 ## 许可
 

@@ -1,5 +1,5 @@
 param(
-  [string]$DevEco = 'D:\apps\DevEco Studio',
+  [string]$DevEco = $(if ($env:DEVECO_STUDIO) { $env:DEVECO_STUDIO } elseif (Test-Path 'C:\Program Files\Huawei\DevEco Studio') { 'C:\Program Files\Huawei\DevEco Studio' } else { 'D:\apps\DevEco Studio' }),
   [string]$Target = '127.0.0.1:5555',
   [string]$Evidence = (Join-Path (Split-Path -Parent $PSScriptRoot) '_build\search-v0.4'),
   [int]$Runs = 2
