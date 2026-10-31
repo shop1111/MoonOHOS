@@ -63,3 +63,38 @@ test "semantic interface matching ignores layout order" {
     },
   )
 }
+
+///|
+test "Int32 spelling from moonc >= 0.10.16 interfaces matches Int" {
+  let p = @moonohos.parse_project(
+    (
+      #|{"version":1,"module":"core","package":"a/core","nativeModule":"demo","types":[{"name":"Meta","fields":[{"name":"count","type":"Int"},{"name":"ids","type":"Array[Int]"}]}],"functions":[{"name":"add","params":[{"name":"a","type":"Int"},{"name":"b","type":"Int"}],"return":"Int"},{"name":"meta","params":[],"return":"Meta"}]}
+    ),
+  )
+  p.verify_interface(
+    (
+      #|pub fn add(Int32, Int32) -> Int32
+      #|pub fn meta() -> Meta
+      #|pub(all) struct Meta {
+      #|  count : Int32
+      #|  ids : Array[Int32]
+      #|}
+    ),
+  )
+  let config = @moonohos.parse_config(
+    (
+      #|{"version":1,"module":"demo","package":"moonohos/demo","nativeModule":"moonohos","functions":[
+      #|{"name":"add","params":[{"name":"a","type":"Int"},{"name":"b","type":"Int"}],"return":"Int"}]}
+    ),
+  )
+  @moonohos.verify_interface(config, "pub fn add(Int32, Int32) -> Int32")
+  // `UInt32` is a different type and must not be rewritten into `UInt`.
+  assert_true(
+    try {
+      @moonohos.verify_interface(config, "pub fn add(UInt32, Int32) -> Int32")
+      false
+    } catch {
+      _ => true
+    },
+  )
+}

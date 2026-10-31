@@ -42,7 +42,7 @@ pub fn content_cache_key(
     }
     previous = Some((entry.domain, entry.name))
   }
-  sha256(@utf8.encode(sorted.map(e => e.to_json()).to_json().stringify()))
+  sha256(@utf8.encode(Json(sorted.map(e => e.to_json())).stringify()))
 }
 
 ///|

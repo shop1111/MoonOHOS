@@ -20,8 +20,13 @@ pub fn validate_distribution_metadata(json : Json) -> Unit raise ConfigError {
       "functions": Array(functions),
       ..
     } => {
-      if !moon.contains("0.1.20260920") || !moonc.contains("v0.10.14+7d59c7ec9") {
-        raise Invalid("package: unverified compiler baseline")
+      if moon == "" || !moonc_supported(moonc) {
+        raise Invalid(
+          "package: built with unsupported compiler " +
+          moonc +
+          "; requires moonc >= " +
+          minimum_moonc_version,
+        )
       }
       let seen : Map[String, Bool] = Map([])
       for function in functions {

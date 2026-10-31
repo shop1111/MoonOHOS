@@ -48,7 +48,7 @@ pub fn Diagnostic::to_json(self : Diagnostic) -> Json {
     "stage": self.stage,
     "code": self.code,
     "message": self.message,
-    "context": self.context.to_json(),
+    "context": Json(self.context),
   }
 }
 
@@ -262,7 +262,7 @@ pub fn success_report(command : String, result : Json) -> Json {
 pub fn failure_report(
   command : String,
   diagnostic : Diagnostic,
-  parameter? : Bool = false,
+  parameter~ : Bool = false,
 ) -> Json {
   {
     "command": command,
@@ -272,7 +272,7 @@ pub fn failure_report(
     } else {
       3
     },
-    "diagnostics": [diagnostic.to_json()].to_json(),
+    "diagnostics": Json([diagnostic.to_json()]),
   }
 }
 

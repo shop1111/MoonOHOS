@@ -20,9 +20,9 @@
 
 ## 环境
 
-- Windows x64，Moon `0.1.20260920`，moonc `v0.10.14+7d59c7ec9`，Core `0.10.14+7d59c7ec9`，async `0.21.0`；CLI 由 Moon 调用 MSVC 构建，需要 C++ Build Tools。
+- Windows x64；moonc **≥ 0.10.16**（已测试 Moon `0.1.20261028`、moonc `v0.10.18+6c83a7f62`），async `0.21.0`；CLI 由 Moon 调用 MSVC 构建，需要 C++ Build Tools。
 - DevEco Studio 26（HarmonyOS SDK API 26、hvigor、ohpm）；目标 ABI `arm64-v8a`、`x86_64`。
-- 工具链版本固定，检查不通过时停止，不修改全局开发环境。已在 x86_64 模拟器（API 26）验证，ARM64 真机尚未验证。
+- moonc 低于 0.10.16 或 SDK API 低于 26 时停止；更新的版本可以使用，`doctor` 会标出未经测试的组件。不修改全局开发环境。已在 x86_64 模拟器（API 26）验证，ARM64 真机尚未验证。
 
 ## 快速开始
 

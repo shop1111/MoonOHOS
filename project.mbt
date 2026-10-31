@@ -32,7 +32,7 @@ pub struct Callable {
 
 ///|
 pub struct Project {
-  version : Int
+  version : Int32
   module_dir : String
   package_name : String
   native_module : String
@@ -46,7 +46,7 @@ pub struct Project {
 ///|
 priv struct TypeCursor {
   tokens : Array[String]
-  mut position : Int
+  mut position : Int32
 }
 
 ///|
@@ -88,7 +88,7 @@ fn TypeCursor::take(self : TypeCursor) -> String raise ConfigError {
 ///|
 fn TypeCursor::expression(
   self : TypeCursor,
-  depth : Int,
+  depth : Int32,
   unit~ : Bool,
 ) -> TypeExpr raise ConfigError {
   if depth > 32 {
@@ -105,7 +105,8 @@ fn TypeCursor::expression(
       }
       List(element)
     }
-    "Int" => Scalar(Int32)
+    // moonc >= 0.10.16 prints `Int` as `Int32` in .mbti files.
+    "Int" | "Int32" => Scalar(Int32)
     "Double" => Scalar(Float64)
     "Bool" => Scalar(Boolean)
     "String" => Scalar(Text)
@@ -127,7 +128,7 @@ fn TypeCursor::expression(
 ///|
 pub fn parse_type_expr(
   text : String,
-  result? : Bool = false,
+  result~ : Bool = false,
 ) -> TypeExpr raise ConfigError {
   let cursor = TypeCursor::{ tokens: type_tokens(text), position: 0, }
   let kind = cursor.expression(0, unit=result)
@@ -237,7 +238,7 @@ fn parse_fields(
 fn optional_flag(
   value : Json,
   key : String,
-  version : Int,
+  version : Int32,
   context : String,
 ) -> Bool raise ConfigError {
   match field(value, key) {
@@ -281,7 +282,9 @@ pub fn parse_project(text : String) -> Project raise ConfigError {
     Some(String(path)) if path != "" => Some(path)
     _ => raise Invalid("config: workspace must be a path")
   }
-  let reserved = ["Int", "Double", "Bool", "String", "Bytes", "Unit", "Array"]
+  let reserved = [
+    "Int", "Int32", "Double", "Bool", "String", "Bytes", "Unit", "Array",
+  ]
   let names : Map[String, Bool] = Map([])
   let handles : Array[String] = []
   match field(json, "handles") {

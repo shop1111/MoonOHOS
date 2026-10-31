@@ -13,7 +13,7 @@ fn stage(
   description : String,
   dependencies : Array[String],
   outputs : Array[String],
-  abi? : String? = None,
+  abi~ : String? = None,
 ) -> BuildStage {
   { id, description, dependencies, outputs, abi, }
 }
@@ -23,9 +23,9 @@ pub fn BuildStage::to_json(self : BuildStage) -> Json {
   {
     "id": self.id,
     "description": self.description,
-    "dependencies": self.dependencies.to_json(),
-    "abi": self.abi.to_json(),
-    "outputs": self.outputs.to_json(),
+    "dependencies": Json(self.dependencies),
+    "abi": Json(self.abi),
+    "outputs": Json(self.outputs),
   }
 }
 
@@ -155,7 +155,7 @@ pub fn Project::build_plan(
     "schema": "moonohos-plan-v1",
     "interface": self.summary(),
     "generation": self.generation_plan(),
-    "stages": build_stages(self, abis).map(s => s.to_json()).to_json(),
+    "stages": Json(build_stages(self, abis).map(s => s.to_json())),
     "commandTimeoutSeconds": 300,
     "runtime": "not_run",
   }

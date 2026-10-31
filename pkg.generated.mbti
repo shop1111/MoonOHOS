@@ -56,6 +56,12 @@ pub fn interface_imports(String) -> Map[String, String]
 
 pub fn linked_packages(Array[String]) -> Array[(String, String)]
 
+pub let minimum_moonc_version : String
+
+pub let minimum_sdk_api : Int32
+
+pub fn moonc_supported(String) -> Bool
+
 pub fn moonohos_version() -> String
 
 pub fn native_cmake(String, NativeBuild) -> String
@@ -86,9 +92,11 @@ pub fn parse_project(String) -> Project raise ConfigError
 
 pub fn parse_type_expr(String, result? : Bool) -> TypeExpr raise ConfigError
 
-pub fn pinned_environment() -> Array[(String, String)]
+pub fn parse_version(String) -> (Int32, Int32, Int32)?
 
 pub fn relative_path(String, String) -> String
+
+pub fn required_environment() -> Array[(String, String)]
 
 pub fn resolve_adapters(Project, Array[NativeDescriptor], Map[String, String]) -> Array[AdapterDef] raise ConfigError
 
@@ -104,11 +112,13 @@ pub fn sha256(Bytes) -> String
 
 pub fn signature(Function) -> String
 
-pub fn staged_workspace(Int) -> String
+pub fn staged_workspace(Int32) -> String
 
 pub fn success_report(String, Json) -> Json
 
 pub fn system_library_allowlist() -> Array[String]
+
+pub fn tested_environment() -> Array[(String, String)]
 
 pub fn tokenize(String) -> Array[String] raise ConfigError
 
@@ -129,6 +139,8 @@ pub fn verify_interface(Config, String) -> Unit raise ConfigError
 pub fn verify_library(ElfInfo, PackageManifest, String) -> Unit raise ConfigError
 
 pub fn verify_type_package(String, PackageManifest) -> Unit raise ConfigError
+
+pub fn version_at_least(String, String) -> Bool
 
 pub fn workspace_members(String) -> Array[String] raise ConfigError
 
@@ -235,9 +247,9 @@ pub struct ContentFingerprint {
 pub fn ContentFingerprint::to_json(Self) -> Json
 
 pub struct ConversionLimits {
-  depth : Int
-  nodes : Int
-  bytes : Int
+  depth : Int32
+  nodes : Int32
+  bytes : Int32
 }
 pub fn ConversionLimits::to_json(Self) -> Json
 
@@ -261,11 +273,11 @@ pub struct ElfInfo {
 pub fn ElfInfo::to_json(Self) -> Json
 
 pub struct ElfSegment {
-  offset : Int
-  file_size : Int
+  offset : Int32
+  file_size : Int32
   memory_size : UInt64
   address : UInt64
-  flags : Int
+  flags : Int32
   alignment : UInt64
 }
 pub fn ElfSegment::to_json(Self) -> Json
@@ -345,7 +357,7 @@ pub fn NativeDescriptor::to_json(Self) -> Json
 
 pub struct PackageFile {
   path : String
-  size : Int
+  size : Int32
   checksum : String
 }
 pub fn PackageFile::to_json(Self) -> Json
@@ -358,7 +370,7 @@ pub struct PackageInterface {
 }
 
 pub struct PackageManifest {
-  schema : Int
+  schema : Int32
   module_name : String
   version : String
   abis : Array[String]
@@ -372,7 +384,7 @@ pub struct Parameter {
 }
 
 pub struct Project {
-  version : Int
+  version : Int32
   module_dir : String
   package_name : String
   native_module : String
@@ -403,7 +415,7 @@ pub struct RecordDef {
 }
 
 pub struct Sha256 {
-  state : Array[UInt]
+  state : Array[UInt32]
   pending : Array[Byte]
   mut count : UInt64
 }

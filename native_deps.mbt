@@ -313,19 +313,19 @@ pub fn parse_native_descriptor(
 pub fn NativeDescriptor::to_json(self : NativeDescriptor) -> Json {
   {
     "package": self.pkg,
-    "sources": self.sources.to_json(),
-    "includeDirs": self.include_dirs.to_json(),
-    "defines": self.defines.to_json(),
-    "systemLibraries": self.libraries.to_json(),
-    "abis": self.abis.to_json(),
-    "adapters": self.adapters
-    .map(a => {
-      "type": a.type_name,
-      "arkType": a.ark_type,
-      "acquire": a.acquire,
-      "release": a.release,
-    })
-    .to_json(),
+    "sources": Json(self.sources),
+    "includeDirs": Json(self.include_dirs),
+    "defines": Json(self.defines),
+    "systemLibraries": Json(self.libraries),
+    "abis": Json(self.abis),
+    "adapters": Json(
+      self.adapters.map(a => {
+        "type": a.type_name,
+        "arkType": a.ark_type,
+        "acquire": a.acquire,
+        "release": a.release,
+      }),
+    ),
   }
 }
 

@@ -2,7 +2,7 @@
 let command_logs : Ref[String?] = Ref(None)
 
 ///|
-let command_sequence : Ref[Int] = Ref(0)
+let command_sequence : Ref[Int32] = Ref(0)
 
 ///|
 async fn collect_command(
@@ -10,7 +10,7 @@ async fn collect_command(
   args : Array[String],
   cwd : String,
   env : Map[String, String],
-) -> (Int, String, String) {
+) -> (Int32, String, String) {
   let extra_env : Map[String, String] = { "MOONBIT_NEW_NATIVE": "0" }
   for key, value in env {
     extra_env[key] = value
@@ -48,8 +48,8 @@ async fn command(
   exe : String,
   args : Array[String],
   cwd : String,
-  timeout_ms? : Int = 300000,
-  env? : Map[String, String] = {},
+  timeout_ms~ : Int32 = 300000,
+  env~ : Map[String, String] = {},
 ) -> String {
   let started = @async.now()
   command_sequence.val += 1
@@ -72,7 +72,7 @@ async fn command(
             {
               "stage": stage,
               "exe": exe,
-              "args": args.to_json(),
+              "args": Json(args),
               "status": "failed",
               "elapsedMs": (@async.now() - started).to_string(),
               "error": error.to_string(),
@@ -100,7 +100,7 @@ async fn command(
         {
           "stage": stage,
           "exe": exe,
-          "args": args.to_json(),
+          "args": Json(args),
           "exitCode": code,
           "elapsedMs": (@async.now() - started).to_string(),
           "stdout": stdout,

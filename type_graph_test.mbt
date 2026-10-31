@@ -82,7 +82,7 @@ test "shared record DAG remains bounded and checks cached height at use site" {
       ],
     })
   }
-  let declarations = records.to_json().stringify()
+  let declarations = Json(records).stringify()
   let project = graph(declarations, "Level31")
   project.validate()
   assert_eq(project.record_order().length(), 32)

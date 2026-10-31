@@ -122,8 +122,8 @@ async fn main {
   // Host checks compile every descriptor source with MOONOHOS_BRIDGE only.
   let deps : Array[Json] = found.map(f => {
     "dir": f.0,
-    "sources": f.1.sources.to_json(),
-    "includeDirs": f.1.include_dirs.to_json(),
+    "sources": Json(f.1.sources),
+    "includeDirs": Json(f.1.include_dirs),
   })
-  @fs.write_file(native + "/deps.json", deps.to_json().stringify(indent=2))
+  @fs.write_file(native + "/deps.json", Json(deps).stringify(indent=2))
 }

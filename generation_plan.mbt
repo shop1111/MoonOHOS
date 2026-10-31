@@ -1,19 +1,19 @@
 ///|
 priv struct TypePlan {
-  index : Int
+  index : Int32
   kind : TypeExpr
   symbol : String
-  dependencies : Array[Int]
+  dependencies : Array[Int32]
 }
 
 ///|
 priv struct CallPlan {
   function : Callable
   symbol : String
-  inputs : Array[Int]
-  output : Int
+  inputs : Array[Int32]
+  output : Int32
   /// Type crossing the C boundary; differs from `output` for raising calls.
-  raw_output : Int
+  raw_output : Int32
   bounded : Bool
 }
 
@@ -28,7 +28,7 @@ priv struct GenerationPlan {
 fn type_index(
   types : Array[TypeExpr],
   kind : TypeExpr,
-) -> Int raise ConfigError {
+) -> Int32 raise ConfigError {
   match types.search_by(t => t == kind) {
     Some(index) => index
     None => raise Invalid("generation: unresolved type " + kind.moon_name())
@@ -122,7 +122,7 @@ fn TypePlan::to_json(self : TypePlan) -> Json {
     "type": self.kind.moon_name(),
     "symbol": self.symbol,
     "cType": self.kind.c_name(),
-    "dependencies": self.dependencies.to_json(),
+    "dependencies": Json(self.dependencies),
     "argument": if reference {
       "borrowed"
     } else {
@@ -142,18 +142,20 @@ fn CallPlan::to_json(self : CallPlan) -> Json {
     "name": self.function.name,
     "signature": self.function.signature(),
     "symbol": self.symbol,
-    "inputs": self.inputs.to_json(),
+    "inputs": Json(self.inputs),
     "output": self.output,
     "boundedContainers": self.bounded,
     "async": self.function.is_async,
     "raises": self.function.raises,
-    "stages": (if self.function.is_async {
-      [
-        "read-arkts", "queue-async-work", "worker-locked-call-and-copy", "complete-create-arkts",
-      ]
-    } else {
-      ["read-arkts", "locked-runtime-call-and-copy", "create-arkts"]
-    }).to_json(),
+    "stages": Json(
+      if self.function.is_async {
+        [
+          "read-arkts", "queue-async-work", "worker-locked-call-and-copy", "complete-create-arkts",
+        ]
+      } else {
+        ["read-arkts", "locked-runtime-call-and-copy", "create-arkts"]
+      },
+    ),
   }
 }
 
@@ -162,8 +164,8 @@ pub fn Project::generation_plan(self : Project) -> Json raise ConfigError {
   let plan = make_generation_plan(self)
   {
     "module": plan.project.native_module,
-    "types": plan.types.map(t => t.to_json()).to_json(),
-    "calls": plan.calls.map(c => c.to_json()).to_json(),
+    "types": Json(plan.types.map(t => t.to_json())),
+    "calls": Json(plan.calls.map(c => c.to_json())),
     "limits": conversion_limits().to_json(),
   }
 }

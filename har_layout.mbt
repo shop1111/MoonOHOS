@@ -49,10 +49,11 @@ pub fn har_package_manifest(
         None => Map([])
         _ => raise Invalid("har: dependencies must be an object")
       }
-      dependencies["lib" + module_name + ".so"] = ("file:./src/main/cpp/types/lib" +
-      module_name).to_json()
-      result["dependencies"] = dependencies.to_json()
-      result.to_json().stringify(indent=2) + "\n"
+      dependencies["lib" + module_name + ".so"] = Json(
+        "file:./src/main/cpp/types/lib" + module_name,
+      )
+      result["dependencies"] = Json(dependencies)
+      Json(result).stringify(indent=2) + "\n"
     }
     _ => raise Invalid("har: oh-package.json5 must be an object")
   }
@@ -81,10 +82,11 @@ pub fn har_provenance(
     "module": manifest.module_name,
     "packageVersion": manifest.version,
     "manifestSha256": manifest_sha256,
-    "abis": manifest.abis.to_json(),
-    "files": manifest.files
-    .filter(f => f.path.has_prefix("libs/") || f.path.has_prefix("types/"))
-    .map(f => f.to_json())
-    .to_json(),
+    "abis": Json(manifest.abis),
+    "files": Json(
+      manifest.files
+      .filter(f => f.path.has_prefix("libs/") || f.path.has_prefix("types/"))
+      .map(f => f.to_json()),
+    ),
   }
 }

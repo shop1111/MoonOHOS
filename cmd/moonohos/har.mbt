@@ -59,7 +59,7 @@ async fn package_har(options : @lib.CliOptions) -> Json {
       "module": module_root,
       "prepared": true,
       "assembled": false,
-      "abis": manifest.abis.to_json(),
+      "abis": Json(manifest.abis),
     }
   }
   let deveco = normalized(@fs.realpath(options.deveco.unwrap()))
@@ -127,6 +127,6 @@ async fn package_har(options : @lib.CliOptions) -> Json {
     "har": har,
     "size": data.length(),
     "sha256": @lib.sha256(data),
-    "abis": manifest.abis.to_json(),
+    "abis": Json(manifest.abis),
   }
 }

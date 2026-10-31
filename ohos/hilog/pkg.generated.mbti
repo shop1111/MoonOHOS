@@ -9,7 +9,7 @@ import {
 
 // Errors
 pub(all) suberror HilogError {
-  InvalidDomain(Int)
+  InvalidDomain(Int32)
   InvalidTag(String)
 }
 pub fn HilogError::output(Self, &@builtin.Logger) -> Unit
@@ -26,7 +26,7 @@ pub(all) enum Level {
 }
 
 pub struct Logger {
-  domain : Int
+  domain : Int32
   tag : String
   // private fields
 }
@@ -36,7 +36,7 @@ pub fn Logger::fatal(Self, String) -> Unit
 pub fn Logger::info(Self, String) -> Unit
 pub fn Logger::is_loggable(Self, Level) -> Bool
 pub fn Logger::log(Self, Level, String) -> Unit
-pub fn Logger::new(Int, String) -> Self raise HilogError
+pub fn Logger::new(Int32, String) -> Self raise HilogError
 pub fn Logger::warn(Self, String) -> Unit
 
 // Type aliases

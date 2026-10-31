@@ -24,4 +24,4 @@ pub fn count_documents(resources : @rawfile.Manager, dir : String) -> Int raise 
 }
 ```
 
-Pinned toolchain: Moon 0.1.20260920, moonc v0.10.14, HarmonyOS SDK API 26. License: Apache-2.0.
+Toolchain: moonc >= 0.10.16 (tested with v0.10.18+6c83a7f62), HarmonyOS SDK API 26 or newer. License: Apache-2.0.

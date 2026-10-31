@@ -1,7 +1,7 @@
 ///|
 async test "runner preserves argument boundaries and handles nonzero exit" {
   let text = command("test", "moonc", ["-v"], @env.current_dir().unwrap_or("."))
-  assert_true(text.contains("v0.10.14"))
+  assert_true(@lib.moonc_supported(text))
   let failed = try
     command("test", "moonc", ["--nonexistent-option"], ".")
   catch {

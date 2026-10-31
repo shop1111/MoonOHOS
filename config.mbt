@@ -69,7 +69,8 @@ pub fn identifier(name : String) -> Bool {
 ///|
 fn parse_type(name : String, result~ : Bool) -> ValueType raise ConfigError {
   match name {
-    "Int" => Int32
+    // moonc >= 0.10.16 prints `Int` as `Int32` in .mbti files.
+    "Int" | "Int32" => Int32
     "Double" => Float64
     "Bool" => Boolean
     "String" => Text
@@ -139,18 +140,6 @@ pub fn parse_config(text : String) -> Config raise ConfigError {
 }
 
 ///|
-#deprecated
-pub extend ValueType with Eq::{equal, not_equal}
-
-///|
-#deprecated
-pub extend ValueType with @debug.Debug::{to_repr}
-
-///|
-#deprecated
-pub extend ConfigError with @debug.Debug::{to_repr}
-
-///|
 pub fn ValueType::moon_name(self : ValueType) -> String {
   match self {
     Int32 => "Int"
@@ -183,3 +172,15 @@ pub fn ValueType::ark_name(self : ValueType) -> String {
     Void => "void"
   }
 }
+
+///|
+#deprecated
+pub extend ValueType with Eq::{equal, not_equal}
+
+///|
+#deprecated
+pub extend ValueType with @debug.Debug::{to_repr}
+
+///|
+#deprecated
+pub extend ConfigError with @debug.Debug::{to_repr}

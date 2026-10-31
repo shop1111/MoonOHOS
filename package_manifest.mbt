@@ -1,13 +1,13 @@
 ///|
 pub struct PackageFile {
   path : String
-  size : Int
+  size : Int32
   checksum : String
 }
 
 ///|
 pub struct PackageManifest {
-  schema : Int
+  schema : Int32
   module_name : String
   version : String
   abis : Array[String]
@@ -209,8 +209,8 @@ pub fn seal_manifest(
   match manifest {
     Object(fields) => {
       let result = fields.copy()
-      result["files"] = files.map(f => f.to_json()).to_json()
-      result.to_json()
+      result["files"] = Json(files.map(f => f.to_json()))
+      Json(result)
     }
     _ => raise Invalid("package: manifest must be an object")
   }

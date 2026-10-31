@@ -36,9 +36,9 @@ async fn init_project(options : @lib.CliOptions) -> Json {
   {
     "project": root,
     "name": name,
-    "files": files.map(f => f.0).to_json(),
-    "workspace": ohos.to_json(),
-    "next": [
+    "files": Json(files.map(f => f.0)),
+    "workspace": Json(ohos),
+    "next": Json([
       "moonohos build --config " +
       target +
       "/moonohos.json --sdk <SDK> --out _build/dist",
@@ -49,6 +49,6 @@ async fn init_project(options : @lib.CliOptions) -> Json {
       "/harmony/" +
       name +
       " --assemble --deveco <DevEco>",
-    ].to_json(),
+    ]),
   }
 }

@@ -1,8 +1,8 @@
 ///|
 pub struct ConversionLimits {
-  depth : Int
-  nodes : Int
-  bytes : Int
+  depth : Int32
+  nodes : Int32
+  bytes : Int32
 }
 
 ///|
@@ -33,9 +33,9 @@ fn type_depth(
   project : Project,
   kind : TypeExpr,
   path : Array[String],
-  depth : Int,
-  heights : Map[String, Int],
-) -> Int raise ConfigError {
+  depth : Int32,
+  heights : Map[String, Int32],
+) -> Int32 raise ConfigError {
   if depth > conversion_limits().depth {
     raise Invalid("type: nesting depth exceeds 32 at " + path.join(" -> "))
   }
@@ -93,7 +93,7 @@ pub fn Project::validate(self : Project) -> Unit raise ConfigError {
     }
     names[record.name] = true
   }
-  let heights : Map[String, Int] = Map([])
+  let heights : Map[String, Int32] = Map([])
   for record in self.records {
     type_depth(self, Record(record.name), [], 0, heights) |> ignore
   }
@@ -202,15 +202,15 @@ pub fn Project::summary(self : Project) -> Json raise ConfigError {
     .record_order()
     .map(r => {
       "name": r.name,
-      "fields": r.fields
-      .map(f => { "name": f.name, "type": f.kind.moon_name() })
-      .to_json(),
+      "fields": Json(
+        r.fields.map(f => { "name": f.name, "type": f.kind.moon_name() }),
+      ),
     })
   {
     "package": self.package_name,
     "nativeModule": self.native_module,
-    "functions": self.functions.map(f => f.signature()).to_json(),
-    "types": records.to_json(),
+    "functions": Json(self.functions.map(f => f.signature())),
+    "types": Json(records),
     "limits": conversion_limits().to_json(),
   }
 }

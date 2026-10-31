@@ -10,11 +10,11 @@ pub struct ElfInfo {
 
 ///|
 pub struct ElfSegment {
-  offset : Int
-  file_size : Int
+  offset : Int32
+  file_size : Int32
   memory_size : UInt64
   address : UInt64
-  flags : Int
+  flags : Int32
   alignment : UInt64
 }
 
@@ -32,11 +32,11 @@ pub fn ElfSegment::to_json(self : ElfSegment) -> Json {
 
 ///|
 priv struct ElfSection {
-  kind : Int
-  offset : Int
-  size : Int
-  link : Int
-  entry_size : Int
+  kind : Int32
+  offset : Int32
+  size : Int32
+  link : Int32
+  entry_size : Int32
   address : UInt64
   flags : UInt64
 }
@@ -44,8 +44,8 @@ priv struct ElfSection {
 ///|
 fn binary_range(
   bytes : Bytes,
-  offset : Int,
-  size : Int,
+  offset : Int32,
+  size : Int32,
 ) -> Unit raise ConfigError {
   if offset < 0 ||
     size < 0 ||
@@ -58,8 +58,8 @@ fn binary_range(
 ///|
 fn elf_word(
   bytes : Bytes,
-  offset : Int,
-  size : Int,
+  offset : Int32,
+  size : Int32,
 ) -> UInt64 raise ConfigError {
   binary_range(bytes, offset, size)
   let mut result = 0UL
@@ -70,7 +70,11 @@ fn elf_word(
 }
 
 ///|
-fn elf_offset(bytes : Bytes, offset : Int, size : Int) -> Int raise ConfigError {
+fn elf_offset(
+  bytes : Bytes,
+  offset : Int32,
+  size : Int32,
+) -> Int32 raise ConfigError {
   let result = elf_word(bytes, offset, size)
   if result > 2147483647UL {
     raise Invalid("elf: offsets larger than INT32_MAX are unsupported")
@@ -82,7 +86,7 @@ fn elf_offset(bytes : Bytes, offset : Int, size : Int) -> Int raise ConfigError 
 fn elf_string(
   bytes : Bytes,
   table : ElfSection,
-  offset : Int,
+  offset : Int32,
 ) -> String raise ConfigError {
   if offset < 0 || offset >= table.size {
     raise Invalid("elf: string table index out of bounds")
@@ -381,10 +385,10 @@ pub fn inspect_elf(bytes : Bytes) -> ElfInfo raise ConfigError {
 pub fn ElfInfo::to_json(self : ElfInfo) -> Json {
   {
     "abi": self.abi,
-    "dependencies": self.dependencies.to_json(),
-    "imports": self.imports.to_json(),
-    "exports": self.exports.to_json(),
-    "soname": self.soname.to_json(),
-    "segments": self.segments.map(s => s.to_json()).to_json(),
+    "dependencies": Json(self.dependencies),
+    "imports": Json(self.imports),
+    "exports": Json(self.exports),
+    "soname": Json(self.soname),
+    "segments": Json(self.segments.map(s => s.to_json())),
   }
 }

@@ -1,5 +1,5 @@
 ///|
-extern "C" fn native_exit(code : Int) -> Unit = "exit"
+extern "C" fn native_exit(code : Int32) -> Unit = "exit"
 
 ///|
 fn usage() -> String {
@@ -60,15 +60,28 @@ async fn build(
   }
   let metadata = @json.parse(read(native + "/oh-uni-package.json"))
   match metadata {
-    { "apiVersion": "26", .. } => ()
-    _ => raise Failure("toolchain: only SDK API 26 is verified")
+    { "apiVersion": String(api), .. } if @lib.version_at_least(
+        api,
+        @lib.minimum_sdk_api.to_string(),
+      ) => ()
+    _ =>
+      raise Failure(
+        "toolchain: HarmonyOS SDK API " +
+        @lib.minimum_sdk_api.to_string() +
+        " or newer is required; install it from DevEco Studio SDK Manager",
+      )
   }
   doctor(@lib.parse_cli(["doctor"])) |> ignore
   let moon_version = command("toolchain", "moon", ["version"], base)
   let compiler_version = command("toolchain", "moonc", ["-v"], base)
-  if !moon_version.contains("0.1.20260920") ||
-    !compiler_version.contains("v0.10.14+7d59c7ec9") {
-    raise Failure("toolchain: requires Moon 20260920 / moonc v0.10.14")
+  if !@lib.moonc_supported(compiler_version) {
+    raise Failure(
+      "toolchain: requires moonc >= " +
+      @lib.minimum_moonc_version +
+      ", found " +
+      compiler_version.trim().to_owned() +
+      "; run `moon upgrade`",
+    )
   }
   let moon_home = normalized(
     @env.get_env_var("MOON_HOME").unwrap_or(
@@ -181,12 +194,12 @@ async fn build(
       }
       index += 1
     }
-    compiler_log.push(args.to_json())
+    compiler_log.push(Json(args))
     command("moonbit", "moonc", args, staged.root) |> ignore
   }
   write(
     work + "/compiler-commands.json",
-    compiler_log.to_json().stringify(indent=2),
+    Json(compiler_log).stringify(indent=2),
   )
   let linked = linked_native(commands.last().unwrap(), staged.root, found, abis)
   let generated = work + "/native"
@@ -287,15 +300,15 @@ async fn build(
     "moon": moon_version.trim().to_owned(),
     "moonc": compiler_version.trim().to_owned(),
     "sdkApi": 26,
-    "results": results.to_json(),
-    "functions": config.functions.map(f => f.signature()).to_json(),
-    "exports": config.functions
-    .map(f => {
-      ({ "name": f.name, "async": f.is_async, "raises": f.raises } : Json)
-    })
-    .to_json(),
-    "handles": config.handles.to_json(),
-    "nativeDependencies": native_manifest.to_json(),
+    "results": Json(results),
+    "functions": Json(config.functions.map(f => f.signature())),
+    "exports": Json(
+      config.functions.map(f => {
+        ({ "name": f.name, "async": f.is_async, "raises": f.raises } : Json)
+      }),
+    ),
+    "handles": Json(config.handles),
+    "nativeDependencies": Json(native_manifest),
   }
   write(package_dir + "/manifest.json", manifest.stringify(indent=2))
   write(package_dir + "/NOTICE.NativeSDK.txt", read(native + "/NOTICE.txt"))

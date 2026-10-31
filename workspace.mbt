@@ -25,7 +25,7 @@ pub fn workspace_members(text : String) -> Array[String] raise ConfigError {
 
 ///|
 /// A workspace file for staged members `./m0`, `./m1`, ...
-pub fn staged_workspace(count : Int) -> String {
+pub fn staged_workspace(count : Int32) -> String {
   let members : Array[String] = []
   for index in 0..<count {
     members.push("  \"./m" + index.to_string() + "\",\n")

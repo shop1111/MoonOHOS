@@ -21,7 +21,7 @@ async fn native_sdk(path : String) -> String {
 async fn doctor(options : @lib.CliOptions) -> Json {
   let base = @env.current_dir().unwrap_or(".")
   let facts : Array[@lib.EnvironmentFact] = []
-  for (name, expected) in @lib.pinned_environment() {
+  for (name, expected) in @lib.required_environment() {
     if name == "sdkApi" {
       continue
     }
@@ -88,7 +88,14 @@ async fn doctor(options : @lib.CliOptions) -> Json {
         { "apiVersion": String(value), .. } => value
         _ => "unknown"
       }
-      facts.push(@lib.environment_fact("sdkApi", api, "26", true))
+      facts.push(
+        @lib.environment_fact(
+          "sdkApi",
+          api,
+          ">= " + @lib.minimum_sdk_api.to_string() + ".0.0",
+          true,
+        ),
+      )
       for file in @lib.sdk_files() {
         facts.push(
           @lib.environment_fact(
@@ -103,6 +110,15 @@ async fn doctor(options : @lib.CliOptions) -> Json {
     None => ()
   }
   let report = @lib.environment_report(facts)
+  let tested : Map[String, String] = Map::from_array(@lib.tested_environment())
+  let untested = facts
+    .filter(f => {
+      tested.get(f.name) is Some(version) && !f.actual.contains(version)
+    })
+    .map(f => f.name)
+  if report is Object(fields) {
+    fields["untested"] = Json(untested)
+  }
   if facts.any(f => !f.passed()) {
     raise Failure(
       "doctor: incompatible environment\n" + report.stringify(indent=2),

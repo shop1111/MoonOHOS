@@ -31,7 +31,7 @@ pub struct PackageInterface {
 ///|
 priv struct InterfaceCursor {
   tokens : Array[String]
-  mut offset : Int
+  mut offset : Int32
 }
 
 ///|
@@ -126,7 +126,7 @@ fn InterfaceCursor::expect(
 ///|
 fn InterfaceCursor::kind(
   self : InterfaceCursor,
-  depth : Int,
+  depth : Int32,
 ) -> TypeExpr raise ConfigError {
   if depth > 32 {
     raise Invalid("interface: type nesting exceeds 32")

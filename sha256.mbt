@@ -1,7 +1,7 @@
 ///|
 /// FIPS 180-4 SHA-256. All arithmetic intentionally wraps at 32 bits.
 pub struct Sha256 {
-  state : Array[UInt]
+  state : Array[UInt32]
   pending : Array[Byte]
   mut count : UInt64
 }
@@ -19,12 +19,12 @@ pub fn Sha256::new() -> Sha256 {
 }
 
 ///|
-fn rotate(value : UInt, bits : Int) -> UInt {
+fn rotate(value : UInt32, bits : Int32) -> UInt32 {
   (value >> bits) | (value << (32 - bits))
 }
 
 ///|
-fn compress_sha(state : Array[UInt], block : Array[Byte]) -> Unit {
+fn compress_sha(state : Array[UInt32], block : Array[Byte]) -> Unit {
   let constants = [
     0x428a2f98U, 0x71374491U, 0xb5c0fbcfU, 0xe9b5dba5U, 0x3956c25bU, 0x59f111f1U,
     0x923f82a4U, 0xab1c5ed5U, 0xd807aa98U, 0x12835b01U, 0x243185beU, 0x550c7dc3U,

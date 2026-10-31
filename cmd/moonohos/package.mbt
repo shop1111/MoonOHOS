@@ -1,5 +1,5 @@
 ///|
-async fn list_files(root : String, prefix? : String = "") -> Array[String] {
+async fn list_files(root : String, prefix~ : String = "") -> Array[String] {
   let result : Array[String] = []
   for name in @fs.readdir(root, include_hidden=true, sort=true) {
     let path = root + "/" + name
@@ -66,7 +66,7 @@ async fn verify_package(root : String) -> Json {
     "module": manifest.module_name,
     "moonohosVersion": manifest.version,
     "files": manifest.files.length(),
-    "libraries": libraries.to_json(),
+    "libraries": Json(libraries),
     "runtime": "not_run",
   }
 }

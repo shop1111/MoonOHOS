@@ -1,0 +1,41 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonohos/search"
+
+import {
+  "shop1111/moonohos_ohos/rawfile",
+  "shop1111/moonohos_ohos/task",
+}
+
+// Values
+pub fn build_index(@rawfile.Manager, String) -> SearchIndex raise
+
+pub fn index_texts(Array[String], Array[String]) -> SearchIndex raise @task.Cancelled
+
+pub fn search(SearchIndex, String, Int32) -> Array[Hit]
+
+pub fn search_now(SearchIndex, String, Int32) -> Array[Hit]
+
+pub fn stats(SearchIndex) -> IndexStats
+
+// Errors
+
+// Types and methods
+pub(all) struct Hit {
+  path : String
+  title : String
+  score : Double
+  snippet : String
+}
+
+pub(all) struct IndexStats {
+  documents : Int32
+  terms : Int32
+  postings : Int32
+  characters : Int32
+}
+
+type SearchIndex
+
+// Type aliases
+
+// Traits

@@ -288,9 +288,9 @@ async fn prepare_native(
     manifest.push({
       "package": descriptor.pkg,
       "descriptorSha256": @lib.sha256((descriptor_text : &@io.Data).binary()),
-      "sources": files.to_json(),
-      "systemLibraries": descriptor.libraries.to_json(),
-      "adapters": descriptor.adapters.map(a => a.type_name).to_json(),
+      "sources": Json(files),
+      "systemLibraries": Json(descriptor.libraries),
+      "adapters": Json(descriptor.adapters.map(a => a.type_name)),
     })
   }
   ({ sources, include_dirs, defines, libraries, }, manifest)

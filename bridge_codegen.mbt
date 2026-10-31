@@ -1,8 +1,8 @@
 ///|
 /// Expressions naming where one call keeps its converted values.
 priv struct CallSlots {
-  arg : (Int) -> String
-  adapter : (Int) -> String
+  arg : (Int32) -> String
+  adapter : (Int32) -> String
   value : String
   handle : String
 }
