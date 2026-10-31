@@ -41,7 +41,7 @@ fn direct_children(
   kind : TypeExpr,
 ) -> Array[TypeExpr] raise ConfigError {
   match kind {
-    Scalar(_) | Handle(_) | External(_, _) => []
+    Scalar(_) | Enum(_) | Handle(_) | External(_, _) => []
     List(element) | Optional(element) => [element]
     Record(name) => project.record_def(name).fields.map(f => f.kind)
   }
@@ -187,8 +187,55 @@ fn generated_parameters(fields : Array[FieldDef], moon~ : Bool) -> String {
 fn boundary_name(kind : TypeExpr) -> String {
   match kind {
     Optional(inner) => "Array[" + inner.wrapper_name() + "]"
+    Enum(_) => "Int"
     _ => kind.wrapper_name()
   }
+}
+
+///|
+/// MoonBit expression turning a boundary value back into the business type.
+fn lift(kind : TypeExpr, value : String, enums : Array[EnumDef]) -> String {
+  match kind {
+    Optional(_) => value + ".get(0)"
+    Enum(name) => {
+      let arms = enum_cases(name, enums).mapi((i, c) => {
+        i.to_string() + " => @core." + name + "::" + c
+      })
+      "match " +
+      value +
+      " { " +
+      arms.join("; ") +
+      "; _ => abort(\"moonohos: invalid " +
+      name +
+      " tag\") }"
+    }
+    _ => value
+  }
+}
+
+///|
+/// MoonBit expression turning a business value into its boundary form.
+fn lower(kind : TypeExpr, value : String, enums : Array[EnumDef]) -> String {
+  match kind {
+    Optional(_) => "match (" + value + ") { Some(x) => [x]; None => [] }"
+    Enum(name) => {
+      let arms = enum_cases(name, enums).mapi((i, c) => {
+        "@core." + name + "::" + c + " => " + i.to_string()
+      })
+      "match (" + value + ") { " + arms.join("; ") + " }"
+    }
+    _ => value
+  }
+}
+
+///|
+fn enum_cases(name : String, enums : Array[EnumDef]) -> Array[String] {
+  for def in enums {
+    if def.name == name {
+      return def.cases
+    }
+  }
+  []
 }
 
 ///|
@@ -229,19 +276,18 @@ fn moon_export(
   fields : Array[FieldDef],
   result : TypeExpr,
   expression : String,
+  enums : Array[EnumDef],
 ) -> String {
-  // Lift boundary arrays back to Option before the body, lower Option results.
+  // Lift boundary values (Option arrays, enum tags) before the body and lower
+  // the result back to its boundary form.
   let mut body = ""
   for field in fields {
-    if field.kind is Optional(_) {
-      body += "let " + field.name + " = " + field.name + ".get(0); "
+    let lifted = lift(field.kind, field.name, enums)
+    if lifted != field.name {
+      body += "let " + field.name + " = " + lifted + "; "
     }
   }
-  body += if result is Optional(_) {
-    "match (" + expression + ") { Some(x) => [x]; None => [] }"
-  } else {
-    expression
-  }
+  body += lower(result, expression, enums)
   "///|\npub fn moonohos_raw_" +
   name +
   "(" +
@@ -284,6 +330,7 @@ pub fn Project::business_wrapper(self : Project) -> String raise ConfigError {
       call.function.params,
       call.function.raw_result(),
       expression,
+      self.enums,
     )
   }
   source

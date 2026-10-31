@@ -76,6 +76,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python scripts/verify_containers.py option_core option_bridge.cpp
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/verify_containers.py enum_core enum_bridge.cpp
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         if: always()
         with:

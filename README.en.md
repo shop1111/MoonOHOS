@@ -85,6 +85,7 @@ Use the HAR from an app's `oh-package.json5`:
   "nativeModule": "moonsearch",
   "workspace": "moon.work",
   "handles": [{"name": "SearchIndex"}],
+  "enums": [{"name": "Mode", "cases": ["Exact", "Prefix"]}],
   "types": [{"name": "Hit", "fields": [{"name": "path", "type": "String"}, {"name": "score", "type": "Double"}]}],
   "functions": [
     {"name": "build_index", "params": [{"name": "resources", "type": "@rawfile.Manager"}, {"name": "dir", "type": "String"}],
@@ -100,6 +101,7 @@ Use the HAR from an app's `oh-package.json5`:
 | `Int` / `Double` / `Bool` | `number` / `number` / `boolean` | Int is a finite 32-bit integer (`.mbti` may spell it `Int32`); Double must be finite |
 | `Int64` | `bigint` | Signed 64-bit; out-of-range bigint throws RangeError, a number throws TypeError (0.5) |
 | `T?` / `Option[T]` | `T \| undefined` | Parameters, results, array elements and struct fields (declared `field?: T`; missing, `undefined` and `null` all read as `None`); no nested Option (0.5) |
+| payload-free enum (`"enums"`) | string literal union, e.g. `'Debug' \| 'Info'` | Unknown names throw TypeError; cases are checked against `.mbti` (0.5) |
 | `Unit` (result) | `void` | |
 | `String` | `string` | UTF-16 code units copied as-is, including NUL and lone surrogates |
 | `Bytes` | `Uint8Array` | Views on ordinary, attached ArrayBuffers; copied |
@@ -114,7 +116,7 @@ Every module also exports `createCancelToken()` and `moonohos_diagnostics()`.
 Conversions are limited to depth 32, 1,048,576 elements and 64 MiB; violations
 throw `RangeError`, wrong argument types throw `TypeError`. A MoonBit `panic`
 terminates the process. Not yet supported: generics, `#value` structs, optional or
-labelled parameters, enums, classes and callbacks (see
+labelled parameters, enums with payloads, classes and callbacks (see
 [CHANGELOG](CHANGELOG.md) for progress).
 
 ## Commands

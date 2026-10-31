@@ -316,6 +316,11 @@ pub struct ElfSegment {
 }
 pub fn ElfSegment::to_json(Self) -> Json
 
+pub struct EnumDef {
+  name : String
+  cases : Array[String]
+}
+
 pub struct EnvironmentFact {
   name : String
   actual : String
@@ -366,6 +371,12 @@ pub(all) struct InitOptions {
   ohos : String?
 }
 
+pub struct InterfaceEnum {
+  name : String
+  cases : Array[String]
+  unsupported : String?
+}
+
 pub struct InterfaceFunction {
   name : String
   params : Array[TypeExpr]
@@ -414,6 +425,7 @@ pub fn PackageFile::verify(Self, Bytes) -> Unit raise ConfigError
 pub struct PackageInterface {
   functions : Array[InterfaceFunction]
   records : Array[InterfaceRecord]
+  enums : Array[InterfaceEnum]
   types : Array[InterfaceType]
 }
 
@@ -439,6 +451,7 @@ pub struct Project {
   workspace : String?
   records : Array[RecordDef]
   handles : Array[String]
+  enums : Array[EnumDef]
   functions : Array[Callable]
   adapters : Array[AdapterDef]
 }
@@ -446,6 +459,7 @@ pub fn Project::build_plan(Self, Array[String]) -> Json raise ConfigError
 pub fn Project::business_adapters(Self) -> String raise ConfigError
 pub fn Project::business_header(Self) -> String raise ConfigError
 pub fn Project::business_wrapper(Self) -> String raise ConfigError
+pub fn Project::enum_def(Self, String) -> EnumDef raise ConfigError
 pub fn Project::generate(Self) -> GeneratedArtifacts raise ConfigError
 pub fn Project::generate_arrays(Self) -> GeneratedArtifacts raise ConfigError
 pub fn Project::generation_plan(Self) -> Json raise ConfigError
@@ -475,6 +489,7 @@ pub(all) enum TypeExpr {
   Scalar(ValueType)
   List(TypeExpr)
   Optional(TypeExpr)
+  Enum(String)
   Record(String)
   Handle(String)
   External(String, String)

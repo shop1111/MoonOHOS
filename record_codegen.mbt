@@ -155,6 +155,13 @@ fn record_creator(
 ///|
 fn record_declarations(project : Project) -> String raise ConfigError {
   let mut source = ""
+  for def in project.enums {
+    source += "export type " +
+      def.name +
+      " = " +
+      def.cases.map(c => "'" + c + "'").join(" | ") +
+      ";\n"
+  }
   for record in project.record_order() {
     source += "export interface " + record.name + " {\n"
     for field in record.fields {

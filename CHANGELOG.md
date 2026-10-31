@@ -15,6 +15,16 @@ All notable changes to MoonOHOS are recorded here. The format follows
   as `None`). Options cross the C boundary as zero- or one-element arrays built
   by the generated MoonBit wrapper, so no compiler-internal layout is assumed.
   Host ASan suite `option_core` / `option_bridge.cpp`.
+- Payload-free enums declared under `"enums"` map to ArkTS string literal
+  unions (`export type Level = 'Debug' | 'Info'`), including record fields,
+  arrays and Options. Values cross C as `Int` tags converted by a generated
+  `match`; unknown names throw `TypeError`; cases are checked against `.mbti`.
+  The HAR facade re-exports the type. Host ASan suite `enum_core` /
+  `enum_bridge.cpp`.
+
+### Fixed
+- Record field types are compared by name during interface verification, so
+  enum fields declared in the manifest match the `.mbti`.
 
 ## [0.4.1] - 2026-10-31
 

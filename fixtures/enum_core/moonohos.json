@@ -1,0 +1,7 @@
+{"version":1,"module":".","package":"moonohos/enum_fixture","nativeModule":"enums",
+"enums":[{"name":"Level","cases":["Debug","Info","Warn","Error"]}],
+"types":[{"name":"Event","fields":[{"name":"level","type":"Level"},{"name":"message","type":"String"},{"name":"seen","type":"Array[Level]"},{"name":"previous","type":"Level?"}]}],"functions":[
+{"name":"bump","params":[{"name":"level","type":"Level"}],"return":"Level"},
+{"name":"count_at_least","params":[{"name":"events","type":"Array[Event]"},{"name":"floor","type":"Level"}],"return":"Int"},
+{"name":"loudest","params":[{"name":"events","type":"Array[Event]"}],"return":"Level?"},
+{"name":"echo_event","params":[{"name":"event","type":"Event"}],"return":"Event"}]}

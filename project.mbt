@@ -5,6 +5,9 @@ pub(all) enum TypeExpr {
   /// `Option[T]` / `T?`; ArkTS `T | undefined`. Crosses the C boundary as a
   /// zero- or one-element array.
   Optional(TypeExpr)
+  /// Enum without payloads; ArkTS string literal union of its case names.
+  /// Crosses the C boundary as an `Int` tag.
+  Enum(String)
   Record(String)
   /// Opaque MoonBit value owned by an ArkTS handle object with `close()`.
   Handle(String)
@@ -34,6 +37,13 @@ pub struct Callable {
 }
 
 ///|
+/// `enums` manifest entry: an enum whose cases carry no payload.
+pub struct EnumDef {
+  name : String
+  cases : Array[String]
+}
+
+///|
 pub struct Project {
   version : Int32
   module_dir : String
@@ -42,6 +52,7 @@ pub struct Project {
   workspace : String?
   records : Array[RecordDef]
   handles : Array[String]
+  enums : Array[EnumDef]
   functions : Array[Callable]
   adapters : Array[AdapterDef]
 }
@@ -158,7 +169,7 @@ pub fn TypeExpr::moon_name(self : TypeExpr) -> String {
     Scalar(kind) => kind.moon_name()
     List(element) => "Array[" + element.moon_name() + "]"
     Optional(inner) => inner.moon_name() + "?"
-    Record(name) | Handle(name) => name
+    Enum(name) | Record(name) | Handle(name) => name
     External(pkg_alias, name) => "@" + pkg_alias + "." + name
   }
 }
@@ -169,7 +180,7 @@ pub fn TypeExpr::wrapper_name(self : TypeExpr) -> String {
     Scalar(kind) => kind.moon_name()
     List(element) => "Array[" + element.wrapper_name() + "]"
     Optional(inner) => inner.wrapper_name() + "?"
-    Record(name) | Handle(name) => "@core." + name
+    Enum(name) | Record(name) | Handle(name) => "@core." + name
     External(pkg_alias, name) => "@" + pkg_alias + "." + name
   }
 }
@@ -178,6 +189,7 @@ pub fn TypeExpr::wrapper_name(self : TypeExpr) -> String {
 pub fn TypeExpr::c_name(self : TypeExpr) -> String {
   match self {
     Scalar(kind) => kind.c_name()
+    Enum(_) => "int32_t"
     List(_) | Optional(_) | Record(_) | Handle(_) | External(_, _) => "void *"
   }
 }
@@ -188,7 +200,7 @@ pub fn TypeExpr::ark_name(self : TypeExpr) -> String {
     Scalar(kind) => kind.ark_name()
     List(element) => "Array<" + element.ark_name() + ">"
     Optional(inner) => inner.ark_name() + " | undefined"
-    Record(name) | Handle(name) | External(_, name) => name
+    Enum(name) | Record(name) | Handle(name) | External(_, name) => name
   }
 }
 
@@ -203,11 +215,16 @@ pub fn TypeExpr::is_opaque(self : TypeExpr) -> Bool {
 }
 
 ///|
-fn TypeExpr::bind_handles(self : TypeExpr, handles : Array[String]) -> TypeExpr {
+fn TypeExpr::bind_handles(
+  self : TypeExpr,
+  handles : Array[String],
+  enums~ : Array[String] = [],
+) -> TypeExpr {
   match self {
     Record(name) if handles.contains(name) => Handle(name)
-    List(element) => List(element.bind_handles(handles))
-    Optional(inner) => Optional(inner.bind_handles(handles))
+    Record(name) if enums.contains(name) => Enum(name)
+    List(element) => List(element.bind_handles(handles, enums~))
+    Optional(inner) => Optional(inner.bind_handles(handles, enums~))
     other => other
   }
 }
@@ -320,6 +337,41 @@ pub fn parse_project(text : String) -> Project raise ConfigError {
       }
     _ => raise Invalid("config: handles must be an array")
   }
+  let enums : Array[EnumDef] = []
+  match field(json, "enums") {
+    None => ()
+    Some(Array(entries)) =>
+      for entry in entries {
+        let name = checked_name(entry, "enums")
+        if names.contains(name) || reserved.contains(name) {
+          raise Invalid("enums: duplicate/reserved type " + name)
+        }
+        names[name] = true
+        let cases : Array[String] = []
+        match field(entry, "cases") {
+          Some(Array(values)) if !values.is_empty() && values.length() <= 1024 =>
+            for value in values {
+              match value {
+                String(case_name) if identifier(case_name) &&
+                  !cases.contains(case_name) => cases.push(case_name)
+                _ =>
+                  raise Invalid(
+                    "enums." + name + ": cases must be unique identifiers",
+                  )
+              }
+            }
+          _ =>
+            raise Invalid(
+              "enums." +
+              name +
+              ": cases must be a non-empty array (at most 1024)",
+            )
+        }
+        enums.push({ name, cases, })
+      }
+    _ => raise Invalid("config: enums must be an array")
+  }
+  let enum_names = enums.map(e => e.name)
   let entries = match field(json, "types") {
     None => []
     Some(Array(entries)) => entries
@@ -336,7 +388,7 @@ pub fn parse_project(text : String) -> Project raise ConfigError {
       name,
       fields: parse_fields(entry, "fields", "types." + name).map(f => {
         name: f.name,
-        kind: f.kind.bind_handles(handles),
+        kind: f.kind.bind_handles(handles, enums=enum_names),
       }),
     })
   }
@@ -358,9 +410,9 @@ pub fn parse_project(text : String) -> Project raise ConfigError {
       name,
       params: parse_fields(entry, "params", context).map(p => {
         name: p.name,
-        kind: p.kind.bind_handles(handles),
+        kind: p.kind.bind_handles(handles, enums=enum_names),
       }),
-      result: result.bind_handles(handles),
+      result: result.bind_handles(handles, enums=enum_names),
       is_async: optional_flag(entry, "async", version, context),
       raises: optional_flag(entry, "raises", version, context),
     })
@@ -373,6 +425,7 @@ pub fn parse_project(text : String) -> Project raise ConfigError {
     workspace,
     records,
     handles,
+    enums,
     functions,
     adapters: [],
   }
@@ -388,6 +441,7 @@ pub fn Config::to_project(self : Config) -> Project {
     workspace: None,
     records: [],
     handles: [],
+    enums: [],
     functions: self.functions.map(f => {
       name: f.name,
       params: f.params.map(p => { name: p.name, kind: Scalar(p.kind), }),

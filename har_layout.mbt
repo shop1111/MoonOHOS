@@ -3,8 +3,15 @@
 pub fn har_facade(module_name : String, declarations : String) -> String {
   let names : Array[String] = []
   for line in declarations.split("\n") {
-    if line.has_prefix("export interface ") {
-      let name = line[17:].to_owned().split(" ").head().unwrap_or("").to_owned()
+    let rest = if line.has_prefix("export interface ") {
+      Some(line[17:].to_owned())
+    } else if line.has_prefix("export type ") {
+      Some(line[12:].to_owned())
+    } else {
+      None
+    }
+    if rest is Some(rest) {
+      let name = rest.split(" ").head().unwrap_or("").to_owned()
       if identifier(name) && !names.contains(name) {
         names.push(name)
       }

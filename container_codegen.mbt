@@ -140,6 +140,16 @@ fn cpp_reader(type_ : TypePlan, project : Project) -> String raise ConfigError {
         child +
         "(env, child, out.children[i], budget, ancestors, depth + 1, child_path)) return false;\n  }\n"
     }
+    Enum(name) => {
+      let cases = project.enum_def(name).cases
+      source += "  if (!LeafType(env, value, napi_string, path) || !PrepareText(env, value, budget, depth, path)) return false;\n  if (!ReadText(env, value, out.text)) return false;\n  static const char16_t *const cases[] = {" +
+        cases.map(c => "u\"" + c + "\"").join(", ") +
+        "};\n  for (int32_t i = 0; i < " +
+        cases.length().to_string() +
+        "; ++i) if (out.text == cases[i]) { out.text.clear(); out.integer = i; return true; }\n  throw TypeFault(path + \": expected " +
+        cases.map(c => "'" + c + "'").join(" | ") +
+        "\");\n"
+    }
     Optional(_) => {
       let child = type_.dependencies[0].to_string()
       source += "  bool absent;\n  if (!IsAbsent(env, value, absent)) return false;\n  if (absent) return true;\n  out.children.resize(1);\n  if (!Read_" +
@@ -162,6 +172,7 @@ fn cpp_make(type_ : TypePlan, types : Array[TypePlan]) -> String {
     "(const BridgeValue &value) {\n"
   match type_.kind {
     Optional(element) => source += list_maker(type_, types, element)
+    Enum(_) => source += "  return value.integer;\n"
     Scalar(kind) =>
       source += match kind {
         Int32 | Boolean => "  return value.integer;\n"
@@ -231,6 +242,10 @@ fn cpp_copy(
           "  budget.add(0, static_cast<size_t>(Moonbit_array_length(value)), depth, path);\n  out.bytes = CopyBytes(value);\n"
         Void => ""
       }
+    Enum(name) =>
+      source += "  if (value < 0 || value >= " +
+        project.enum_def(name).cases.length().to_string() +
+        ") throw RangeFault(path + \": invalid enum tag\");\n  out.integer = value; budget.add(0, sizeof(int32_t), depth, path);\n"
     List(element) | Optional(element) => {
       let child = type_.dependencies[0].to_string()
       source += "  int32_t length = " +
@@ -283,6 +298,10 @@ fn cpp_create(type_ : TypePlan, project : Project) -> String raise ConfigError {
       source += "  if (!Check(env, napi_create_array_with_length(env, value.children.size(), &result))) return false;\n  for (size_t i = 0; i < value.children.size(); ++i) {\n    napi_value child;\n    if (!Create_" +
         type_.dependencies[0].to_string() +
         "(env, value.children[i], child)) return false;\n    if (!Check(env, napi_set_element(env, result, static_cast<uint32_t>(i), child))) return false;\n  }\n  return true;\n"
+    Enum(name) =>
+      source += "  static const char *const names[] = {" +
+        project.enum_def(name).cases.map(c => "\"" + c + "\"").join(", ") +
+        "};\n  return Check(env, napi_create_string_utf8(env, names[value.integer], NAPI_AUTO_LENGTH, &result));\n"
     Optional(_) =>
       source += "  if (value.children.empty()) return Check(env, napi_get_undefined(env, &result));\n  return Create_" +
         type_.dependencies[0].to_string() +
@@ -312,6 +331,7 @@ pub fn Project::generate(
       accessor.params,
       accessor.result,
       accessor.expression,
+      self.enums,
     )
     exports.push("\"moonohos_raw_" + accessor.name + "\"")
     header += accessor.result.c_name() +

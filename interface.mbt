@@ -22,9 +22,17 @@ pub struct InterfaceRecord {
 }
 
 ///|
+pub struct InterfaceEnum {
+  name : String
+  cases : Array[String]
+  unsupported : String?
+}
+
+///|
 pub struct PackageInterface {
   functions : Array[InterfaceFunction]
   records : Array[InterfaceRecord]
+  enums : Array[InterfaceEnum]
   types : Array[InterfaceType]
 }
 
@@ -272,11 +280,37 @@ fn parse_interface_record(
 }
 
 ///|
+/// `Name { A B C }`; cases with payloads or generic enums are unsupported.
+fn parse_interface_enum(tokens : Array[String]) -> InterfaceEnum {
+  let name = tokens.get(0).unwrap_or("")
+  let cases : Array[String] = []
+  let mut unsupported : String? = None
+  if tokens.get(1) != Some("{") {
+    unsupported = Some("generic enums are unsupported")
+  } else {
+    for token in tokens[2:] {
+      if token == "}" {
+        break
+      }
+      if token == "(" || token == "=" {
+        unsupported = Some("enum cases with payloads or values are unsupported")
+        break
+      }
+      if identifier(token) {
+        cases.push(token)
+      }
+    }
+  }
+  { name, cases, unsupported, }
+}
+
+///|
 /// Parses selected declarations structurally; unrelated traits remain opaque.
 pub fn parse_package_interface(text : String) -> PackageInterface {
   let tokens = interface_tokens(text)
   let functions : Array[InterfaceFunction] = []
   let records : Array[InterfaceRecord] = []
+  let enums : Array[InterfaceEnum] = []
   let types : Array[InterfaceType] = []
   // Abstract types (`type X`) and other non-pub items also end a declaration.
   let boundaries = [
@@ -315,6 +349,7 @@ pub fn parse_package_interface(text : String) -> PackageInterface {
     match category {
       "fn" => functions.push(parse_interface_function(declaration))
       "struct" => records.push(parse_interface_record(declaration, value_type))
+      "enum" => enums.push(parse_interface_enum(declaration))
       _ => ()
     }
     if ["struct", "type", "enum", "suberror"].contains(category) &&
@@ -326,7 +361,7 @@ pub fn parse_package_interface(text : String) -> PackageInterface {
     }
     value_type = false
   }
-  { functions, records, types, }
+  { functions, records, enums, types, }
 }
 
 ///|
@@ -417,12 +452,39 @@ pub fn Project::verify_interface(
         .search_by(f => f.name == field.name)
         .map(i => actual.fields[i])
       match actual_field {
-        Some(actual_field) if actual_field.kind == field.kind => ()
+        // Names, not variants: the interface does not know which names are enums.
+        Some(actual_field) if actual_field.kind.moon_name() ==
+          field.kind.moon_name() => ()
         _ =>
           raise Invalid(
             "interface: field mismatch " + expected.name + "." + field.name,
           )
       }
+    }
+  }
+  for expected in self.enums {
+    let actual = interface.enums
+      .search_by(e => e.name == expected.name)
+      .map(i => interface.enums[i])
+    let actual = actual.unwrap_or_else(() => {
+      raise Invalid("interface: missing public enum " + expected.name)
+    })
+    if actual.unsupported is Some(reason) {
+      raise Invalid("interface: " + expected.name + ": " + reason)
+    }
+    let mut same = actual.cases.length() == expected.cases.length()
+    for case_name in expected.cases {
+      same = same && actual.cases.contains(case_name)
+    }
+    if !same {
+      raise Invalid(
+        "interface: enum " +
+        expected.name +
+        " has cases " +
+        actual.cases.join(", ") +
+        "; manifest lists " +
+        expected.cases.join(", "),
+      )
     }
   }
 }

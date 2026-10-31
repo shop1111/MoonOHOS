@@ -29,6 +29,19 @@ pub fn Project::record_def(
 }
 
 ///|
+pub fn Project::enum_def(
+  self : Project,
+  name : String,
+) -> EnumDef raise ConfigError {
+  for def in self.enums {
+    if def.name == name {
+      return def
+    }
+  }
+  raise Invalid("type: undeclared enum " + name)
+}
+
+///|
 fn type_depth(
   project : Project,
   kind : TypeExpr,
@@ -42,7 +55,7 @@ fn type_depth(
   match kind {
     Scalar(Void) =>
       raise Invalid("type: Unit is not a container element or field")
-    Scalar(_) => depth
+    Scalar(_) | Enum(_) => depth
     Handle(name) | External(_, name) if depth > 0 =>
       raise Invalid(
         "type: " + name + " is opaque and cannot be nested in arrays or records",
@@ -147,7 +160,7 @@ fn collect_type(
   }
   seen[key] = true
   match kind {
-    Scalar(_) | Handle(_) | External(_, _) => ()
+    Scalar(_) | Enum(_) | Handle(_) | External(_, _) => ()
     List(element) | Optional(element) =>
       collect_type(project, element, seen, result)
     Record(name) =>
