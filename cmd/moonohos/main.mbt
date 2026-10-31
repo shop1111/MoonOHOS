@@ -76,19 +76,17 @@ async fn build(
       "; run `moon upgrade`",
     )
   }
-  let moon_home = normalized(
-    @env.get_env_var("MOON_HOME").unwrap_or(
-      @env.get_env_var("USERPROFILE").unwrap_or("") + "/.moon",
-    ),
-  )
-  let cmake = native + "/build-tools/cmake/bin/cmake.exe"
-  let ninja = native + "/build-tools/cmake/bin/ninja.exe"
+  let moon_home = moon_home()
+  let os = host_os()
+  let cmake = @lib.native_tool(os, native, "cmake")
+  let ninja = @lib.native_tool(os, native, "ninja")
+  let readelf = @lib.native_tool(os, native, "llvm-readelf")
   for
     tool in [
       cmake,
       ninja,
-      native + "/llvm/bin/clang.exe",
-      native + "/llvm/bin/llvm-readelf.exe",
+      @lib.native_tool(os, native, "clang"),
+      readelf,
       native + "/NOTICE.txt",
       moon_home + "/lib/runtime/runtime.c",
       moon_home + "/include/moonbit.h",
@@ -237,7 +235,7 @@ async fn build(
     let library = build_dir + "/lib" + config.native_module + ".so"
     let elf = command(
       "elf/" + abi,
-      native + "/llvm/bin/llvm-readelf.exe",
+      readelf,
       ["-h", "-d", "--dyn-syms", library],
       base,
     )

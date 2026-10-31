@@ -1,13 +1,4 @@
 ///|
-fn moon_home() -> String {
-  normalized(
-    @env.get_env_var("MOON_HOME").unwrap_or(
-      @env.get_env_var("USERPROFILE").unwrap_or("") + "/.moon",
-    ),
-  )
-}
-
-///|
 async fn native_sdk(path : String) -> String {
   for candidate in @lib.sdk_candidates(normalized(@fs.realpath(path))) {
     if @fs.exists(candidate + "/build/cmake/ohos.toolchain.cmake") {
@@ -96,7 +87,7 @@ async fn doctor(options : @lib.CliOptions) -> Json {
           true,
         ),
       )
-      for file in @lib.sdk_files() {
+      for file in @lib.sdk_files(os=host_os()) {
         facts.push(
           @lib.environment_fact(
             "sdk/" + file,

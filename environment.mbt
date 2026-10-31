@@ -156,10 +156,16 @@ pub fn runtime_files() -> Array[String] {
 }
 
 ///|
-pub fn sdk_files() -> Array[String] {
+/// Files a usable HarmonyOS Native SDK provides, relative to its `native`
+/// directory, with executable names for `os`.
+pub fn sdk_files(os~ : HostOs = Windows) -> Array[String] {
   [
-    "build/cmake/ohos.toolchain.cmake", "build-tools/cmake/bin/cmake.exe", "build-tools/cmake/bin/ninja.exe",
-    "llvm/bin/clang.exe", "llvm/bin/llvm-readelf.exe", "sysroot/usr/include/napi/native_api.h",
+    "build/cmake/ohos.toolchain.cmake",
+    "build-tools/cmake/bin/" + os.exe("cmake"),
+    "build-tools/cmake/bin/" + os.exe("ninja"),
+    "llvm/bin/" + os.exe("clang"),
+    "llvm/bin/" + os.exe("llvm-readelf"),
+    "sysroot/usr/include/napi/native_api.h",
     "NOTICE.txt",
   ]
 }

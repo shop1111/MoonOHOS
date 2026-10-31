@@ -63,29 +63,22 @@ async fn package_har(options : @lib.CliOptions) -> Json {
     }
   }
   let deveco = normalized(@fs.realpath(options.deveco.unwrap()))
-  let node = deveco + "/tools/node/node.exe"
-  for
-    tool in [
-      node,
-      deveco + "/tools/ohpm/bin/pm-cli.js",
-      deveco + "/tools/hvigor/bin/hvigorw.js",
-    ] {
-    if !@fs.exists(tool) {
-      raise Failure("har: DevEco tool missing: " + tool)
+  let os = host_os()
+  let existing : Array[String] = []
+  for path in @lib.deveco_probe_paths(os, deveco) {
+    if @fs.exists(path) {
+      existing.push(path)
     }
   }
-  let env : Map[String, String] = {
-    "DEVECO_SDK_HOME": deveco + "/sdk",
-    "NODE_HOME": deveco + "/tools/node",
-    "OHPM_HOME": deveco + "/tools/ohpm",
-    "JAVA_HOME": deveco + "/jbr",
-  }
+  let tools = @lib.resolve_deveco(os, deveco, existing)
+  let node = tools.node
+  let env = tools.env()
   let project = hvigor_project(module_root)
   command_logs.val = Some(module_root + "/build/moonohos-commands")
   command(
     "ohpm",
     node,
-    [deveco + "/tools/ohpm/bin/pm-cli.js", "install"],
+    [tools.ohpm_cli, "install"],
     project,
     timeout_ms=600000,
     env~,
@@ -95,7 +88,7 @@ async fn package_har(options : @lib.CliOptions) -> Json {
     "hvigor",
     node,
     [
-      deveco + "/tools/hvigor/bin/hvigorw.js",
+      tools.hvigor_cli,
       "--mode",
       "module",
       "-p",

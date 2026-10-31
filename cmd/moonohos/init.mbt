@@ -22,7 +22,19 @@ async fn init_project(options : @lib.CliOptions) -> Json {
         !read(resolved + "/moon.mod").contains("shop1111/moonohos_ohos") {
         raise Failure("init: --ohos must point to the MoonOHOS ohos module")
       }
-      Some(@lib.relative_path(root, resolved))
+      if @lib.path_root(root) != @lib.path_root(resolved) {
+        raise Failure(
+          "init: --ohos must be on the same drive as the project (moon.work members are relative): " +
+          resolved,
+        )
+      }
+      Some(
+        @lib.relative_path(
+          root,
+          resolved,
+          case_sensitive=!host_os().case_insensitive_paths(),
+        ),
+      )
     }
   }
   let files = @lib.init_files({

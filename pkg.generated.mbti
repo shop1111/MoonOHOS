@@ -26,6 +26,10 @@ pub fn conversion_limits() -> ConversionLimits
 
 pub fn declarations(Config) -> String
 
+pub fn detect_host_os(String?, Bool) -> HostOs
+
+pub fn deveco_probe_paths(HostOs, String) -> Array[String]
+
 pub fn embed_source(Config) -> String
 
 pub fn empty_native_build() -> NativeBuild
@@ -60,9 +64,13 @@ pub fn interface_imports(String) -> Map[String, String]
 
 pub fn linked_packages(Array[String]) -> Array[(String, String)]
 
+pub let macos_marker : String
+
 pub let minimum_moonc_version : String
 
 pub let minimum_sdk_api : Int32
+
+pub fn moon_home_dir(HostOs, String?, String?, String?) -> String
 
 pub fn moonc_supported(String) -> Bool
 
@@ -75,6 +83,8 @@ pub fn native_descriptor_file() -> String
 pub fn native_source(Config) -> String
 
 pub fn native_stubs(String) -> Array[String]
+
+pub fn native_tool(HostOs, String, String) -> String
 
 pub fn package_file(String, Bytes) -> PackageFile raise ConfigError
 
@@ -100,17 +110,21 @@ pub fn parse_type_expr(String, result? : Bool) -> TypeExpr raise ConfigError
 
 pub fn parse_version(String) -> (Int32, Int32, Int32)?
 
-pub fn relative_path(String, String) -> String
+pub fn path_root(String) -> String
+
+pub fn relative_path(String, String, case_sensitive? : Bool) -> String
 
 pub fn required_environment() -> Array[(String, String)]
 
 pub fn resolve_adapters(Project, Array[NativeDescriptor], Map[String, String]) -> Array[AdapterDef] raise ConfigError
 
+pub fn resolve_deveco(HostOs, String, Array[String]) -> DevEcoTools raise ConfigError
+
 pub fn runtime_files() -> Array[String]
 
 pub fn sdk_candidates(String) -> Array[String]
 
-pub fn sdk_files() -> Array[String]
+pub fn sdk_files(os? : HostOs) -> Array[String]
 
 pub fn seal_manifest(Json, Array[PackageFile]) -> Json raise ConfigError
 
@@ -262,6 +276,17 @@ pub struct ConversionLimits {
 }
 pub fn ConversionLimits::to_json(Self) -> Json
 
+pub struct DevEcoTools {
+  sdk : String
+  node : String
+  node_home : String
+  ohpm_cli : String
+  ohpm_home : String
+  hvigor_cli : String
+  java_home : String?
+}
+pub fn DevEcoTools::env(Self) -> Map[String, String]
+
 pub(all) struct Diagnostic {
   stage : String
   code : String
@@ -320,6 +345,20 @@ pub struct GeneratedArtifacts {
   declarations : String
   cmake : String
 }
+
+pub(all) enum HostOs {
+  Windows
+  MacOS
+  Linux
+} derive(Eq, @debug.Debug)
+pub fn HostOs::case_insensitive_paths(Self) -> Bool
+#deprecated
+pub fn HostOs::equal(Self, Self) -> Bool
+pub fn HostOs::exe(Self, String) -> String
+#deprecated
+pub fn HostOs::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn HostOs::to_repr(Self) -> @debug.Repr
 
 pub(all) struct InitOptions {
   name : String

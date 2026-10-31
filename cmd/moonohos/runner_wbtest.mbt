@@ -16,15 +16,19 @@ async test "runner preserves argument boundaries and handles nonzero exit" {
 ///|
 async test "runner cancels its child on timeout" {
   let start = @async.now()
-  let failed = try
-    command(
-      "timeout",
-      "powershell.exe",
-      ["-NoProfile", "-NonInteractive", "-Command", "Start-Sleep -Seconds 20"],
-      ".",
-      timeout_ms=1000,
-    )
-  catch {
+  let failed = try {
+    if host_os() == Windows {
+      command(
+        "timeout",
+        "powershell.exe",
+        ["-NoProfile", "-NonInteractive", "-Command", "Start-Sleep -Seconds 20"],
+        ".",
+        timeout_ms=1000,
+      )
+    } else {
+      command("timeout", "sleep", ["20"], ".", timeout_ms=1000)
+    }
+  } catch {
     Failure(message) => Some(message)
     _ => None
   } noraise {

@@ -47,7 +47,8 @@ async fn build_cache_key(
       ),
     )
   }
-  for file in ["bin/moon.exe", "bin/moonc.exe"] {
+  let os = host_os()
+  for file in ["bin/" + os.exe("moon"), "bin/" + os.exe("moonc")] {
     entries.push(
       @lib.fingerprint(
         "compiler",
@@ -56,7 +57,7 @@ async fn build_cache_key(
       ),
     )
   }
-  for file in @lib.sdk_files() {
+  for file in @lib.sdk_files(os~) {
     entries.push(
       @lib.fingerprint("sdk", file, @fs.read_file(sdk + "/" + file).binary()),
     )

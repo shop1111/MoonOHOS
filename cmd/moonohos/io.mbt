@@ -4,6 +4,23 @@ suberror BuildFailure {
 } derive(Debug)
 
 ///|
+/// Operating system the CLI is running on.
+async fn host_os() -> @lib.HostOs {
+  @lib.detect_host_os(@env.get_env_var("OS"), @fs.exists(@lib.macos_marker))
+}
+
+///|
+/// `MOON_HOME`, else `~/.moon`.
+async fn moon_home() -> String {
+  @lib.moon_home_dir(
+    host_os(),
+    @env.get_env_var("MOON_HOME"),
+    @env.get_env_var("USERPROFILE"),
+    @env.get_env_var("HOME"),
+  )
+}
+
+///|
 fn normalized(path : String) -> String {
   path.replace_all(old="\\", new="/")
 }
