@@ -1,0 +1,28 @@
+name: Feature request / 功能建议
+description: A bridge type, HarmonyOS API package, or CLI improvement.
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area / 方向
+      options:
+        - Bridge type (MoonBit ↔ ArkTS)
+        - HarmonyOS platform package (ohos/)
+        - CLI / packaging
+        - Docs / examples
+    validations:
+      required: true
+  - type: textarea
+    id: need
+    attributes:
+      label: What do you want to build? / 使用场景
+      description: Describe the app or library you are writing and where MoonOHOS gets in the way.
+    validations:
+      required: true
+  - type: textarea
+    id: api
+    attributes:
+      label: Proposed API / 期望接口
+      description: MoonBit signature and the ArkTS type you expect, or the NDK header you need.
+      render: text

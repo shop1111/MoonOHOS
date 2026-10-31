@@ -1,0 +1,57 @@
+# Changelog
+
+All notable changes to MoonOHOS are recorded here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
+[Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may break).
+
+## [0.4.1] - 2026-10-31
+
+### Changed
+- Toolchain requirement is now a floor: **moonc ≥ 0.10.16** (tested with Moon
+  `0.1.20261028` / moonc `v0.10.18+6c83a7f62`). `build`, `doctor` and package
+  verification share one definition in `environment.mbt`; newer compilers are
+  accepted and `doctor` lists them under `untested`.
+- HarmonyOS SDK API 26 **or newer** is accepted (was exactly 26).
+- Migrated to the current core API: `Json(value)` instead of `.to_json()` on
+  standard collections, `StringBuilder()`, `@debug.debug_inspect`.
+- CI pins the tested toolchain.
+
+### Fixed
+- `.mbti` files produced by moonc ≥ 0.10.16 spell `Int` as `Int32`; manifest
+  verification and type parsing now accept both spellings (but not `UInt32`).
+
+## [0.4.0] - 2026-10-21
+
+### Added
+- HarmonyOS runtime: `"async": true` exports run MoonBit on a Node-API worker
+  thread behind a process gate, with `CancelToken` cancellation.
+- Opaque handles (`handles`) with `close()`, finalizers and env-cleanup release.
+- Business errors: `"raises": true` maps MoonBit `raise` to `ERR_MOONOHOS_BUSINESS`.
+- Controlled native dependencies through `moonohos.native.json`.
+- Platform module `shop1111/moonohos_ohos`: `hilog`, `rawfile`, `task`.
+- `moonohos init` project template and `moonohos har [--assemble]` HAR packaging.
+- Offline document search example (`examples/search`, `examples/search-app`).
+- Manifest version 2 (workspace, handles, async, raises).
+
+## [0.3.0] - 2026-10-03
+
+### Added
+- Arrays and nested records bridged through compiler-generated accessors.
+- Package interface (`.mbti`) parsing and semantic signature verification.
+- Content-keyed build cache with verified hits and corruption recovery.
+- `verify` command: SHA-256 and ELF64 checks without the SDK.
+- Structured diagnostics and bounded external processes with phase logs.
+
+### Fixed
+- Bounded shared type analysis; tighter release verification.
+
+## [0.2.0] - 2026-10-03
+
+### Added
+- First public release: synchronous scalar, `String` and `Bytes` bridge,
+  `.d.ts` generation and dual-ABI (`arm64-v8a`, `x86_64`) builds.
+
+[0.4.1]: https://github.com/shop1111/MoonOHOS/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/shop1111/MoonOHOS/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/shop1111/MoonOHOS/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/shop1111/MoonOHOS/releases/tag/v0.2.0
