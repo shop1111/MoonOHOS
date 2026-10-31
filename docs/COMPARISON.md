@@ -14,7 +14,7 @@
 | 语言 | MoonBit | Rust | MoonBit（CLI 与平台包均为 MoonBit） |
 | 目标宿主 | Node.js（Windows x64、Linux x64、macOS ARM64），不交叉编译 | HarmonyOS / OpenHarmony | HarmonyOS，SDK API 26，`arm64-v8a`/`x86_64` 交叉编译 |
 | 导出分析与声明生成 | Tree-sitter 解析源码，生成 d.ts、加载器 | 宏生成 | 清单 + `.mbti` 核对，生成 d.ts |
-| 类型 | Int/Double/Int64/UInt64/String/Bytes/Option/Array/结构体/枚举，类，回调 | 完整 napi-rs 类型系统 | Int/Double/Bool/String/Bytes/Array/结构体、不透明句柄、平台适配参数；**不支持** Option、Int64、枚举、类、回调 |
+| 类型 | Int/Double/Int64/UInt64/String/Bytes/Option/Array/结构体/枚举，类，回调 | 完整 napi-rs 类型系统 | Int/Int64(bigint)/Double/Bool/String/Bytes/Array/结构体、Option（`T \| undefined`）、无载荷枚举（字符串联合）、带方法的不透明句柄、平台适配参数；**不支持**回调、带载荷枚举、其他 TypedArray（0.5） |
 | 异步 | 修改后的 `moonbitlang/async` 事件循环；MoonBit 代码与引用计数**只在 JS 线程**运行，CPU 密集计算阻塞 JS 线程 | `Task`（libuv 工作线程 compute）、tokio | `napi_create_async_work`：MoonBit 在**工作线程**执行，进程门串行化 MoonBit 堆访问 |
 | 取消 | AbortSignal，协作式 | AbortSignal（AsyncTask） | `CancelToken` + `@task.cancelled()`，协作式；执行前取消不进入 MoonBit |
 | 实例资源 | 类实例 `dispose()`，GC 只回收 JS 包装 | `napi_wrap` + Drop | 句柄 `close()`；固定中关闭延迟释放；终结器与 env cleanup 兜底；诊断计数 |
@@ -27,7 +27,7 @@
 
 ## 重叠部分
 
-函数与复杂类型的转换、d.ts 生成是 Node-API 绑定工具的共有能力。napi-mbt 在这部分覆盖更广（Int64、Option、枚举、类和回调）。MoonOHOS 把这部分作为底座维护，0.4 没有扩充类型种类，也没有复用 napi-mbt 的代码。
+函数与复杂类型的转换、d.ts 生成是 Node-API 绑定工具的共有能力。napi-mbt 在这部分覆盖更广（Int64、Option、枚举、类和回调）。MoonOHOS 把这部分作为底座维护，没有复用 napi-mbt 的代码；0.5 补充了 Int64、Option、无载荷枚举和句柄方法。Option 和枚举不依赖编译器的内存布局：生成的 MoonBit 包装层在 C 边界把它们降为数组和整数标签。回调仍未支持。
 
 ## MoonOHOS 的增量
 

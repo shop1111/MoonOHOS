@@ -167,6 +167,20 @@ SDK builds, HAR/HAP assembly and emulator runs are executed locally with the
 scripts in [scripts/](scripts); see [VALIDATION-0.4.md](docs/VALIDATION-0.4.md) for
 what each layer proves.
 
+## Roadmap
+
+Done in 0.5: Int64, Option, payload-free enums, handle methods, the `deviceinfo` / `netconn` / `vibrator` platform packages, the `init` demo app, and the CLI on Linux/macOS.
+
+Planned (priorities are open for discussion in issues):
+
+- ArkTS callbacks and threadsafe functions (progress, events);
+- ArrayBuffer and other typed arrays, zero-copy where provably safe;
+- enums with payloads, optional and labelled parameters;
+- more platform packages: pasteboard, sensors, image, XComponent;
+- move internals into an `internal/` package and document the whole public API;
+- a bilingual docs site; N-API tests under ArkVM in Linux CI;
+- validation on ARM64 hardware.
+
 ## Contributing
 
 Issues and pull requests are welcome in English or Chinese. See

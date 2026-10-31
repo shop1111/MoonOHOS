@@ -297,7 +297,7 @@ test "generated async bridge settles once and declares tokens" {
 ///|
 test "package manifest v2 accepts declared NDK libraries only" {
   let manifest =
-    #|{"schema":"moonohos-build-v2","moonohosVersion":"0.4.1","module":"search","moon":"moon 0.1.20261028","moonc":"v0.10.18+6c83a7f62","sdkApi":26,
+    #|{"schema":"moonohos-build-v2","moonohosVersion":"0.5.0","module":"search","moon":"moon 0.1.20261028","moonc":"v0.10.18+6c83a7f62","sdkApi":26,
     #| "results":[{"abi":"x86_64","build":"passed","elf":"verified","runtime":"not_run"}],
     #| "functions":["pub fn size(Index) -> Int"],"exports":[{"name":"size","async":false,"raises":false}],"handles":["Index"],
     #| "nativeDependencies":[{"package":"shop1111/moonohos_ohos/rawfile","systemLibraries":["librawfile.z.so"]}],

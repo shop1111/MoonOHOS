@@ -79,7 +79,7 @@ const words: number = await textkit.count_words(longText, token);  // 工作线�
 token.cancel();                                                     // 页面退出时取消
 ```
 
-生成的 `core/moon.mod` 从 Mooncakes 依赖 `shop1111/moonohos_ohos@0.4.1`。修改平台模块时可加 `--ohos <MoonOHOS/ohos>`，让工作区引用本地目录；构建时工作区全部成员被复制到隔离目录，原始文件不被修改。
+生成的 `core/moon.mod` 从 Mooncakes 依赖 `shop1111/moonohos_ohos@0.5.0`。修改平台模块时可加 `--ohos <MoonOHOS/ohos>`，让工作区引用本地目录；构建时工作区全部成员被复制到隔离目录，原始文件不被修改。
 
 ### 与 0.3 手工接入的对比
 
@@ -201,6 +201,20 @@ python scripts\verify_integration.py "$env:DEVECO_STUDIO\sdk"
 | 最新 MoonBit | 用最新发布的工具链检查和测试，提前发现不兼容（不阻塞合并） |
 
 SDK、HAP 与模拟器检查在本机执行。各层证明范围见 [VALIDATION-0.4.md](docs/VALIDATION-0.4.md)。
+
+## 路线图
+
+已在 0.5 完成：Int64、Option、无载荷枚举、句柄方法、`deviceinfo`/`netconn`/`vibrator` 平台包、`init` 演示应用、Linux/macOS CLI。
+
+计划中（欢迎在 issue 中讨论优先级）：
+
+- ArkTS 回调与线程安全函数（进度、事件）；
+- ArrayBuffer 与其他 TypedArray，在能证明安全时零复制；
+- 带载荷的枚举、可选/标记参数；
+- 更多平台包：剪贴板、传感器、图像、XComponent；
+- 内部实现移入 `internal/` 包，公开 API 补全文档注释；
+- 中英文档站；用 ArkVM 在 Linux CI 中运行 N-API 测试；
+- ARM64 真机验证。
 
 ## 参与贡献
 
