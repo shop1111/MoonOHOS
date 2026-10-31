@@ -52,6 +52,34 @@ fn accessor_definitions(
           expression: "v[i]",
         })
       }
+      Optional(inner) => {
+        // Accessors work on the boundary representation, `Array[inner]`.
+        let value : FieldDef = { name: "v", kind: List(inner), }
+        result.push({
+          name: prefix + "_new",
+          params: [],
+          result: List(inner),
+          expression: "[]",
+        })
+        result.push({
+          name: prefix + "_push",
+          params: [value, { name: "x", kind: inner, }],
+          result: Scalar(Void),
+          expression: "v.push(x)",
+        })
+        result.push({
+          name: prefix + "_length",
+          params: [value],
+          result: Scalar(Int32),
+          expression: "v.length()",
+        })
+        result.push({
+          name: prefix + "_get",
+          params: [value, { name: "i", kind: Scalar(Int32), }],
+          result: inner,
+          expression: "v[i]",
+        })
+      }
       Record(_) =>
         for accessor in record_accessors(plan.project, type_) {
           result.push(accessor)
@@ -112,6 +140,12 @@ fn cpp_reader(type_ : TypePlan, project : Project) -> String raise ConfigError {
         child +
         "(env, child, out.children[i], budget, ancestors, depth + 1, child_path)) return false;\n  }\n"
     }
+    Optional(_) => {
+      let child = type_.dependencies[0].to_string()
+      source += "  bool absent;\n  if (!IsAbsent(env, value, absent)) return false;\n  if (absent) return true;\n  out.children.resize(1);\n  if (!Read_" +
+        child +
+        "(env, value, out.children[0], budget, ancestors, depth + 1, path)) return false;\n"
+    }
     Record(_) => source += record_reader(type_, project)
     Handle(_) | External(_, _) => ()
   }
@@ -127,6 +161,7 @@ fn cpp_make(type_ : TypePlan, types : Array[TypePlan]) -> String {
     index +
     "(const BridgeValue &value) {\n"
   match type_.kind {
+    Optional(element) => source += list_maker(type_, types, element)
     Scalar(kind) =>
       source += match kind {
         Int32 | Boolean => "  return value.integer;\n"
@@ -136,31 +171,37 @@ fn cpp_make(type_ : TypePlan, types : Array[TypePlan]) -> String {
         Binary => "  return MakeBytes(value.bytes);\n"
         Void => ""
       }
-    List(element) => {
-      let child = type_.dependencies[0].to_string()
-      source += "  MoonOwner<void *> result{" +
-        type_.symbol +
-        "_new()};\n  for (const auto &item : value.children) {\n    "
-      if element.is_reference() {
-        source += "MoonOwner<" +
-          types[type_.dependencies[0]].kind.c_name() +
-          "> child{Make_" +
-          child +
-          "(item)};\n    " +
-          type_.symbol +
-          "_push(result.ptr, child.ptr);\n"
-      } else {
-        source += type_.symbol +
-          "_push(result.ptr, Make_" +
-          child +
-          "(item));\n"
-      }
-      source += "  }\n  auto pointer = result.ptr; result.ptr = nullptr; return pointer;\n"
-    }
+    List(element) => source += list_maker(type_, types, element)
     Record(_) => source += record_maker(type_, types)
     Handle(_) | External(_, _) => ()
   }
   source + "}\n"
+}
+
+///|
+/// Builds a MoonBit array (or Option boundary array) from `value.children`.
+fn list_maker(
+  type_ : TypePlan,
+  types : Array[TypePlan],
+  element : TypeExpr,
+) -> String {
+  let child = type_.dependencies[0].to_string()
+  let mut source = "  MoonOwner<void *> result{" +
+    type_.symbol +
+    "_new()};\n  for (const auto &item : value.children) {\n    "
+  if element.is_reference() {
+    source += "MoonOwner<" +
+      types[type_.dependencies[0]].kind.c_name() +
+      "> child{Make_" +
+      child +
+      "(item)};\n    " +
+      type_.symbol +
+      "_push(result.ptr, child.ptr);\n"
+  } else {
+    source += type_.symbol + "_push(result.ptr, Make_" + child + "(item));\n"
+  }
+  source +
+  "  }\n  auto pointer = result.ptr; result.ptr = nullptr; return pointer;\n"
 }
 
 ///|
@@ -190,7 +231,7 @@ fn cpp_copy(
           "  budget.add(0, static_cast<size_t>(Moonbit_array_length(value)), depth, path);\n  out.bytes = CopyBytes(value);\n"
         Void => ""
       }
-    List(element) => {
+    List(element) | Optional(element) => {
       let child = type_.dependencies[0].to_string()
       source += "  int32_t length = " +
         type_.symbol +
@@ -242,6 +283,10 @@ fn cpp_create(type_ : TypePlan, project : Project) -> String raise ConfigError {
       source += "  if (!Check(env, napi_create_array_with_length(env, value.children.size(), &result))) return false;\n  for (size_t i = 0; i < value.children.size(); ++i) {\n    napi_value child;\n    if (!Create_" +
         type_.dependencies[0].to_string() +
         "(env, value.children[i], child)) return false;\n    if (!Check(env, napi_set_element(env, result, static_cast<uint32_t>(i), child))) return false;\n  }\n  return true;\n"
+    Optional(_) =>
+      source += "  if (value.children.empty()) return Check(env, napi_get_undefined(env, &result));\n  return Create_" +
+        type_.dependencies[0].to_string() +
+        "(env, value.children[0], result);\n"
     Record(_) => source += record_creator(type_, project)
     Handle(_) | External(_, _) => ()
   }

@@ -49,6 +49,15 @@ fn container_runtime() -> String {
     #|  if (!present) throw TypeFault(path + ": missing own property");
     #|  return Check(env, napi_get_property(env, value, key, &result));
     #|}
+    #|// Optional record fields: a missing own property reads as `undefined`.
+    #|static bool OwnOrUndefined(napi_env env, napi_value value, const std::string &name, napi_value &result, const std::string &) {
+    #|  napi_value key;
+    #|  if (!Check(env, napi_create_string_utf8(env, name.data(), name.size(), &key))) return false;
+    #|  bool present;
+    #|  if (!Check(env, napi_has_own_property(env, value, key, &present))) return false;
+    #|  if (!present) return Check(env, napi_get_undefined(env, &result));
+    #|  return Check(env, napi_get_property(env, value, key, &result));
+    #|}
     #|static bool Ordinary(napi_env env, napi_value value, bool array, const std::string &path) {
     #|  bool actual, sendable;
     #|  if (!Check(env, napi_is_array(env, value, &actual))) return false;
@@ -72,6 +81,16 @@ fn container_runtime() -> String {
     #|    if (special) throw TypeFault(path + ": record required");
     #|  }
     #|  return true;
+    #|}
+    #|// `undefined` and `null` both mean None for Option values.
+    #|static bool IsAbsent(napi_env env, napi_value value, bool &absent) {
+    #|  napi_valuetype type;
+    #|  if (!Check(env, napi_typeof(env, value, &type))) return false;
+    #|  absent = type == napi_undefined;
+    #|  if (absent || type != napi_object) return true;
+    #|  napi_value null_value;
+    #|  if (!Check(env, napi_get_null(env, &null_value))) return false;
+    #|  return Check(env, napi_strict_equals(env, value, null_value, &absent));
     #|}
     #|static bool LeafType(napi_env env, napi_value value, napi_valuetype wanted, const std::string &path) {
     #|  napi_valuetype actual;

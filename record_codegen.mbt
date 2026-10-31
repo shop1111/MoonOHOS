@@ -54,7 +54,9 @@ fn record_reader(
   for i, field in record.fields {
     source += "  { napi_value child; auto child_path = path + \"." +
       field.name +
-      "\";\n    if (!Own(env, value, \"" +
+      "\";\n    if (!" +
+      (if field.kind is Optional(_) { "OwnOrUndefined" } else { "Own" }) +
+      "(env, value, \"" +
       field.name +
       "\", child, child_path)) return false;\n    if (!Read_" +
       type_.dependencies[i].to_string() +
@@ -156,7 +158,10 @@ fn record_declarations(project : Project) -> String raise ConfigError {
   for record in project.record_order() {
     source += "export interface " + record.name + " {\n"
     for field in record.fields {
-      source += "  " + field.name + ": " + field.kind.ark_name() + ";\n"
+      source += match field.kind {
+        Optional(inner) => "  " + field.name + "?: " + inner.ark_name() + ";\n"
+        kind => "  " + field.name + ": " + kind.ark_name() + ";\n"
+      }
     }
     source += "}\n"
   }

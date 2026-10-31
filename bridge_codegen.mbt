@@ -366,6 +366,7 @@ fn ark_type(project : Project, kind : TypeExpr) -> String raise ConfigError {
     External(pkg_alias, type_name) =>
       find_adapter(project, pkg_alias, type_name).ark_type
     List(element) => "Array<" + ark_type(project, element) + ">"
+    Optional(inner) => ark_type(project, inner) + " | undefined"
     _ => kind.ark_name()
   }
 }

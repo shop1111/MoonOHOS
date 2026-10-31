@@ -2,6 +2,9 @@
 pub(all) enum TypeExpr {
   Scalar(ValueType)
   List(TypeExpr)
+  /// `Option[T]` / `T?`; ArkTS `T | undefined`. Crosses the C boundary as a
+  /// zero- or one-element array.
+  Optional(TypeExpr)
   Record(String)
   /// Opaque MoonBit value owned by an ArkTS handle object with `close()`.
   Handle(String)
@@ -59,7 +62,7 @@ fn type_tokens(text : String) -> Array[String] {
         tokens.push(word)
         word = ""
       }
-    } else if ch == '[' || ch == ']' {
+    } else if ch == '[' || ch == ']' || ch == '?' {
       if !word.is_empty() {
         tokens.push(word)
         word = ""
@@ -94,16 +97,20 @@ fn TypeCursor::expression(
   if depth > 32 {
     raise Invalid("type: maximum nesting depth is 32")
   }
-  match self.take() {
-    "Array" => {
+  let primary = match self.take() {
+    "Array" | "Option" as head => {
       if self.take() != "[" {
-        raise Invalid("type: Array requires one type argument")
+        raise Invalid("type: " + head + " requires one type argument")
       }
       let element = self.expression(depth + 1, unit=false)
       if self.take() != "]" {
         raise Invalid("type: expected closing ]")
       }
-      List(element)
+      if head == "Array" {
+        List(element)
+      } else {
+        Optional(element)
+      }
     }
     // moonc >= 0.10.16 prints `Int` as `Int32` in .mbti files.
     "Int" | "Int32" => Scalar(Int32)
@@ -123,6 +130,12 @@ fn TypeCursor::expression(
       External(parts[0], parts[1])
     }
     name => raise Invalid("type: unsupported expression " + name)
+  }
+  if self.position < self.tokens.length() && self.tokens[self.position] == "?" {
+    self.position += 1
+    Optional(primary)
+  } else {
+    primary
   }
 }
 
@@ -144,6 +157,7 @@ pub fn TypeExpr::moon_name(self : TypeExpr) -> String {
   match self {
     Scalar(kind) => kind.moon_name()
     List(element) => "Array[" + element.moon_name() + "]"
+    Optional(inner) => inner.moon_name() + "?"
     Record(name) | Handle(name) => name
     External(pkg_alias, name) => "@" + pkg_alias + "." + name
   }
@@ -154,6 +168,7 @@ pub fn TypeExpr::wrapper_name(self : TypeExpr) -> String {
   match self {
     Scalar(kind) => kind.moon_name()
     List(element) => "Array[" + element.wrapper_name() + "]"
+    Optional(inner) => inner.wrapper_name() + "?"
     Record(name) | Handle(name) => "@core." + name
     External(pkg_alias, name) => "@" + pkg_alias + "." + name
   }
@@ -163,7 +178,7 @@ pub fn TypeExpr::wrapper_name(self : TypeExpr) -> String {
 pub fn TypeExpr::c_name(self : TypeExpr) -> String {
   match self {
     Scalar(kind) => kind.c_name()
-    List(_) | Record(_) | Handle(_) | External(_, _) => "void *"
+    List(_) | Optional(_) | Record(_) | Handle(_) | External(_, _) => "void *"
   }
 }
 
@@ -172,6 +187,7 @@ pub fn TypeExpr::ark_name(self : TypeExpr) -> String {
   match self {
     Scalar(kind) => kind.ark_name()
     List(element) => "Array<" + element.ark_name() + ">"
+    Optional(inner) => inner.ark_name() + " | undefined"
     Record(name) | Handle(name) | External(_, name) => name
   }
 }
@@ -181,7 +197,7 @@ pub fn TypeExpr::ark_name(self : TypeExpr) -> String {
 pub fn TypeExpr::is_opaque(self : TypeExpr) -> Bool {
   match self {
     Handle(_) | External(_, _) => true
-    List(element) => element.is_opaque()
+    List(element) | Optional(element) => element.is_opaque()
     _ => false
   }
 }
@@ -191,6 +207,7 @@ fn TypeExpr::bind_handles(self : TypeExpr, handles : Array[String]) -> TypeExpr 
   match self {
     Record(name) if handles.contains(name) => Handle(name)
     List(element) => List(element.bind_handles(handles))
+    Optional(inner) => Optional(inner.bind_handles(handles))
     other => other
   }
 }
@@ -198,7 +215,7 @@ fn TypeExpr::bind_handles(self : TypeExpr, handles : Array[String]) -> TypeExpr 
 ///|
 pub fn TypeExpr::is_reference(self : TypeExpr) -> Bool {
   match self {
-    Scalar(Text | Binary) | List(_) | Record(_) => true
+    Scalar(Text | Binary) | List(_) | Optional(_) | Record(_) => true
     _ => false
   }
 }
@@ -284,7 +301,8 @@ pub fn parse_project(text : String) -> Project raise ConfigError {
     _ => raise Invalid("config: workspace must be a path")
   }
   let reserved = [
-    "Int", "Int32", "Int64", "Double", "Bool", "String", "Bytes", "Unit", "Array",
+    "Int", "Int32", "Int64", "Option", "Double", "Bool", "String", "Bytes", "Unit",
+    "Array",
   ]
   let names : Map[String, Bool] = Map([])
   let handles : Array[String] = []

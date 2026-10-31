@@ -474,6 +474,7 @@ pub fn Sha256::update(Self, Bytes) -> Unit
 pub(all) enum TypeExpr {
   Scalar(ValueType)
   List(TypeExpr)
+  Optional(TypeExpr)
   Record(String)
   Handle(String)
   External(String, String)

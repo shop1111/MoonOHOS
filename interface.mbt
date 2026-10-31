@@ -128,31 +128,45 @@ fn InterfaceCursor::kind(
   self : InterfaceCursor,
   depth : Int32,
 ) -> TypeExpr raise ConfigError {
+  let primary = self.primary(depth)
+  if self.peek() == "?" {
+    self.take() |> ignore
+    Optional(primary)
+  } else {
+    primary
+  }
+}
+
+///|
+fn InterfaceCursor::primary(
+  self : InterfaceCursor,
+  depth : Int32,
+) -> TypeExpr raise ConfigError {
   if depth > 32 {
     raise Invalid("interface: type nesting exceeds 32")
   }
   let name = self.take()
-  if name == "Array" {
+  if name == "Array" || name == "Option" {
     self.expect("[")
     let element = self.kind(depth + 1)
     self.expect("]")
-    List(element)
+    if name == "Array" {
+      List(element)
+    } else {
+      Optional(element)
+    }
   } else if name.has_prefix("@") && self.peek() == "." {
     self.take() |> ignore
     let type_name = self.take()
     if !identifier(name[1:].to_owned()) ||
       !identifier(type_name) ||
-      self.peek() == "[" ||
-      self.peek() == "?" {
+      self.peek() == "[" {
       raise Invalid("interface: unsupported qualified type " + name)
     }
     External(name[1:].to_owned(), type_name)
   } else {
     let kind = parse_type_expr(name, result=true)
-    if self.peek() == "[" ||
-      self.peek() == "?" ||
-      self.peek() == "." ||
-      self.peek() == "::" {
+    if self.peek() == "[" || self.peek() == "." || self.peek() == "::" {
       raise Invalid(
         "interface: unsupported generic, optional or qualified type " + name,
       )

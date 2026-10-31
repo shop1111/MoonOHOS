@@ -1,0 +1,7 @@
+{"version":1,"module":".","package":"moonohos/option_fixture","nativeModule":"options","types":[
+{"name":"Profile","fields":[{"name":"name","type":"String"},{"name":"nickname","type":"String?"},{"name":"age","type":"Option[Int]"},{"name":"tags","type":"Array[String?]"}]}],"functions":[
+{"name":"greet","params":[{"name":"name","type":"String?"}],"return":"String"},
+{"name":"find_index","params":[{"name":"values","type":"Array[Int]"},{"name":"target","type":"Int"}],"return":"Int?"},
+{"name":"echo_profile","params":[{"name":"p","type":"Profile"}],"return":"Profile"},
+{"name":"oldest","params":[{"name":"people","type":"Array[Profile]"}],"return":"Profile?"},
+{"name":"next_wide","params":[{"name":"x","type":"Int64?"}],"return":"Int64?"}]}

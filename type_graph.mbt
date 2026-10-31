@@ -49,6 +49,9 @@ fn type_depth(
       )
     Handle(_) | External(_, _) => depth
     List(element) => type_depth(project, element, path, depth + 1, heights)
+    Optional(Optional(_)) =>
+      raise Invalid("type: nested Option is ambiguous in ArkTS (undefined)")
+    Optional(inner) => type_depth(project, inner, path, depth + 1, heights)
     Record(name) => {
       if path.contains(name) {
         raise Invalid(
@@ -145,7 +148,8 @@ fn collect_type(
   seen[key] = true
   match kind {
     Scalar(_) | Handle(_) | External(_, _) => ()
-    List(element) => collect_type(project, element, seen, result)
+    List(element) | Optional(element) =>
+      collect_type(project, element, seen, result)
     Record(name) =>
       for field in project.record_def(name).fields {
         collect_type(project, field.kind, seen, result)

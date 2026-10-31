@@ -15,7 +15,7 @@ test "complex type grammar and compatibility" {
 test "malformed and unsupported type grammar" {
   for
     text in [
-      "", "Array", "Array[]", "Array[Int,Double]", "Int?", "Array[Unit]", "Array[Int]]",
+      "", "Array", "Array[]", "Array[Int,Double]", "Int??", "Array[Unit]", "Array[Int]]",
       "Int Double",
     ] {
     let rejected = try {

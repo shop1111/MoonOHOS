@@ -25,7 +25,7 @@ test "interface parser accepts multiline arrays and records" {
 test "unsupported signature syntax is diagnosed" {
   for
     declaration in [
-      "pub fn f(Int) -> Int raise?", "pub fn f(x~ : Int) -> Int", "pub fn f(Int?) -> Int",
+      "pub fn f(Int) -> Int raise?", "pub fn f(x~ : Int) -> Int", "pub fn f(Int??) -> Int",
     ] {
     assert_true(
       @moonohos.parse_package_interface(declaration).functions[0].unsupported

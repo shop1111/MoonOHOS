@@ -10,6 +10,11 @@ All notable changes to MoonOHOS are recorded here. The format follows
 - `Int64` parameters, results, array elements and record fields map to ArkTS
   `bigint` (lossless; out-of-range values throw `RangeError`). Host ASan suite
   `wide_core` / `wide_bridge.cpp`.
+- `T?` / `Option[T]` maps to `T | undefined` for parameters, results, array
+  elements and record fields (`field?: T`; missing, `undefined` and `null` read
+  as `None`). Options cross the C boundary as zero- or one-element arrays built
+  by the generated MoonBit wrapper, so no compiler-internal layout is assumed.
+  Host ASan suite `option_core` / `option_bridge.cpp`.
 
 ## [0.4.1] - 2026-10-31
 

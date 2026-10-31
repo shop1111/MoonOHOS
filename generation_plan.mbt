@@ -42,7 +42,7 @@ fn direct_children(
 ) -> Array[TypeExpr] raise ConfigError {
   match kind {
     Scalar(_) | Handle(_) | External(_, _) => []
-    List(element) => [element]
+    List(element) | Optional(element) => [element]
     Record(name) => project.record_def(name).fields.map(f => f.kind)
   }
 }
@@ -68,7 +68,7 @@ fn make_generation_plan(project : Project) -> GenerationPlan raise ConfigError {
       dependencies: direct_children(project, kind).map(k => type_index(kinds, k)),
     })
     let suffixes = match kind {
-      List(_) => ["new", "push", "length", "get"]
+      List(_) | Optional(_) => ["new", "push", "length", "get"]
       Record(name) => {
         let suffixes = ["new"]
         for field_index in 0..<project.record_def(name).fields.length() {
@@ -101,12 +101,12 @@ fn make_generation_plan(project : Project) -> GenerationPlan raise ConfigError {
     let raw_output = type_index(kinds, function.raw_result())
     let bounded = function.params.any(p => {
         match p.kind {
-          List(_) | Record(_) => true
+          List(_) | Optional(_) | Record(_) => true
           _ => false
         }
       }) ||
       (match function.result {
-        List(_) | Record(_) => true
+        List(_) | Optional(_) | Record(_) => true
         _ => false
       })
     calls.push({ function, symbol, inputs, output, raw_output, bounded, })
@@ -176,9 +176,19 @@ fn generated_parameters(fields : Array[FieldDef], moon~ : Bool) -> String {
   .map(f => {
     f.name +
     " : " +
-    (if moon { f.kind.wrapper_name() } else { f.kind.moon_name() })
+    (if moon { boundary_name(f.kind) } else { f.kind.moon_name() })
   })
   .join(", ")
+}
+
+///|
+/// MoonBit type of a value at the C boundary: `Option[T]` travels as a zero- or
+/// one-element `Array[T]` because the compiler's Option layout is not ABI.
+fn boundary_name(kind : TypeExpr) -> String {
+  match kind {
+    Optional(inner) => "Array[" + inner.wrapper_name() + "]"
+    _ => kind.wrapper_name()
+  }
 }
 
 ///|
@@ -220,14 +230,26 @@ fn moon_export(
   result : TypeExpr,
   expression : String,
 ) -> String {
+  // Lift boundary arrays back to Option before the body, lower Option results.
+  let mut body = ""
+  for field in fields {
+    if field.kind is Optional(_) {
+      body += "let " + field.name + " = " + field.name + ".get(0); "
+    }
+  }
+  body += if result is Optional(_) {
+    "match (" + expression + ") { Some(x) => [x]; None => [] }"
+  } else {
+    expression
+  }
   "///|\npub fn moonohos_raw_" +
   name +
   "(" +
   generated_parameters(fields, moon=true) +
   ") -> " +
-  result.wrapper_name() +
+  boundary_name(result) +
   " { " +
-  expression +
+  body +
   " }\n"
 }
 
