@@ -32,6 +32,8 @@ pub struct CliOptions {
   module_dir : String?
   deveco : String?
   assemble : Bool
+  /// `help`: the command whose help was requested, if any.
+  help_topic : Command?
 }
 
 ///|
@@ -89,7 +91,7 @@ fn parse_command(text : String) -> Command raise ConfigError {
     "verify" => Verify
     "init" => Init
     "har" => Har
-    "--help" | "-h" => Help
+    "help" | "--help" | "-h" => Help
     "--version" => Version
     _ => raise Invalid("unknown command: " + text)
   }
@@ -153,8 +155,16 @@ pub fn parse_cli(args : Array[String]) -> CliOptions raise ConfigError {
   let mut module_dir : String? = None
   let mut deveco : String? = None
   let mut assemble = false
+  let mut help_topic : Command? = None
   let seen : Map[String, Bool] = Map([])
   let mut index = 1
+  if command == Help && args.length() > 1 {
+    let topic = parse_command(args[1])
+    if topic != Help && topic != Version {
+      help_topic = Some(topic)
+    }
+    index = args.length()
+  }
   if command == Init && args.length() > 1 && !args[1].has_prefix("--") {
     target = Some(args[1])
     index = 2
@@ -164,6 +174,11 @@ pub fn parse_cli(args : Array[String]) -> CliOptions raise ConfigError {
     if option == "--help" || option == "-h" {
       return {
         command: Help,
+        help_topic: if command == Help {
+          None
+        } else {
+          Some(command)
+        },
         config,
         sdk,
         abis,
@@ -250,6 +265,7 @@ pub fn parse_cli(args : Array[String]) -> CliOptions raise ConfigError {
     module_dir,
     deveco,
     assemble,
+    help_topic,
   }
 }
 
@@ -274,6 +290,178 @@ pub fn failure_report(
     },
     "diagnostics": Json([diagnostic.to_json()]),
   }
+}
+
+///|
+/// One-line summary, usage line and option notes for each command.
+fn command_doc(command : Command) -> (String, String, Array[String]) {
+  match command {
+    Init =>
+      (
+        "create a MoonBit module, manifest and HAR project",
+        "moonohos init <dir> [--name <module>] [--package owner/name] [--ohos <path>] [--json]",
+        [
+          "--name      MoonBit module directory name (default: core)", "--package   MoonBit package and ohpm name (default: <you>/<dir>)",
+          "--ohos      use a local MoonOHOS/ohos checkout instead of Mooncakes",
+        ],
+      )
+    Build =>
+      (
+        "compile the module into HarmonyOS shared libraries and type declarations",
+        "moonohos build --sdk <SDK> [--config moonohos.json] [--abi arm64-v8a,x86_64] [--out <dir>] [--dry-run] [--cache] [--json]",
+        [
+          "--sdk       DevEco Studio sdk directory (or the Native SDK inside it)",
+          "--abi       comma separated subset of arm64-v8a,x86_64 (default: both)",
+          "--out       new output directory (default: _build/moonohos/dist)", "--dry-run   validate the manifest, interface and toolchain only",
+          "--cache     reuse a verified build with the same content key",
+        ],
+      )
+    Har =>
+      (
+        "place a verified build into a HAR module, optionally running hvigor",
+        "moonohos har --dist <package> --module <HAR module> [--assemble --deveco <DevEco Studio>] [--json]",
+        [
+          "--dist      output directory of `moonohos build`", "--module    Hvigor HAR module directory (e.g. harmony/<name>)",
+          "--assemble  run ohpm install and hvigor assembleHar", "--deveco    DevEco Studio installation (required by --assemble)",
+        ],
+      )
+    Doctor =>
+      (
+        "check the MoonBit toolchain, runtime files and HarmonyOS SDK",
+        "moonohos doctor [--sdk <SDK>] [--json]",
+        ["--sdk       also check the SDK API level and Native toolchain files"],
+      )
+    Check =>
+      (
+        "compile the generated wrapper package strictly, without the SDK",
+        "moonohos check [--config moonohos.json] [--json]",
+        [],
+      )
+    Inspect =>
+      (
+        "print the exported functions, records and handles MoonOHOS sees",
+        "moonohos inspect [--config moonohos.json] [--json]",
+        [],
+      )
+    Plan =>
+      (
+        "print the ordered build stages without running them",
+        "moonohos plan [--config moonohos.json] [--sdk <SDK>] [--abi <list>] [--json]",
+        [],
+      )
+    Verify =>
+      (
+        "verify a built package: SHA-256, type package, ELF architecture and dependencies",
+        "moonohos verify --out <package> [--json]",
+        [],
+      )
+    Help => ("show help", "moonohos help [<command>]", [])
+    Version => ("print the MoonOHOS version", "moonohos --version", [])
+  }
+}
+
+///|
+/// Top-level usage listing every command.
+pub fn usage_text(version : String) -> String {
+  let lines = [
+    "MoonOHOS " + version + " - HarmonyOS Native modules in MoonBit",
+    "",
+    "Usage: moonohos <command> [options]",
+    "",
+    "Commands:",
+  ]
+  for command in [Init, Build, Har, Doctor, Check, Inspect, Plan, Verify] {
+    let (summary, _, _) = command_doc(command)
+    let name = command_name(command)
+    lines.push("  " + name + " ".repeat(10 - name.length()) + summary)
+  }
+  lines.push("")
+  lines.push(
+    "Run `moonohos <command> --help` for options. Every command accepts --json.",
+  )
+  lines.push("Exit codes: 0 success, 2 invalid arguments, 3 failure.")
+  lines.join("\n")
+}
+
+///|
+/// Usage and options for one command.
+pub fn command_help(command : Command) -> String {
+  let (summary, usage, options) = command_doc(command)
+  let lines = ["moonohos " + command_name(command) + ": " + summary, "", usage]
+  if !options.is_empty() {
+    lines.push("")
+    lines.push("Options:")
+    for option in options {
+      lines.push("  " + option)
+    }
+  }
+  lines.join("\n")
+}
+
+///|
+/// Category of a `category: message` failure, or `failed` when the message
+/// has no such prefix.
+fn failure_code(message : String) -> String {
+  if message.has_prefix("OSError") {
+    return "io"
+  }
+  match message.find(":") {
+    Some(i) if i > 0 && i <= 24 => {
+      let head = message[:i].to_owned()
+      if head.iter().all(c => c.is_ascii_lowercase() || c == '-' || c == '/') {
+        head
+      } else {
+        "failed"
+      }
+    }
+    _ => "failed"
+  }
+}
+
+///|
+/// Turns a failure message into a diagnostic whose code is its category and
+/// whose context suggests the next step.
+pub fn failure_diagnostic(stage : String, message : String) -> Diagnostic {
+  let code = failure_code(message)
+  let hints : Array[String] = []
+  match code {
+    "toolchain" =>
+      hints.push(
+        if message.contains("SDK") {
+          "pass the DevEco Studio sdk directory, e.g. --sdk \"<DevEco Studio>/sdk\""
+        } else {
+          "run `moonohos doctor --json` to see which component is missing or too old"
+        },
+      )
+    "config" | "type" | "types" | "functions" | "handles" | "workspace" =>
+      hints.push(
+        "check moonohos.json against the manifest reference in README.md (moonohos.json section)",
+      )
+    "interface" | "analysis" => {
+      hints.push(
+        "run `moon info` in the MoonBit module and compare pkg.generated.mbti with moonohos.json",
+      )
+      hints.push("`moonohos inspect --json` prints what MoonOHOS read")
+    }
+    "elf" | "native" | "stage" | "generation" =>
+      hints.push(
+        "the phase logs in the work directory show the failing command; report a bug if the inputs are valid",
+      )
+    "package" | "cache" =>
+      hints.push(
+        "rebuild with the current CLI into a new --out directory, then run `moonohos verify --out <dir>`",
+      )
+    "har" =>
+      hints.push(
+        "check that --module is a HAR module (with oh-package.json5) and --deveco is the DevEco Studio installation",
+      )
+    "io" =>
+      hints.push(
+        "check that the path exists and is readable; quote paths that contain spaces",
+      )
+    _ => ()
+  }
+  { stage, code, message, context: hints, }
 }
 
 ///|

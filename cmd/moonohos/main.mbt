@@ -2,13 +2,6 @@
 extern "C" fn native_exit(code : Int32) -> Unit = "exit"
 
 ///|
-fn usage() -> String {
-  "MoonOHOS " +
-  @lib.moonohos_version() +
-  "\nmoonohos init <dir> [--name <module>] [--package owner/name] [--ohos <MoonOHOS/ohos>] [--json]\nmoonohos build [--config moonohos.json] --sdk <SDK> [--abi arm64-v8a,x86_64] [--out <directory>] [--dry-run] [--cache] [--json]\nmoonohos har --dist <package> --module <HAR module> [--assemble --deveco <DevEco Studio>] [--json]\n"
-}
-
-///|
 async fn build(
   config_path : String,
   sdk_path : String,
@@ -320,14 +313,7 @@ async fn build(
     .to_owned() +
     "*/\n"
   write(package_dir + "/NOTICE.MoonBit.txt", runtime_notice)
-  write(
-    package_dir + "/README.md",
-    "# MoonOHOS Native package\n\nCopy libs/<abi>/*.so into entry/libs/<abi>/. Copy types/lib" +
-    config.native_module +
-    " into entry/src/main/cpp/types/ and declare the local dependency in entry/oh-package.json5. Import lib" +
-    config.native_module +
-    ".so from ArkTS. The CMake import is optional and does not package the library into a HAP.\n\nSynchronous scalar, String, Bytes, Array and Struct functions. Arrays must be ordinary dense non-Sendable arrays. Records require own fields; extra fields are ignored. Containers are acyclic and bounded to depth 32, 1048576 nodes and 64 MiB copied data per conversion. All containers are copied. String uses length-delimited UTF-16 and preserves NUL and surrogate code units. Bytes accepts ordinary, attached Uint8Array views only. Input and output are copied; returned arrays are independent. ArrayBuffer, DataView, other typed arrays and shared buffers are unsupported.\n\nReference arguments are borrowed and reference results own one reference in the pinned compiler ABI. Buffers and references are released on failure. MoonBit panic or runtime allocation failure may terminate the process; typed MoonBit errors are unsupported. Runtime not verified by build.\n\nKeep NOTICE.NativeSDK.txt and NOTICE.MoonBit.txt with distributed libraries. Add the license of your own MoonBit code.\n",
-  )
+  write(package_dir + "/README.md", @lib.package_readme(config.native_module))
   if @fs.exists(out) {
     raise Failure(
       "publish: output already exists; choose a new --out directory",
@@ -384,8 +370,10 @@ async fn main {
     match options.command {
       Help => {
         println(
-          usage() +
-          "Commands: init, build, har, doctor, check, inspect, plan, verify. Commands support --json.",
+          match options.help_topic {
+            Some(topic) => @lib.command_help(topic)
+            None => @lib.usage_text(@lib.moonohos_version())
+          },
         )
         return
       }
@@ -410,16 +398,14 @@ async fn main {
     }
   } catch {
     error => {
-      let diagnostic : @lib.Diagnostic = {
-        stage: name,
-        code: "failed",
-        message: match error {
+      let diagnostic = @lib.failure_diagnostic(
+        name,
+        match error {
           Failure(message) => message
           @lib.Invalid(message) => message
           _ => error.to_string()
         },
-        context: [],
-      }
+      )
       println(
         if options.json {
           @lib.failure_report(name, diagnostic).stringify(indent=2)

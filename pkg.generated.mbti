@@ -14,6 +14,8 @@ pub fn c_header(Config) -> String
 
 pub fn cmake_source(Config) -> String
 
+pub fn command_help(Command) -> String
+
 pub fn command_name(Command) -> String
 
 pub fn compiler_commands(String, String) -> Array[Array[String]] raise ConfigError
@@ -31,6 +33,8 @@ pub fn empty_native_build() -> NativeBuild
 pub fn environment_fact(String, String, String, Bool) -> EnvironmentFact
 
 pub fn environment_report(Array[EnvironmentFact]) -> Json
+
+pub fn failure_diagnostic(String, String) -> Diagnostic
 
 pub fn failure_report(String, Diagnostic, parameter? : Bool) -> Json
 
@@ -73,6 +77,8 @@ pub fn native_source(Config) -> String
 pub fn native_stubs(String) -> Array[String]
 
 pub fn package_file(String, Bytes) -> PackageFile raise ConfigError
+
+pub fn package_readme(String) -> String
 
 pub fn package_requirements(String, Array[String]) -> Array[String]
 
@@ -121,6 +127,8 @@ pub fn system_library_allowlist() -> Array[String]
 pub fn tested_environment() -> Array[(String, String)]
 
 pub fn tokenize(String) -> Array[String] raise ConfigError
+
+pub fn usage_text(String) -> String
 
 pub fn valid_module_name(String) -> Bool
 
@@ -210,6 +218,7 @@ pub struct CliOptions {
   module_dir : String?
   deveco : String?
   assemble : Bool
+  help_topic : Command?
 }
 
 pub(all) enum Command {

@@ -90,3 +90,41 @@ pub fn har_provenance(
     ),
   }
 }
+
+///|
+/// README written into every `moonohos build` output directory.
+pub fn package_readme(native_module : String) -> String {
+  let lib = "lib" + native_module + ".so"
+  [
+    "# MoonOHOS Native package: " + native_module,
+    "",
+    "Built by MoonOHOS " +
+    moonohos_version() +
+    ". `manifest.json` records the compiler, SDK API, exported functions and SHA-256 of every file; run `moonohos verify --out <this directory>` before distributing it.",
+    "",
+    "## Use it",
+    "",
+    "Recommended: `moonohos har --dist <this directory> --module <HAR module> --assemble --deveco <DevEco Studio>` puts the libraries, type package and an ArkTS facade into a HAR that any Stage app can depend on with `file:`.",
+    "",
+    "Manual: copy `libs/<abi>/" +
+    lib +
+    "` into `entry/libs/<abi>/`, copy `types/lib" +
+    native_module +
+    "` into `entry/src/main/cpp/types/`, declare it as a local dependency in `entry/oh-package.json5` and `import native from '" +
+    lib +
+    "'`. `cmake/MoonOHOS.cmake` is an optional imported target for C++ consumers; it does not package the library into a HAP.",
+    "",
+    "## Behaviour",
+    "",
+    "- Synchronous exports block the calling ArkTS thread; exports declared `\"async\": true` run on a Node-API worker thread, return a Promise and accept an optional `CancelToken`.",
+    "- Exports declared `\"raises\": true` throw (or reject with) an error whose `code` is `ERR_MOONOHOS_BUSINESS`; the message is the MoonBit error's text.",
+    "- Handles stay on the native side; call `close()` when done. Finalizers and environment cleanup release anything left open.",
+    "- Int, Double, Bool, String (UTF-16 code units, NUL-safe), Bytes (Uint8Array), Array and records are copied. Conversions are limited to depth 32, 1,048,576 elements and 64 MiB; violations throw RangeError, wrong types throw TypeError.",
+    "- A MoonBit `panic` or allocation failure terminates the process.",
+    "",
+    "## Licences",
+    "",
+    "Keep `NOTICE.NativeSDK.txt` and `NOTICE.MoonBit.txt` next to distributed libraries and add the licence of your own MoonBit code.",
+    "",
+  ].join("\n")
+}
