@@ -115,6 +115,7 @@ version 1 清单保持不变；version 2 增加工作区、句柄、异步和业
 | MoonBit | ArkTS | 说明 |
 |---|---|---|
 | `Int` / `Double` / `Bool` | `number` / `number` / `boolean` | Int 为有限 32 位整数，Double 必须有限 |
+| `Int64` | `bigint` | 有符号 64 位，超出范围抛 RangeError，传入 number 抛 TypeError（0.5） |
 | `Unit`（返回值） | `void` | |
 | `String` | `string` | UTF-16 码元原样复制，支持内嵌 NUL 与未配对代理 |
 | `Bytes` | `Uint8Array` | 只接受普通、未分离 ArrayBuffer 上的视图，复制 |
@@ -127,7 +128,7 @@ version 1 清单保持不变；version 2 增加工作区、句柄、异步和业
 
 每个模块还导出 `createCancelToken()` 和 `moonohos_diagnostics()`。
 
-函数必须是所选包公开的普通函数，参数、顺序、返回类型和 `raise` 与清单一致。每次转换最多嵌套 32 层、1,048,576 个元素/字段、复制 64 MiB，超限抛出 RangeError；缺少参数或类型错误抛出 TypeError。MoonBit `panic` 会终止进程。不支持泛型、`#value` 结构体、可选或标记参数、Option、Int64、枚举、类和回调。
+函数必须是所选包公开的普通函数，参数、顺序、返回类型和 `raise` 与清单一致。每次转换最多嵌套 32 层、1,048,576 个元素/字段、复制 64 MiB，超限抛出 RangeError；缺少参数或类型错误抛出 TypeError。MoonBit `panic` 会终止进程。不支持泛型、`#value` 结构体、可选或标记参数、Option、枚举、类和回调。
 
 ## 命令
 

@@ -1,0 +1,6 @@
+{"version":1,"module":".","package":"moonohos/wide_fixture","nativeModule":"wide","types":[
+{"name":"Stamp","fields":[{"name":"id","type":"Int64"},{"name":"offsets","type":"Array[Int64]"},{"name":"label","type":"String"}]}],"functions":[
+{"name":"add_wide","params":[{"name":"a","type":"Int64"},{"name":"b","type":"Int64"}],"return":"Int64"},
+{"name":"sum_wide","params":[{"name":"values","type":"Array[Int64]"}],"return":"Int64"},
+{"name":"shift_stamp","params":[{"name":"stamp","type":"Stamp"},{"name":"delta","type":"Int64"}],"return":"Stamp"},
+{"name":"split_wide","params":[{"name":"value","type":"Int64"}],"return":"Array[Int64]"}]}

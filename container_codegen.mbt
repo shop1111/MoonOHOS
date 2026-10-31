@@ -72,6 +72,7 @@ fn cpp_reader(type_ : TypePlan, project : Project) -> String raise ConfigError {
     Scalar(kind) => {
       let (wanted, reader, slot, width) = match kind {
         Int32 => ("napi_number", "ReadInteger", "integer", "sizeof(int32_t)")
+        Int64 => ("napi_bigint", "ReadBigInt64", "wide", "sizeof(int64_t)")
         Float64 => ("napi_number", "ReadFinite", "number", "sizeof(double)")
         Boolean => ("napi_boolean", "ReadBool", "integer", "sizeof(int32_t)")
         Text =>
@@ -94,7 +95,11 @@ fn cpp_reader(type_ : TypePlan, project : Project) -> String raise ConfigError {
           reader +
           "(env, value, out." +
           slot +
-          (if kind == Int32 || kind == Float64 { ", path" } else { "" }) +
+          (if kind == Int32 || kind == Int64 || kind == Float64 {
+            ", path"
+          } else {
+            ""
+          }) +
           ")) return false;\n"
         if kind != Text && kind != Binary {
           source += "  budget.add(0, " + width + ", depth, path);\n"
@@ -125,6 +130,7 @@ fn cpp_make(type_ : TypePlan, types : Array[TypePlan]) -> String {
     Scalar(kind) =>
       source += match kind {
         Int32 | Boolean => "  return value.integer;\n"
+        Int64 => "  return value.wide;\n"
         Float64 => "  return value.number;\n"
         Text => "  return MakeText(value.text);\n"
         Binary => "  return MakeBytes(value.bytes);\n"
@@ -174,6 +180,8 @@ fn cpp_copy(
       source += match kind {
         Int32 | Boolean =>
           "  out.integer = value; budget.add(0, sizeof(int32_t), depth, path);\n"
+        Int64 =>
+          "  out.wide = value; budget.add(0, sizeof(int64_t), depth, path);\n"
         Float64 =>
           "  if (!std::isfinite(value)) throw RangeFault(path + \": non-finite result\");\n  out.number = value; budget.add(0, sizeof(double), depth, path);\n"
         Text =>
@@ -221,6 +229,7 @@ fn cpp_create(type_ : TypePlan, project : Project) -> String raise ConfigError {
       source += "  return Check(env, " +
         (match kind {
           Int32 => "napi_create_int32(env, value.integer, &result)"
+          Int64 => "napi_create_bigint_int64(env, value.wide, &result)"
           Float64 => "napi_create_double(env, value.number, &result)"
           Boolean => "napi_get_boolean(env, value.integer != 0, &result)"
           Text =>

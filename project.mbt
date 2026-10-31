@@ -107,6 +107,7 @@ fn TypeCursor::expression(
     }
     // moonc >= 0.10.16 prints `Int` as `Int32` in .mbti files.
     "Int" | "Int32" => Scalar(Int32)
+    "Int64" => Scalar(Int64)
     "Double" => Scalar(Float64)
     "Bool" => Scalar(Boolean)
     "String" => Scalar(Text)
@@ -283,7 +284,7 @@ pub fn parse_project(text : String) -> Project raise ConfigError {
     _ => raise Invalid("config: workspace must be a path")
   }
   let reserved = [
-    "Int", "Int32", "Double", "Bool", "String", "Bytes", "Unit", "Array",
+    "Int", "Int32", "Int64", "Double", "Bool", "String", "Bytes", "Unit", "Array",
   ]
   let names : Map[String, Bool] = Map([])
   let handles : Array[String] = []

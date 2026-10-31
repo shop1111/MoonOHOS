@@ -7,6 +7,7 @@ fn container_runtime() -> String {
     #|struct RangeFault : std::runtime_error { using std::runtime_error::runtime_error; };
     #|struct BridgeValue {
     #|  int32_t integer = 0;
+    #|  int64_t wide = 0;
     #|  double number = 0;
     #|  std::u16string text;
     #|  std::vector<uint8_t> bytes;
@@ -84,6 +85,12 @@ fn container_runtime() -> String {
     #|  if (!std::isfinite(number) || std::trunc(number) != number || number < INT32_MIN || number > INT32_MAX)
     #|    throw RangeFault(path + ": signed 32-bit integer required");
     #|  out = static_cast<int32_t>(number); return true;
+    #|}
+    #|static bool ReadBigInt64(napi_env env, napi_value value, int64_t &out, const std::string &path) {
+    #|  bool lossless;
+    #|  if (!Check(env, napi_get_value_bigint_int64(env, value, &out, &lossless))) return false;
+    #|  if (!lossless) throw RangeFault(path + ": signed 64-bit integer required");
+    #|  return true;
     #|}
     #|static bool ReadFinite(napi_env env, napi_value value, double &out, const std::string &path) {
     #|  if (!Check(env, napi_get_value_double(env, value, &out))) return false;

@@ -98,6 +98,7 @@ Use the HAR from an app's `oh-package.json5`:
 | MoonBit | ArkTS | Notes |
 |---|---|---|
 | `Int` / `Double` / `Bool` | `number` / `number` / `boolean` | Int is a finite 32-bit integer (`.mbti` may spell it `Int32`); Double must be finite |
+| `Int64` | `bigint` | Signed 64-bit; out-of-range bigint throws RangeError, a number throws TypeError (0.5) |
 | `Unit` (result) | `void` | |
 | `String` | `string` | UTF-16 code units copied as-is, including NUL and lone surrogates |
 | `Bytes` | `Uint8Array` | Views on ordinary, attached ArrayBuffers; copied |
@@ -112,7 +113,7 @@ Every module also exports `createCancelToken()` and `moonohos_diagnostics()`.
 Conversions are limited to depth 32, 1,048,576 elements and 64 MiB; violations
 throw `RangeError`, wrong argument types throw `TypeError`. A MoonBit `panic`
 terminates the process. Not yet supported: generics, `#value` structs, optional or
-labelled parameters, Option, Int64, enums, classes and callbacks (see
+labelled parameters, Option, enums, classes and callbacks (see
 [CHANGELOG](CHANGELOG.md) for progress).
 
 ## Commands

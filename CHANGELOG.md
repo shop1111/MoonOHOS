@@ -4,6 +4,13 @@ All notable changes to MoonOHOS are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may break).
 
+## [Unreleased]
+
+### Added
+- `Int64` parameters, results, array elements and record fields map to ArkTS
+  `bigint` (lossless; out-of-range values throw `RangeError`). Host ASan suite
+  `wide_core` / `wide_bridge.cpp`.
+
 ## [0.4.1] - 2026-10-31
 
 ### Added

@@ -145,6 +145,15 @@ fn native_prelude() -> String {
       #|  }
       #|  out = static_cast<int32_t>(number); return true;
       #|}
+      #|static bool ReadBigInt(napi_env env, napi_value value, int64_t &out) {
+      #|  napi_valuetype type;
+      #|  if (!Check(env, napi_typeof(env, value, &type))) return false;
+      #|  if (type != napi_bigint) { Check(env, napi_throw_type_error(env, nullptr, "bigint required")); return false; }
+      #|  bool lossless;
+      #|  if (!Check(env, napi_get_value_bigint_int64(env, value, &out, &lossless))) return false;
+      #|  if (!lossless) { Check(env, napi_throw_range_error(env, nullptr, "signed 64-bit integer required")); return false; }
+      #|  return true;
+      #|}
       #|static bool ReadBool(napi_env env, napi_value value, int32_t &out) {
       #|  napi_valuetype type;
       #|  if (!Check(env, napi_typeof(env, value, &type))) return false;
@@ -183,6 +192,7 @@ pub fn native_source(config : Config) -> String {
       let argument = "arg" + index.to_string()
       let reader = match p.kind {
         Int32 => "ReadInt"
+        Int64 => "ReadBigInt"
         Float64 => "ReadNumber"
         Boolean => "ReadBool"
         Text => "ReadText"
@@ -263,6 +273,7 @@ pub fn native_source(config : Config) -> String {
       "  }\n  napi_value result;\n"
     let creation = match fn_.result {
       Int32 => "napi_create_int32(env, value, &result)"
+      Int64 => "napi_create_bigint_int64(env, value, &result)"
       Float64 => "napi_create_double(env, value, &result)"
       Boolean => "napi_get_boolean(env, value != 0, &result)"
       Void => "napi_get_undefined(env, &result)"

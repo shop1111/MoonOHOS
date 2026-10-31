@@ -493,6 +493,7 @@ pub fn TypeExpr::wrapper_name(Self) -> String
 
 pub(all) enum ValueType {
   Int32
+  Int64
   Float64
   Boolean
   Text

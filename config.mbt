@@ -1,6 +1,8 @@
 ///|
 pub(all) enum ValueType {
   Int32
+  /// MoonBit `Int64`, ArkTS `bigint` (lossless, signed 64-bit).
+  Int64
   Float64
   Boolean
   Text
@@ -71,6 +73,7 @@ fn parse_type(name : String, result~ : Bool) -> ValueType raise ConfigError {
   match name {
     // moonc >= 0.10.16 prints `Int` as `Int32` in .mbti files.
     "Int" | "Int32" => Int32
+    "Int64" => Int64
     "Double" => Float64
     "Bool" => Boolean
     "String" => Text
@@ -143,6 +146,7 @@ pub fn parse_config(text : String) -> Config raise ConfigError {
 pub fn ValueType::moon_name(self : ValueType) -> String {
   match self {
     Int32 => "Int"
+    Int64 => "Int64"
     Float64 => "Double"
     Boolean => "Bool"
     Text => "String"
@@ -155,6 +159,7 @@ pub fn ValueType::moon_name(self : ValueType) -> String {
 pub fn ValueType::c_name(self : ValueType) -> String {
   match self {
     Int32 | Boolean => "int32_t"
+    Int64 => "int64_t"
     Float64 => "double"
     Text => "moonbit_string_t"
     Binary => "moonbit_bytes_t"
@@ -166,6 +171,7 @@ pub fn ValueType::c_name(self : ValueType) -> String {
 pub fn ValueType::ark_name(self : ValueType) -> String {
   match self {
     Int32 | Float64 => "number"
+    Int64 => "bigint"
     Boolean => "boolean"
     Text => "string"
     Binary => "Uint8Array"

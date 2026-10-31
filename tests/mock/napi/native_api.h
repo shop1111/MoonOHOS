@@ -21,7 +21,7 @@ using napi_env = Env *;
 using napi_finalize = void (*)(napi_env, void *, void *);
 using napi_async_execute_callback = void (*)(napi_env, void *);
 using napi_async_complete_callback = void (*)(napi_env, napi_status, void *);
-enum napi_valuetype { napi_undefined, napi_number, napi_boolean, napi_string, napi_object };
+enum napi_valuetype { napi_undefined, napi_number, napi_boolean, napi_string, napi_object, napi_bigint };
 enum napi_typedarray_type { napi_uint8_array, napi_uint8_clamped_array, napi_int8_array, napi_int16_array };
 enum ObjectKind { PlainObject, ArrayBuffer, TypedArray, DataView, SharedBuffer, OrdinaryArray };
 enum napi_property_attributes { napi_default };
@@ -40,6 +40,8 @@ struct Value {
   Value *(*method)(Env *, struct Call *) = nullptr; void *method_data = nullptr;
   void *native = nullptr; napi_finalize finalize = nullptr;
   std::string error_kind; int promise_state = 0; std::shared_ptr<Value> settled;
+  // BigInt payload; `lossless` is false for values outside the int64 range.
+  int64_t big = 0; bool lossless = true;
 };
 using napi_value = Value *;
 struct Call { std::vector<napi_value> args; napi_value self = nullptr; void *data = nullptr; };
@@ -111,6 +113,12 @@ inline napi_status napi_create_double(napi_env e, double value, napi_value *out)
   auto s = Step(e); if (s == napi_ok) { e->result = {napi_number, value, false}; *out = &e->result; } return s;
 }
 inline napi_status napi_create_int32(napi_env e, int value, napi_value *out) { return napi_create_double(e, value, out); }
+inline napi_status napi_get_value_bigint_int64(napi_env e, napi_value value, int64_t *out, bool *lossless) {
+  auto s = Step(e); if (s == napi_ok) { *out = value->big; *lossless = value->lossless; } return s;
+}
+inline napi_status napi_create_bigint_int64(napi_env e, int64_t value, napi_value *out) {
+  auto s = Step(e); if (s == napi_ok) { e->result = {}; e->result.type = napi_bigint; e->result.big = value; *out = &e->result; } return s;
+}
 inline napi_status napi_get_boolean(napi_env e, bool value, napi_value *out) {
   auto s = Step(e); if (s == napi_ok) { e->result = {napi_boolean, 0, value}; *out = &e->result; } return s;
 }
