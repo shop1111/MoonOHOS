@@ -49,7 +49,7 @@ jobs:
           moon package
       - name: CLI without the HarmonyOS SDK (init, check, inspect, plan, help)
         run: |
-          cli="$GITHUB_WORKSPACE/_build/native/release/build/cmd/moonohos/moonohos"
+          cli="$GITHUB_WORKSPACE/_build/native/release/build/cmd/moonohos/moonohos.exe"  # Moon names native executables *.exe on every OS
           "$cli" --help
           "$cli" build --help
           cd "$RUNNER_TEMP"

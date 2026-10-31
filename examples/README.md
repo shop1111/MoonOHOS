@@ -11,7 +11,7 @@
 
 ```bash
 moon build --target native --release cmd/moonohos
-cli=_build/native/release/build/cmd/moonohos/moonohos      # .exe on Windows
+cli=_build/native/release/build/cmd/moonohos/moonohos.exe  # same name on every OS
 (cd examples/core && moon test --target native)
 (cd examples/search && moon test --target native)
 $cli inspect --json                                          # reads ./moonohos.json -> examples/core
