@@ -1,0 +1,82 @@
+name: Linux and macOS
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  unix:
+    name: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: hustcer/setup-moonbit@v1.22
+        with:
+          version: '0.10.18+6c83a7f62'
+          core-version: '0.10.18+6c83a7f62'
+      - name: Toolchain
+        run: |
+          moon version --all
+          moon update
+      - name: Format and strict checks
+        run: |
+          moon fmt
+          git diff --exit-code -- '*.mbt'
+          moon check --target native --deny-warn --warn-list +73
+      - name: Tests (framework, platform module, examples)
+        run: |
+          moon test --target native --deny-warn
+          for dir in ohos examples/search examples/core; do
+            (cd "$dir" && moon check --target native --deny-warn && moon test --target native --deny-warn)
+          done
+      - name: Public interface is committed
+        run: |
+          moon info --target native
+          git diff --exit-code -- '*.mbti'
+      - name: CLI build and production code gate
+        run: |
+          moon build --target native --release --deny-warn cmd/moonohos
+          python -m unittest discover -s tests -p test_count_production.py
+          python scripts/count_production.py
+          moon package
+      - name: CLI without the HarmonyOS SDK (init, check, inspect, plan, help)
+        run: |
+          cli="$GITHUB_WORKSPACE/_build/native/release/build/cmd/moonohos/moonohos"
+          "$cli" --help
+          "$cli" build --help
+          cd "$RUNNER_TEMP"
+          "$cli" init textkit --package alice/textkit --ohos "$GITHUB_WORKSPACE/ohos" --json
+          cd textkit
+          (cd core && moon test --target native)
+          "$cli" check --json
+          "$cli" inspect --json
+          "$cli" plan --json
+          if "$cli" build --sdk /nonexistent --json > failure.json; then exit 1; fi
+          grep -q '"code": "io"' failure.json
+
+  latest-moon:
+    name: latest MoonBit (early warning)
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hustcer/setup-moonbit@v1.22
+        with:
+          version: latest
+          core-version: latest
+      - name: Check and test against the newest toolchain
+        run: |
+          moon version --all
+          moon update
+          moon check --target native --deny-warn
+          moon test --target native --deny-warn
+          (cd ohos && moon test --target native --deny-warn)
