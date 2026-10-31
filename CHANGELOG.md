@@ -6,6 +6,18 @@ All notable changes to MoonOHOS are recorded here. The format follows
 
 ## [0.4.1] - 2026-10-31
 
+### Added
+- Linux and macOS support for the CLI: executable names, `HOME` fallback for
+  the Moon home, DevEco Studio layouts for Windows, macOS (`.app`) and the
+  command-line tools, case-sensitive paths on Linux.
+- CI on Ubuntu and macOS (format, strict checks, tests, interface diff, CLI
+  build, SDK-free `init → check → inspect → plan`) and a non-blocking job on the
+  latest MoonBit release.
+- `moonohos help`, `moonohos <command> --help`; diagnostics carry a category
+  code and next-step hints.
+- English README, examples overview, CONTRIBUTING, SECURITY, issue and PR
+  templates.
+
 ### Changed
 - Toolchain requirement is now a floor: **moonc ≥ 0.10.16** (tested with Moon
   `0.1.20261028` / moonc `v0.10.18+6c83a7f62`). `build`, `doctor` and package
@@ -16,9 +28,14 @@ All notable changes to MoonOHOS are recorded here. The format follows
   standard collections, `StringBuilder()`, `@debug.debug_inspect`.
 - CI pins the tested toolchain.
 
+- The README inside each build output describes 0.4 behaviour instead of 0.3.
+- Scripts read the DevEco Studio location from `DEVECO_STUDIO`.
+
 ### Fixed
 - `.mbti` files produced by moonc ≥ 0.10.16 spell `Int` as `Int32`; manifest
   verification and type parsing now accept both spellings (but not `UInt32`).
+- `init --ohos` on another Windows drive produced an unusable workspace; it is
+  now rejected with an explanation.
 
 ## [0.4.0] - 2026-10-21
 

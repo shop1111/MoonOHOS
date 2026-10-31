@@ -77,6 +77,25 @@
 
 回归过程中发现 ArkRuntime 以空 `code` 创建 `RangeError` 时得到普通 `Error`，已修复（同步转换错误改用 `napi_throw_range_error`），修复后上述检查通过。
 
+## 0.4.1 复验（2026-10-31，新编译器）
+
+环境：Windows 11 x64；Moon `0.1.20261028 (e1e1f15)`，moonc `v0.10.18+6c83a7f62`；同一 DevEco Studio 与 SDK API 26。0.4.1 起要求 moonc ≥ 0.10.16。
+
+| 检查 | 结果 |
+|---|---|
+| `moon fmt` 无差异；`moon check --deny-warn --warn-list +73`；`moon info` 接口一致 | 通过 |
+| 根模块测试 | 56/56（新增版本下限、`Int32` 拼写、跨平台路径、CLI 帮助与诊断测试） |
+| `ohos`、`examples/search`、`examples/core` 测试 | 3/3、7/7、2/2 |
+| 宿主 ASan：数组、记录、引用矩阵、异步/句柄/取消、8 线程并发 | 5 项全部通过 |
+| `verify_cli.py` / `verify_integration.py` / `verify_init_flow.ps1` | 41 个场景 / 11 项 / 通过 |
+| `build_search.ps1`：CLI 双 ABI 构建 → HAR → HAP | 通过；`manifest.json` 记录 moonc `v0.10.18+6c83a7f62` |
+| 无 SDK 流程：`init → core 测试 → check → inspect → plan` | 通过（Linux、macOS 由 CI 执行同一流程） |
+| 生产代码统计 | 6410 行（门槛 4000） |
+
+新编译器带来的变化：`.mbti` 中 `Int` 写作 `Int32`（已兼容）；集合的 `.to_json()`、`try?`、测试中隐式引用包成员被弃用（框架与 `init` 模板已迁移）。
+
+**未复验**：模拟器运行。本次复验时没有连接模拟器，0.4.1 生成的 HAP 未在设备上重新运行；上文模拟器结果来自 0.4.0（moonc 0.10.14）。生成的 C++ 桥接代码与 0.4.0 相同，变化只在 MoonBit 编译器生成的 C 代码，宿主 ASan 已覆盖这部分。
+
 ## 未验证
 
 - ARM64 真机运行（只验证了 arm64-v8a 交叉编译、ELF 检查和 HAP 打包）。
