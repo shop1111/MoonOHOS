@@ -40,7 +40,10 @@ pub fn native_descriptor_file() -> String {
 ///|
 /// HarmonyOS NDK libraries that platform packages may link.
 pub fn system_library_allowlist() -> Array[String] {
-  ["libhilog_ndk.z.so", "librawfile.z.so", "libdeviceinfo_ndk.z.so"]
+  [
+    "libhilog_ndk.z.so", "librawfile.z.so", "libdeviceinfo_ndk.z.so", "libnet_connection.so",
+    "libohvibrator.z.so",
+  ]
 }
 
 ///|

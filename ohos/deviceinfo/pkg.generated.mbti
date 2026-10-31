@@ -1,0 +1,54 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/deviceinfo"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn first_api_version() -> Int32
+
+pub fn get(Field) -> String
+
+pub fn is_device() -> Bool
+
+pub fn sdk_api_version() -> Int32
+
+pub fn snapshot() -> DeviceInfo
+
+// Errors
+
+// Types and methods
+pub(all) struct DeviceInfo {
+  device_type : String
+  manufacturer : String
+  brand : String
+  market_name : String
+  product_model : String
+  os_full_name : String
+  display_version : String
+  sdk_api_version : Int32
+} derive(@debug.Debug)
+#deprecated
+pub fn DeviceInfo::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Field {
+  DeviceType
+  Manufacturer
+  Brand
+  MarketName
+  ProductSeries
+  ProductModel
+  SoftwareModel
+  HardwareModel
+  OsFullName
+  DisplayVersion
+  DistributionOsName
+  DistributionOsVersion
+  AbiList
+  BuildType
+}
+
+// Type aliases
+
+// Traits

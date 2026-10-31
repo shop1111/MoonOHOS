@@ -9,7 +9,7 @@ pub(all) enum Level {
 }
 
 ///|
-fn Level::code(self : Level) -> Int {
+fn Level::code(self : Level) -> Int32 {
   match self {
     Debug => 3
     Info => 4
@@ -21,7 +21,7 @@ fn Level::code(self : Level) -> Int {
 
 ///|
 pub(all) suberror HilogError {
-  InvalidDomain(Int)
+  InvalidDomain(Int32)
   InvalidTag(String)
 }
 
@@ -40,7 +40,7 @@ pub impl Show for HilogError with fn output(self, logger) {
 ///|
 /// Application log channel identified by a HiLog domain and tag.
 pub struct Logger {
-  domain : Int
+  domain : Int32
   tag : String
   priv tag_bytes : Bytes
 }
@@ -48,15 +48,15 @@ pub struct Logger {
 ///|
 #borrow(tag, message)
 extern "C" fn print_raw(
-  level : Int,
-  domain : Int,
+  level : Int32,
+  domain : Int32,
   tag : Bytes,
   message : Bytes,
-) -> Int = "moonohos_hilog_print"
+) -> Int32 = "moonohos_hilog_print"
 
 ///|
 #borrow(tag)
-extern "C" fn loggable_raw(level : Int, domain : Int, tag : Bytes) -> Int = "moonohos_hilog_loggable"
+extern "C" fn loggable_raw(level : Int32, domain : Int32, tag : Bytes) -> Int32 = "moonohos_hilog_loggable"
 
 ///|
 fn c_text(text : String) -> Bytes {
@@ -64,7 +64,7 @@ fn c_text(text : String) -> Bytes {
 }
 
 ///|
-pub fn Logger::new(domain : Int, tag : String) -> Logger raise HilogError {
+pub fn Logger::new(domain : Int32, tag : String) -> Logger raise HilogError {
   if domain < 0 || domain > 0xFFFF {
     raise InvalidDomain(domain)
   }

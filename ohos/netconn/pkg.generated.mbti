@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/netconn"
+
+// Values
+pub fn has_default_network() -> Bool raise NetConnError
+
+pub fn is_metered() -> Bool raise NetConnError
+
+pub fn set_host_state(has_default~ : Bool, metered~ : Bool, error? : Int32) -> Unit
+
+// Errors
+pub(all) suberror NetConnError {
+  QueryFailed(Int32)
+}
+pub fn NetConnError::output(Self, &Logger) -> Unit
+pub fn NetConnError::to_string(Self) -> String
+pub impl Show for NetConnError
+
+// Types and methods
+
+// Type aliases
+
+// Traits

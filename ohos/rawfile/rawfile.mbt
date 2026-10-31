@@ -28,7 +28,7 @@ pub impl Show for RawFileError with fn output(self, logger) {
 
 ///|
 #borrow(manager, path)
-extern "C" fn size_raw(manager : Manager, path : Bytes) -> Int = "moonohos_rawfile_size"
+extern "C" fn size_raw(manager : Manager, path : Bytes) -> Int32 = "moonohos_rawfile_size"
 
 ///|
 #borrow(manager, path, buffer)
@@ -36,8 +36,8 @@ extern "C" fn read_raw(
   manager : Manager,
   path : Bytes,
   buffer : FixedArray[Byte],
-  length : Int,
-) -> Int = "moonohos_rawfile_read"
+  length : Int32,
+) -> Int32 = "moonohos_rawfile_read"
 
 ///|
 #borrow(manager, dir, buffer)
@@ -45,8 +45,8 @@ extern "C" fn list_raw(
   manager : Manager,
   dir : Bytes,
   buffer : FixedArray[Byte],
-  capacity : Int,
-) -> Int = "moonohos_rawfile_list"
+  capacity : Int32,
+) -> Int32 = "moonohos_rawfile_list"
 
 ///|
 #borrow(root)

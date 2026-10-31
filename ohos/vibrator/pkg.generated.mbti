@@ -1,0 +1,35 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/vibrator"
+
+// Values
+pub fn cancel() -> Unit raise VibratorError
+
+pub fn host_observations() -> (Int32, Int32, Int32)
+
+pub fn vibrate(Int32, usage? : Usage) -> Unit raise VibratorError
+
+// Errors
+pub(all) suberror VibratorError {
+  InvalidDuration(Int32)
+  Failed(Int32)
+}
+pub fn VibratorError::output(Self, &Logger) -> Unit
+pub fn VibratorError::to_string(Self) -> String
+pub impl Show for VibratorError
+
+// Types and methods
+pub(all) enum Usage {
+  Unknown
+  Alarm
+  Ring
+  Notification
+  Communication
+  Touch
+  Media
+  PhysicalFeedback
+  SimulatedReality
+}
+
+// Type aliases
+
+// Traits

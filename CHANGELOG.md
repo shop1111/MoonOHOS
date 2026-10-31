@@ -22,6 +22,11 @@ All notable changes to MoonOHOS are recorded here. The format follows
   The HAR facade re-exports the type. Host ASan suite `enum_core` /
   `enum_bridge.cpp`.
 
+- Platform packages `deviceinfo` (device and OS properties), `netconn`
+  (default network, metered) and `vibrator` (play, cancel), with host
+  fallbacks and tests; `libnet_connection.so` and `libohvibrator.z.so` join the
+  NDK allow-list. Cross-compiled and ELF-verified for both ABIs.
+
 ### Fixed
 - Record field types are compared by name during interface verification, so
   enum fields declared in the manifest match the `.mbti`.

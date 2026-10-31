@@ -26,7 +26,7 @@ token.cancel();                                                    // e.g. when 
 |---|---|---|
 | Bridge generation | Int/Double/Bool/String/Bytes/Array/struct conversion both ways, `.d.ts` generation, manifest checked against `.mbti` | [Manifest](#manifest-moonohosjson) |
 | HarmonyOS runtime | Worker-thread async exports, `CancelToken`, handle lifecycle (close, finalizer, env cleanup), business errors | [ASYNC-THREADING.md](docs/ASYNC-THREADING.md) (Chinese) |
-| Platform APIs | `moonohos.native.json` for controlled C dependencies; packages `hilog`, `rawfile`, `task` | [NATIVE-EXTENSIONS.md](docs/NATIVE-EXTENSIONS.md) (Chinese) |
+| Platform APIs | `moonohos.native.json` for controlled C dependencies; packages `hilog`, `rawfile`, `task`, `deviceinfo`, `netconn`, `vibrator` | [NATIVE-EXTENSIONS.md](docs/NATIVE-EXTENSIONS.md) (Chinese) |
 | Distribution | `init`, `build`, `har`, `verify`; SHA-256 and ELF verification of every package | [Commands](#commands) |
 
 How it relates to napi-mbt (desktop Node.js) and ohos-rs (Rust):

@@ -1,8 +1,8 @@
 ///|
-extern "C" fn cancelled_raw() -> Int = "moonohos_task_cancelled"
+extern "C" fn cancelled_raw() -> Int32 = "moonohos_task_cancelled"
 
 ///|
-extern "C" fn host_set_raw(value : Int) -> Unit = "moonohos_task_host_set"
+extern "C" fn host_set_raw(value : Int32) -> Unit = "moonohos_task_host_set"
 
 ///|
 pub(all) suberror Cancelled

@@ -1,0 +1,7 @@
+{
+  "schema": "moonohos-native-v1",
+  "package": "shop1111/moonohos_ohos/vibrator",
+  "sources": ["vibrator_stub.c"],
+  "systemLibraries": ["libohvibrator.z.so"],
+  "abis": ["arm64-v8a", "x86_64"]
+}

@@ -1,0 +1,7 @@
+{
+  "schema": "moonohos-native-v1",
+  "package": "shop1111/moonohos_ohos/netconn",
+  "sources": ["netconn_stub.c"],
+  "systemLibraries": ["libnet_connection.so"],
+  "abis": ["arm64-v8a", "x86_64"]
+}

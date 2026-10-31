@@ -20,7 +20,7 @@
 |---|---|---|
 | 接口生成 | Int/Double/Bool/String/Bytes/Array/结构体的双向转换，d.ts 生成，清单与 `.mbti` 核对 | 本文“清单” |
 | 鸿蒙运行时 | 进程门、工作线程任务、取消、句柄生命周期、env cleanup、诊断计数 | [ASYNC-THREADING.md](docs/ASYNC-THREADING.md) |
-| 平台扩展 | `moonohos.native.json` 受控依赖；`hilog`、`rawfile`、`task` 平台包 | [NATIVE-EXTENSIONS.md](docs/NATIVE-EXTENSIONS.md) |
+| 平台扩展 | `moonohos.native.json` 受控依赖；`hilog`、`rawfile`、`task`、`deviceinfo`、`netconn`、`vibrator` 平台包 | [NATIVE-EXTENSIONS.md](docs/NATIVE-EXTENSIONS.md) |
 | 工程分发 | `init`、`build`、`har`、`verify`；SHA256 与 ELF 校验 | 本文“命令” |
 
 与 napi-mbt、ohos-rs 的功能对照和借鉴关系见 [COMPARISON.md](docs/COMPARISON.md)。验证结果见 [VALIDATION-0.4.md](docs/VALIDATION-0.4.md)。
