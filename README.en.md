@@ -84,7 +84,7 @@ Use the HAR from an app's `oh-package.json5`:
   "package": "moonohos/search",
   "nativeModule": "moonsearch",
   "workspace": "moon.work",
-  "handles": [{"name": "SearchIndex"}],
+  "handles": [{"name": "SearchIndex", "methods": ["search"]}],
   "enums": [{"name": "Mode", "cases": ["Exact", "Prefix"]}],
   "types": [{"name": "Hit", "fields": [{"name": "path", "type": "String"}, {"name": "score", "type": "Double"}]}],
   "functions": [
@@ -107,7 +107,7 @@ Use the HAR from an app's `oh-package.json5`:
 | `Bytes` | `Uint8Array` | Views on ordinary, attached ArrayBuffers; copied |
 | `Array[T]` | `Array<T>` | Dense, non-Sendable; copied |
 | struct | `interface` | `pub(all) struct`; own properties; copied |
-| handle (`handles`) | object with `close()` / `isClosed()` | MoonBit value stays native; not nestable in arrays or structs |
+| handle (`handles`) | object with `close()` / `isClosed()` | MoonBit value stays native; not nestable in arrays or structs. Functions listed in `"methods"` (handle as first parameter) also become methods: `index.search(q)` is `search(index, q)` (0.5) |
 | `@pkg.Type` (platform adapter) | e.g. `resourceManager.ResourceManager` | Parameter only; acquired and released by the adapter descriptor |
 | `"async": true` | `(..., token?: CancelToken) => Promise<T>` | Runs on a Node-API worker thread |
 | `"raises": true` | throws / rejects with `code = ERR_MOONOHOS_BUSINESS` | The MoonBit function must declare `raise` |
@@ -116,7 +116,7 @@ Every module also exports `createCancelToken()` and `moonohos_diagnostics()`.
 Conversions are limited to depth 32, 1,048,576 elements and 64 MiB; violations
 throw `RangeError`, wrong argument types throw `TypeError`. A MoonBit `panic`
 terminates the process. Not yet supported: generics, `#value` structs, optional or
-labelled parameters, enums with payloads, classes and callbacks (see
+labelled parameters, enums with payloads and callbacks (see
 [CHANGELOG](CHANGELOG.md) for progress).
 
 ## Commands

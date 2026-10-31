@@ -1,5 +1,5 @@
 {"version":2,"module":".","package":"moonohos/async_fixture","nativeModule":"asyncfix","workspace":"moon.work",
- "handles":[{"name":"Counter"}],
+ "handles":[{"name":"Counter","methods":["add","add_later","reset"]}],
  "functions":[
   {"name":"open_counter","params":[{"name":"start","type":"Int"}],"return":"Counter"},
   {"name":"open_counter_later","params":[{"name":"start","type":"Int"}],"return":"Counter","async":true},

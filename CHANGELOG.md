@@ -22,6 +22,13 @@ All notable changes to MoonOHOS are recorded here. The format follows
   The HAR facade re-exports the type. Host ASan suite `enum_core` /
   `enum_bridge.cpp`.
 
+- Handle methods: `"handles": [{"name": "Index", "methods": ["search"]}]`
+  attaches the listed functions (whose first parameter is the handle) to every
+  handle object, so ArkTS can call `index.search(q)`; sync, async and raising
+  functions are supported and the module functions remain. The generated
+  bridge now has one `Impl_` per export behind `Call_` and `Method_` entry
+  points. Host ASan suite `async_core` / `method_bridge.cpp`; the search
+  example uses methods.
 - Platform packages `deviceinfo` (device and OS properties), `netconn`
   (default network, metered) and `vibrator` (play, cancel), with host
   fallbacks and tests; `libnet_connection.so` and `libohvibrator.z.so` join the

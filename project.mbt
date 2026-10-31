@@ -44,6 +44,13 @@ pub struct EnumDef {
 }
 
 ///|
+/// A function exposed as a method on its first (handle) parameter.
+pub struct MethodDef {
+  handle : String
+  function : String
+}
+
+///|
 pub struct Project {
   version : Int32
   module_dir : String
@@ -52,6 +59,7 @@ pub struct Project {
   workspace : String?
   records : Array[RecordDef]
   handles : Array[String]
+  methods : Array[MethodDef]
   enums : Array[EnumDef]
   functions : Array[Callable]
   adapters : Array[AdapterDef]
@@ -323,6 +331,7 @@ pub fn parse_project(text : String) -> Project raise ConfigError {
   ]
   let names : Map[String, Bool] = Map([])
   let handles : Array[String] = []
+  let methods : Array[MethodDef] = []
   match field(json, "handles") {
     None => ()
     Some(_) if version < 2 => raise Invalid("config: handles require version 2")
@@ -334,6 +343,21 @@ pub fn parse_project(text : String) -> Project raise ConfigError {
         }
         names[name] = true
         handles.push(name)
+        match field(entry, "methods") {
+          None => ()
+          Some(Array(values)) =>
+            for value in values {
+              match value {
+                String(function) if identifier(function) =>
+                  methods.push({ handle: name, function, })
+                _ =>
+                  raise Invalid(
+                    "handles." + name + ": methods must be function names",
+                  )
+              }
+            }
+          _ => raise Invalid("handles." + name + ": methods must be an array")
+        }
       }
     _ => raise Invalid("config: handles must be an array")
   }
@@ -425,6 +449,7 @@ pub fn parse_project(text : String) -> Project raise ConfigError {
     workspace,
     records,
     handles,
+    methods,
     enums,
     functions,
     adapters: [],
@@ -441,6 +466,7 @@ pub fn Config::to_project(self : Config) -> Project {
     workspace: None,
     records: [],
     handles: [],
+    methods: [],
     enums: [],
     functions: self.functions.map(f => {
       name: f.name,

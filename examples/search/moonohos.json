@@ -4,7 +4,7 @@
   "package": "moonohos/search",
   "nativeModule": "moonsearch",
   "workspace": "moon.work",
-  "handles": [{"name": "SearchIndex"}],
+  "handles": [{"name": "SearchIndex", "methods": ["search", "search_now", "stats"]}],
   "types": [
     {"name": "Hit", "fields": [
       {"name": "path", "type": "String"},

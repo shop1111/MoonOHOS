@@ -220,30 +220,19 @@ fn sync_callback(
     value: "result_value",
     handle: "handle_result",
   }
-  let needs_info = count > 0 || call.function.result is Handle(_)
-  let mut source = "static napi_value Call_" +
+  let mut source = "static napi_value Impl_" +
     name +
-    "(napi_env env, napi_callback_info info) {\n try {\n  Budget input_budget{" +
+    "(napi_env env, size_t argc, napi_value *argv, EnvState *state) {\n try {\n  (void)argc; (void)argv; (void)state;\n  Budget input_budget{" +
     bounded_text(call) +
     "}, output_budget{" +
     bounded_text(call) +
     "};\n  Ancestors ancestors{env, {}};\n  BridgeValue result_value;\n  void *handle_result = nullptr;\n  std::vector<AdapterSlot> adapters;\n"
-  if needs_info {
-    source += "  size_t argc = " +
+  if count > 0 {
+    source += "  if (argc < " +
       count.to_string() +
-      "; napi_value argv[" +
-      count.max(1).to_string() +
-      "] = {}; void *data = nullptr;\n  if (!Check(env, napi_get_cb_info(env, info, &argc, " +
-      (if count > 0 { "argv" } else { "nullptr" }) +
-      ", nullptr, &data))) return nullptr;\n"
-    if count > 0 {
-      source += "  if (argc < " +
-        count.to_string() +
-        ") throw TypeFault(\"" +
-        name +
-        ": missing arguments\");\n"
-    }
-    source += "  EnvState *state = static_cast<EnvState *>(data); (void)state;\n"
+      ") throw TypeFault(\"" +
+      name +
+      ": missing arguments\");\n"
   }
   for index in 0..<count {
     source += "  BridgeValue arg" + index.to_string() + ";\n"
@@ -253,8 +242,34 @@ fn sync_callback(
     locked_body(call, plan, slots) +
     "  }\n  napi_value result;\n  if (!" +
     result_creation(call, plan, "result_value", "handle_result", "state") +
-    ") return nullptr;\n  return result;\n } catch (...) { ThrowCurrent(env); return nullptr; }\n}\n"
+    ") return nullptr;\n  return result;\n } catch (...) { ThrowCurrent(env); return nullptr; }\n}\n" +
+    entry_points(name, count)
   source
+}
+
+///|
+/// `Call_` (module export) and `Method_` (handle method, `this` as the first
+/// argument) both forward to `Impl_` with an explicit argument vector.
+fn entry_points(name : String, slots : Int32) -> String {
+  let size = slots.max(1).to_string()
+  "static napi_value Call_" +
+  name +
+  "(napi_env env, napi_callback_info info) {\n  size_t argc = " +
+  slots.to_string() +
+  "; napi_value argv[" +
+  size +
+  "] = {}; void *data = nullptr;\n  if (!Check(env, napi_get_cb_info(env, info, &argc, argv, nullptr, &data))) return nullptr;\n  return Impl_" +
+  name +
+  "(env, argc, argv, static_cast<EnvState *>(data));\n}\n" +
+  "[[maybe_unused]] static napi_value Method_" +
+  name +
+  "(napi_env env, napi_callback_info info) {\n  size_t argc = " +
+  (slots - 1).max(0).to_string() +
+  "; napi_value argv[" +
+  size +
+  "] = {}; napi_value self = nullptr; void *data = nullptr;\n  if (!Check(env, napi_get_cb_info(env, info, &argc, argv + 1, &self, &data))) return nullptr;\n  argv[0] = self;\n  return Impl_" +
+  name +
+  "(env, argc + 1, argv, static_cast<EnvState *>(data));\n}\n"
 }
 
 ///|
@@ -294,19 +309,15 @@ fn async_callback(
     "(napi_env env, napi_status status, void *data) {\n  SettleTask(env, std::unique_ptr<AsyncTask>(static_cast<AsyncTask *>(data)), status, Result_" +
     name +
     ");\n}\n"
-  source += "static napi_value Call_" +
+  source += "static napi_value Impl_" +
     name +
-    "(napi_env env, napi_callback_info info) {\n try {\n  Budget input_budget{" +
+    "(napi_env env, size_t argc, napi_value *argv, EnvState *state) {\n try {\n  Budget input_budget{" +
     bounded_text(call) +
-    "};\n  Ancestors ancestors{env, {}};\n  size_t argc = " +
-    (count + 1).to_string() +
-    "; napi_value argv[" +
-    (count + 1).to_string() +
-    "] = {}; void *data = nullptr;\n  if (!Check(env, napi_get_cb_info(env, info, &argc, argv, nullptr, &data))) return nullptr;\n  if (argc < " +
+    "};\n  Ancestors ancestors{env, {}};\n  if (argc < " +
     count.to_string() +
     ") throw TypeFault(\"" +
     name +
-    ": missing arguments\");\n  auto *state = static_cast<EnvState *>(data);\n  if (!state) throw std::runtime_error(\"module state unavailable\");\n  std::unique_ptr<AsyncTask> task(new AsyncTask());\n  task->state = state->shared_from_this();\n  task->args.resize(" +
+    ": missing arguments\");\n  if (!state) throw std::runtime_error(\"module state unavailable\");\n  std::unique_ptr<AsyncTask> task(new AsyncTask());\n  task->state = state->shared_from_this();\n  task->args.resize(" +
     count.to_string() +
     ");\n" +
     read_arguments(call, plan, slots) +
@@ -320,7 +331,8 @@ fn async_callback(
     name +
     ", Complete_" +
     name +
-    ");\n } catch (...) { ThrowCurrent(env); return nullptr; }\n}\n"
+    ");\n } catch (...) { ThrowCurrent(env); return nullptr; }\n}\n" +
+    entry_points(name, count + 1)
   source
 }
 
@@ -387,7 +399,31 @@ fn bridge_declarations(project : Project) -> String raise ConfigError {
   for handle in project.handles {
     source += "export interface " +
       handle +
-      " {\n  close(): void;\n  isClosed(): boolean;\n}\n"
+      " {\n  close(): void;\n  isClosed(): boolean;\n"
+    for meth in project.methods.filter(m => m.handle == handle) {
+      match project.functions.search_by(f => f.name == meth.function) {
+        Some(i) => {
+          let function = project.functions[i]
+          let params = function.params[1:]
+            .to_owned()
+            .map(p => p.name + ": " + ark_type(project, p.kind))
+          let mut result = ark_type(project, function.result)
+          if function.is_async {
+            params.push("token?: CancelToken")
+            result = "Promise<" + result + ">"
+          }
+          source += "  " +
+            meth.function +
+            "(" +
+            params.join(", ") +
+            "): " +
+            result +
+            ";\n"
+        }
+        None => ()
+      }
+    }
+    source += "}\n"
   }
   source += "export interface CancelToken {\n  cancel(): void;\n  isCancelled(): boolean;\n}\nexport interface MoonOHOSDiagnostics {\n  liveHandles: number;\n  releasedHandles: number;\n  pendingTasks: number;\n  completedTasks: number;\n  cancelledTasks: number;\n  envCleanups: number;\n}\n"
   for function in project.functions {
@@ -421,5 +457,31 @@ fn bridge_callbacks(plan : GenerationPlan) -> String raise ConfigError {
       sync_callback(call, plan)
     }
   }
-  source
+  source + attach_methods(plan.project)
+}
+
+///|
+/// Defines each handle kind's methods on newly created handle objects.
+fn attach_methods(project : Project) -> String {
+  let mut source = "static bool AttachMethods(napi_env env, uint32_t kind, napi_value object, EnvState *state) {\n  (void)env; (void)object; (void)state;\n  switch (kind) {\n"
+  for handle in project.handles {
+    let methods = project.methods.filter(m => m.handle == handle)
+    if methods.is_empty() {
+      continue
+    }
+    source += "    case " +
+      handle_kind(project, handle) +
+      ": {\n      napi_property_descriptor methods[] = {\n"
+    for meth in methods {
+      source += "        {\"" +
+        meth.function +
+        "\", nullptr, Method_" +
+        meth.function +
+        ", nullptr, nullptr, nullptr, napi_default, state},\n"
+    }
+    source += "      };\n      return Check(env, napi_define_properties(env, object, " +
+      methods.length().to_string() +
+      ", methods));\n    }\n"
+  }
+  source + "    default: return true;\n  }\n}\n"
 }

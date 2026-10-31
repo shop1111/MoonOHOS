@@ -101,7 +101,7 @@ version 1 清单保持不变；version 2 增加工作区、句柄、异步和业
   "package": "moonohos/search",
   "nativeModule": "moonsearch",
   "workspace": "moon.work",
-  "handles": [{"name": "SearchIndex"}],
+  "handles": [{"name": "SearchIndex", "methods": ["search"]}],
   "enums": [{"name": "Mode", "cases": ["Exact", "Prefix"]}],
   "types": [{"name": "Hit", "fields": [{"name": "path", "type": "String"}, {"name": "score", "type": "Double"}]}],
   "functions": [
@@ -124,14 +124,14 @@ version 1 清单保持不变；version 2 增加工作区、句柄、异步和业
 | `Bytes` | `Uint8Array` | 只接受普通、未分离 ArrayBuffer 上的视图，复制 |
 | `Array[T]` | `Array<T>` | 稠密、非 Sendable，复制 |
 | 结构体 | `interface` | 目标包需 `pub(all) struct`，字段为自有属性，复制 |
-| 句柄（`handles`） | 带 `close()`/`isClosed()` 的对象 | MoonBit 值保留在原生侧，不复制；不能嵌套在数组或结构体中 |
+| 句柄（`handles`） | 带 `close()`/`isClosed()` 的对象 | MoonBit 值保留在原生侧，不复制；不能嵌套在数组或结构体中。`"methods"` 列出的函数（第一个参数是该句柄）同时成为对象方法：`index.search(q)` 等价于 `search(index, q)`（0.5） |
 | `@包.类型`（平台适配） | 如 `resourceManager.ResourceManager` | 仅作参数；由描述文件中的适配器获取与释放 |
 | `"async": true` | `(..., token?: CancelToken) => Promise<T>` | 工作线程执行 |
 | `"raises": true` | 抛出/拒绝 `code = ERR_MOONOHOS_BUSINESS` | MoonBit 函数须声明 `raise`，消息取错误的 `Show` 文本 |
 
 每个模块还导出 `createCancelToken()` 和 `moonohos_diagnostics()`。
 
-函数必须是所选包公开的普通函数，参数、顺序、返回类型和 `raise` 与清单一致。每次转换最多嵌套 32 层、1,048,576 个元素/字段、复制 64 MiB，超限抛出 RangeError；缺少参数或类型错误抛出 TypeError。MoonBit `panic` 会终止进程。不支持泛型、`#value` 结构体、可选或标记参数、带载荷的枚举、类和回调。
+函数必须是所选包公开的普通函数，参数、顺序、返回类型和 `raise` 与清单一致。每次转换最多嵌套 32 层、1,048,576 个元素/字段、复制 64 MiB，超限抛出 RangeError；缺少参数或类型错误抛出 TypeError。MoonBit `panic` 会终止进程。不支持泛型、`#value` 结构体、可选或标记参数、带载荷的枚举和回调。
 
 ## 命令
 

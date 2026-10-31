@@ -118,6 +118,39 @@ pub fn Project::validate(self : Project) -> Unit raise ConfigError {
       raise Invalid("type: " + handle + " is declared as record and handle")
     }
   }
+  let seen_methods : Array[String] = []
+  for meth in self.methods {
+    let key = meth.handle + "." + meth.function
+    if seen_methods.contains(key) {
+      raise Invalid(
+        "handles." + meth.handle + ": duplicate meth " + meth.function,
+      )
+    }
+    seen_methods.push(key)
+    if meth.function == "close" || meth.function == "isClosed" {
+      raise Invalid(
+        "handles." + meth.handle + ": " + meth.function + " is reserved",
+      )
+    }
+    match self.functions.search_by(f => f.name == meth.function) {
+      Some(i) if self.functions[i].params.get(0).map(p => p.kind) ==
+        Some(Handle(meth.handle)) => ()
+      Some(_) =>
+        raise Invalid(
+          "handles." +
+          meth.handle +
+          ": meth " +
+          meth.function +
+          " must take " +
+          meth.handle +
+          " as its first parameter",
+        )
+      None =>
+        raise Invalid(
+          "handles." + meth.handle + ": unknown meth function " + meth.function,
+        )
+    }
+  }
   for function in self.functions {
     if ["createCancelToken", "moonohos_diagnostics"].contains(function.name) {
       raise Invalid("type: reserved export name " + function.name)

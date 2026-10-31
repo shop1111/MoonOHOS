@@ -396,6 +396,11 @@ pub struct InterfaceType {
   generic : Bool
 }
 
+pub struct MethodDef {
+  handle : String
+  function : String
+}
+
 pub(all) struct NativeBuild {
   sources : Array[String]
   include_dirs : Array[String]
@@ -451,6 +456,7 @@ pub struct Project {
   workspace : String?
   records : Array[RecordDef]
   handles : Array[String]
+  methods : Array[MethodDef]
   enums : Array[EnumDef]
   functions : Array[Callable]
   adapters : Array[AdapterDef]

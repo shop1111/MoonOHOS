@@ -270,6 +270,8 @@ fn lifecycle_napi() -> String {
     #|  wrapped.release();
     #|  return true;
     #|}
+    #|// Generated per module: defines the methods declared for a handle kind.
+    #|static bool AttachMethods(napi_env env, uint32_t kind, napi_value object, EnvState *state);
     #|// Takes ownership of one MoonBit reference; failures release it.
     #|static bool CreateHandle(napi_env env, EnvState *state, void *value, uint32_t kind, napi_value &result) {
     #|  std::shared_ptr<HandleState> handle;
@@ -277,7 +279,8 @@ fn lifecycle_napi() -> String {
     #|  if (!state) throw std::runtime_error("module state unavailable");
     #|  state->TrackHandle(handle);
     #|  std::unique_ptr<Wrapped> wrapped(new Wrapped{kind, handle, nullptr});
-    #|  return CreateWrapped(env, std::move(wrapped), HandleClose, "close", HandleIsClosed, "isClosed", result);
+    #|  if (!CreateWrapped(env, std::move(wrapped), HandleClose, "close", HandleIsClosed, "isClosed", result)) return false;
+    #|  return AttachMethods(env, kind, result, state);
     #|}
     #|static napi_value Call_createCancelToken(napi_env env, napi_callback_info) {
     #|  try {
