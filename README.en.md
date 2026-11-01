@@ -31,7 +31,7 @@ token.cancel();                                                    // e.g. when 
 
 How it relates to napi-mbt (desktop Node.js) and ohos-rs (Rust):
 [COMPARISON.md](docs/COMPARISON.md). Test evidence:
-[VALIDATION-0.4.md](docs/VALIDATION-0.4.md).
+[VALIDATION-0.5.md](docs/VALIDATION-0.5.md).
 
 ## Requirements
 
@@ -164,7 +164,7 @@ moonohos <command> --help
 | Latest MoonBit | Check and test against the newest toolchain as an early warning (non-blocking) |
 
 SDK builds, HAR/HAP assembly and emulator runs are executed locally with the
-scripts in [scripts/](scripts); see [VALIDATION-0.4.md](docs/VALIDATION-0.4.md) for
+scripts in [scripts/](scripts); see [VALIDATION-0.5.md](docs/VALIDATION-0.5.md) for
 what each layer proves.
 
 ## Roadmap

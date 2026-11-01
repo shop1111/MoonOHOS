@@ -23,7 +23,7 @@
 | 平台扩展 | `moonohos.native.json` 受控依赖；`hilog`、`rawfile`、`task`、`deviceinfo`、`netconn`、`vibrator` 平台包 | [NATIVE-EXTENSIONS.md](docs/NATIVE-EXTENSIONS.md) |
 | 工程分发 | `init`、`build`、`har`、`verify`；SHA256 与 ELF 校验 | 本文“命令” |
 
-与 napi-mbt、ohos-rs 的功能对照和借鉴关系见 [COMPARISON.md](docs/COMPARISON.md)。验证结果见 [VALIDATION-0.4.md](docs/VALIDATION-0.4.md)。
+与 napi-mbt、ohos-rs 的功能对照和借鉴关系见 [COMPARISON.md](docs/COMPARISON.md)。验证结果见 [VALIDATION-0.5.md](docs/VALIDATION-0.5.md)（0.4 见 [VALIDATION-0.4.md](docs/VALIDATION-0.4.md)）。
 
 ## 环境
 
@@ -200,7 +200,7 @@ python scripts\verify_integration.py "$env:DEVECO_STUDIO\sdk"
 | Linux、macOS | 格式、严格检查、框架/平台模块/示例测试、接口一致性、CLI 构建、无 SDK 的 init → check → inspect → plan |
 | 最新 MoonBit | 用最新发布的工具链检查和测试，提前发现不兼容（不阻塞合并） |
 
-SDK、HAP 与模拟器检查在本机执行。各层证明范围见 [VALIDATION-0.4.md](docs/VALIDATION-0.4.md)。
+SDK、HAP 与模拟器检查在本机执行。各层证明范围见 [VALIDATION-0.5.md](docs/VALIDATION-0.5.md)。
 
 ## 路线图
 
