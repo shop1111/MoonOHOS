@@ -69,7 +69,7 @@ Call_f                              Execute_f                        Complete_f
 - 关闭后再使用得到 `ERR_MOONOHOS_CLOSED`；重复关闭无副作用。
 - 释放路径：显式 `close()`、对象终结器、环境清理钩子。ArkRuntime 不保证终结器及时运行，应用应显式关闭（示例中的 `SearchSession.close()` 在页面 `aboutToDisappear` 中调用）。
 
-### 回调（开发中，未发布）
+### 回调（0.6）
 
 清单参数类型写作 `(T1, T2) -> Unit`，ArkTS 侧是 `(arg0: T1, arg1: T2) => void`。业务函数收到的是生成的 MoonBit 闭包，不是 ArkTS 函数：包装层把 ArkTS 函数换成本次调用的编号（`Int64`），闭包把参数降为边界形式（Option 为数组、枚举为整数标签）后调用桥接层的 `moonohos_event_<函数>_<参数序号>`。桥接层在门内把参数复制为 C++ 数据，此后不再接触 MoonBit 对象。
 

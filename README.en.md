@@ -170,7 +170,7 @@ what each layer proves.
 
 ## Roadmap
 
-Done in 0.5: Int64, Option, payload-free enums, handle methods, the `deviceinfo` / `netconn` / `vibrator` platform packages, the `init` demo app, and the CLI on Linux/macOS. In development (unreleased): ArkTS callbacks for progress and events, delivered through a threadsafe function for async functions.
+Done in 0.5: Int64, Option, payload-free enums, handle methods, the `deviceinfo` / `netconn` / `vibrator` platform packages, the `init` demo app, and the CLI on Linux/macOS. Done in 0.6: ArkTS callbacks for progress and events, delivered through a threadsafe function for async functions.
 
 Planned (priorities are open for discussion in issues):
 

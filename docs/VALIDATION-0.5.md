@@ -35,7 +35,7 @@ Option 与枚举不依赖编译器内存布局：生成的 MoonBit 包装层在 
 | `build_search.ps1`（CLI → HAR → HAP，SearchIndex 带方法） | 通过 |
 | 生产代码统计 | 7077 行（门槛 4000） |
 
-## 开发中：ArkTS 回调（未发布，2026-11-01）
+## 0.6.0：ArkTS 回调（2026-11-01）
 
 | 检查 | 结果 |
 |---|---|
@@ -52,7 +52,7 @@ SDK 头文件（API 26 `napi/native_api.h`）说明 `func` 与 `call_js_cb` 不�
 
 ## 未验证
 
-- 0.5 新能力和开发中的回调在模拟器或真机上的运行：本次没有连接设备，只完成宿主 ASan、SDK 交叉编译、HAR/HAP 打包。
+- 0.5 新能力和 0.6 的回调在模拟器或真机上的运行：本次没有连接设备，只完成宿主 ASan、SDK 交叉编译、HAR/HAP 打包。
 - `netconn`、`vibrator` 在设备上的权限路径（201 错误）只在宿主回退中模拟。
 - ARM64 真机、签名与上架流程。
 - ArrayBuffer/其他 TypedArray、带载荷枚举、有返回值的回调（尚未实现，见 README 路线图）。
