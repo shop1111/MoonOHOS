@@ -13,6 +13,9 @@ pub(all) enum TypeExpr {
   Handle(String)
   /// Platform value acquired by a native adapter, e.g. `@rawfile.Manager`.
   External(String, String)
+  /// ArkTS function parameter `(T1, T2) -> Unit`; crosses C as an `Int64` call
+  /// id and each invocation copies its arguments to the JS thread.
+  Callback(Array[TypeExpr])
 } derive(Eq, Debug)
 
 ///|
@@ -81,7 +84,14 @@ fn type_tokens(text : String) -> Array[String] {
         tokens.push(word)
         word = ""
       }
-    } else if ch == '[' || ch == ']' || ch == '?' {
+    } else if ch == '[' ||
+      ch == ']' ||
+      ch == '?' ||
+      ch == '(' ||
+      ch == ')' ||
+      ch == ',' ||
+      ch == '-' ||
+      ch == '>' {
       if !word.is_empty() {
         tokens.push(word)
         word = ""
@@ -131,6 +141,29 @@ fn TypeCursor::expression(
         Optional(element)
       }
     }
+    "(" => {
+      let args : Array[TypeExpr] = []
+      if self.tokens.get(self.position) == Some(")") {
+        self.position += 1
+      } else {
+        while true {
+          args.push(self.expression(depth + 1, unit=false))
+          match self.take() {
+            "," => continue
+            ")" => break
+            token =>
+              raise Invalid("type: expected , or ) in callback, found " + token)
+          }
+        }
+      }
+      if self.take() != "-" || self.take() != ">" {
+        raise Invalid("type: callback types are written (T1, T2) -> Unit")
+      }
+      if self.take() != "Unit" {
+        raise Invalid("type: callbacks must return Unit")
+      }
+      Callback(args)
+    }
     // moonc >= 0.10.16 prints `Int` as `Int32` in .mbti files.
     "Int" | "Int32" => Scalar(Int32)
     "Int64" => Scalar(Int64)
@@ -179,6 +212,8 @@ pub fn TypeExpr::moon_name(self : TypeExpr) -> String {
     Optional(inner) => inner.moon_name() + "?"
     Enum(name) | Record(name) | Handle(name) => name
     External(pkg_alias, name) => "@" + pkg_alias + "." + name
+    Callback(args) =>
+      "(" + args.map(a => a.moon_name()).join(", ") + ") -> Unit"
   }
 }
 
@@ -190,6 +225,8 @@ pub fn TypeExpr::wrapper_name(self : TypeExpr) -> String {
     Optional(inner) => inner.wrapper_name() + "?"
     Enum(name) | Record(name) | Handle(name) => "@core." + name
     External(pkg_alias, name) => "@" + pkg_alias + "." + name
+    Callback(args) =>
+      "(" + args.map(a => a.wrapper_name()).join(", ") + ") -> Unit"
   }
 }
 
@@ -198,6 +235,7 @@ pub fn TypeExpr::c_name(self : TypeExpr) -> String {
   match self {
     Scalar(kind) => kind.c_name()
     Enum(_) => "int32_t"
+    Callback(_) => "int64_t"
     List(_) | Optional(_) | Record(_) | Handle(_) | External(_, _) => "void *"
   }
 }
@@ -209,14 +247,21 @@ pub fn TypeExpr::ark_name(self : TypeExpr) -> String {
     List(element) => "Array<" + element.ark_name() + ">"
     Optional(inner) => inner.ark_name() + " | undefined"
     Enum(name) | Record(name) | Handle(name) | External(_, name) => name
+    Callback(args) =>
+      "(" +
+      args
+      .mapi((i, a) => "arg" + i.to_string() + ": " + a.ark_name())
+      .join(", ") +
+      ") => void"
   }
 }
 
 ///|
-/// Handles and adapters cross the bridge by reference and are never copied.
+/// Handles, adapters and callbacks cross the bridge by reference and are
+/// never copied.
 pub fn TypeExpr::is_opaque(self : TypeExpr) -> Bool {
   match self {
-    Handle(_) | External(_, _) => true
+    Handle(_) | External(_, _) | Callback(_) => true
     List(element) | Optional(element) => element.is_opaque()
     _ => false
   }
@@ -233,6 +278,7 @@ fn TypeExpr::bind_handles(
     Record(name) if enums.contains(name) => Enum(name)
     List(element) => List(element.bind_handles(handles, enums~))
     Optional(inner) => Optional(inner.bind_handles(handles, enums~))
+    Callback(args) => Callback(args.map(a => a.bind_handles(handles, enums~)))
     other => other
   }
 }

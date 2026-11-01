@@ -157,7 +157,7 @@ fn cpp_reader(type_ : TypePlan, project : Project) -> String raise ConfigError {
         "(env, value, out.children[0], budget, ancestors, depth + 1, path)) return false;\n"
     }
     Record(_) => source += record_reader(type_, project)
-    Handle(_) | External(_, _) => ()
+    Handle(_) | External(_, _) | Callback(_) => ()
   }
   source + "  return true;\n}\n"
 }
@@ -184,7 +184,7 @@ fn cpp_make(type_ : TypePlan, types : Array[TypePlan]) -> String {
       }
     List(element) => source += list_maker(type_, types, element)
     Record(_) => source += record_maker(type_, types)
-    Handle(_) | External(_, _) => ()
+    Handle(_) | External(_, _) | Callback(_) => ()
   }
   source + "}\n"
 }
@@ -269,7 +269,7 @@ fn cpp_copy(
       source += "  }\n"
     }
     Record(_) => source += record_copier(type_, project, types)
-    Handle(_) | External(_, _) => ()
+    Handle(_) | External(_, _) | Callback(_) => ()
   }
   source + "  return out;\n}\n"
 }
@@ -307,7 +307,7 @@ fn cpp_create(type_ : TypePlan, project : Project) -> String raise ConfigError {
         type_.dependencies[0].to_string() +
         "(env, value.children[0], result);\n"
     Record(_) => source += record_creator(type_, project)
-    Handle(_) | External(_, _) => ()
+    Handle(_) | External(_, _) | Callback(_) => ()
   }
   source + "}\n"
 }

@@ -43,6 +43,7 @@ fn direct_children(
   match kind {
     Scalar(_) | Enum(_) | Handle(_) | External(_, _) => []
     List(element) | Optional(element) => [element]
+    Callback(args) => args
     Record(name) => project.record_def(name).fields.map(f => f.kind)
   }
 }
@@ -111,6 +112,18 @@ fn make_generation_plan(project : Project) -> GenerationPlan raise ConfigError {
       })
     calls.push({ function, symbol, inputs, output, raw_output, bounded, })
   }
+  // Event externs are checked after every function symbol is known.
+  for function in project.functions {
+    for index, param in function.params {
+      if param.kind is Callback(_) {
+        let symbol = event_symbol(function.name, index)
+        if symbols.contains(symbol) {
+          raise Invalid("generation: colliding callback symbol " + symbol)
+        }
+        symbols[symbol] = true
+      }
+    }
+  }
   { project, types, calls, }
 }
 
@@ -147,6 +160,11 @@ fn CallPlan::to_json(self : CallPlan) -> Json {
     "boundedContainers": self.bounded,
     "async": self.function.is_async,
     "raises": self.function.raises,
+    "callbacks": Json(
+      self.function.params
+      .filter(p => p.kind is Callback(_))
+      .map(p => Json::string(p.name)),
+    ),
     "stages": Json(
       if self.function.is_async {
         [
@@ -188,6 +206,7 @@ fn boundary_name(kind : TypeExpr) -> String {
   match kind {
     Optional(inner) => "Array[" + inner.wrapper_name() + "]"
     Enum(_) => "Int"
+    Callback(_) => "Int64"
     _ => kind.wrapper_name()
   }
 }
@@ -226,6 +245,66 @@ fn lower(kind : TypeExpr, value : String, enums : Array[EnumDef]) -> String {
     }
     _ => value
   }
+}
+
+///|
+/// C function a generated callback closure calls; defined by the bridge.
+fn event_symbol(function : String, index : Int32) -> String {
+  "moonohos_event_" + function + "_" + index.to_string()
+}
+
+///|
+/// Closure handed to the business function: lowers its arguments to the
+/// boundary form and passes them with the call id to the bridge.
+fn callback_closure(
+  name : String,
+  index : Int32,
+  id : String,
+  args : Array[TypeExpr],
+  enums : Array[EnumDef],
+) -> String {
+  let params = args.mapi((i, a) => {
+    "moonohos_arg" + i.to_string() + " : " + a.wrapper_name()
+  })
+  let values = args.mapi((i, a) => {
+    lower(a, "moonohos_arg" + i.to_string(), enums)
+  })
+  values.insert(0, id)
+  "fn(" +
+  params.join(", ") +
+  ") { " +
+  event_symbol(name, index) +
+  "(" +
+  values.join(", ") +
+  ") }"
+}
+
+///|
+fn event_extern(name : String, index : Int32, args : Array[TypeExpr]) -> String {
+  let params = args.mapi((i, a) => {
+    "a" + i.to_string() + " : " + boundary_name(a)
+  })
+  params.insert(0, "id : Int64")
+  let borrowed : Array[String] = []
+  for i, arg in args {
+    if arg.is_reference() {
+      borrowed.push("a" + i.to_string())
+    }
+  }
+  let symbol = event_symbol(name, index)
+  "///|\n" +
+  (if borrowed.is_empty() {
+    ""
+  } else {
+    "#borrow(" + borrowed.join(", ") + ")\n"
+  }) +
+  "extern \"C\" fn " +
+  symbol +
+  "(" +
+  params.join(", ") +
+  ") -> Unit = \"" +
+  symbol +
+  "\"\n"
 }
 
 ///|
@@ -281,7 +360,15 @@ fn moon_export(
   // Lift boundary values (Option arrays, enum tags) before the body and lower
   // the result back to its boundary form.
   let mut body = ""
-  for field in fields {
+  for index, field in fields {
+    if field.kind is Callback(args) {
+      body += "let " +
+        field.name +
+        " = " +
+        callback_closure(name, index, field.name, args, enums) +
+        "; "
+      continue
+    }
     let lifted = lift(field.kind, field.name, enums)
     if lifted != field.name {
       body += "let " + field.name + " = " + lifted + "; "
@@ -306,6 +393,13 @@ pub fn Project::business_wrapper(self : Project) -> String raise ConfigError {
   let mut source = "///|\nfn main { () }\n"
   if self.functions.any(f => f.raises) {
     source += "///|\n#borrow(message)\nextern \"C\" fn moonohos_business_error(message : String) -> Unit = \"moonohos_business_error\"\n"
+  }
+  for function in self.functions {
+    for index, param in function.params {
+      if param.kind is Callback(args) {
+        source += event_extern(function.name, index, args)
+      }
+    }
   }
   for call in plan.calls {
     let invocation = "@core." +

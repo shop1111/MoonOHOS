@@ -5,6 +5,8 @@ priv struct CallSlots {
   adapter : (Int32) -> String
   value : String
   handle : String
+  /// The call's EventChannel (an lvalue expression).
+  events : String
 }
 
 ///|
@@ -48,6 +50,14 @@ fn read_arguments(
     let path = "\"" + call.function.name + "." + param.name + "\""
     let argv = "argv[" + index.to_string() + "]"
     match param.kind {
+      Callback(_) =>
+        source += "  if (!ReadCallback(env, " +
+          argv +
+          ", " +
+          slots.events +
+          ", " +
+          path +
+          ")) return nullptr;\n"
       Handle(name) =>
         source += "  if (!ReadHandle(env, " +
           argv +
@@ -104,6 +114,7 @@ fn locked_body(
     let kind = call.function.params[index].kind
     let suffix = index.to_string()
     match kind {
+      Callback(_) => args.push(slots.events + ".id")
       Handle(_) => args.push((slots.arg)(index) + ".pin->state->ptr")
       External(_, _) => {
         args.push((slots.adapter)(adapter) + ".ptr")
@@ -219,7 +230,9 @@ fn sync_callback(
     },
     value: "result_value",
     handle: "handle_result",
+    events: "events",
   }
+  let callbacks = has_callbacks(call.function)
   let mut source = "static napi_value Impl_" +
     name +
     "(napi_env env, size_t argc, napi_value *argv, EnvState *state) {\n try {\n  (void)argc; (void)argv; (void)state;\n  Budget input_budget{" +
@@ -237,10 +250,21 @@ fn sync_callback(
   for index in 0..<count {
     source += "  BridgeValue arg" + index.to_string() + ";\n"
   }
+  if callbacks {
+    source += "  EventChannel events(env, false);\n"
+  }
   source += read_arguments(call, plan, slots)
-  source += "  { GateLock lock; CancelScope scope(nullptr);\n" +
+  source += if callbacks {
+    // A failing callback wins over whatever the MoonBit call did afterwards.
+    "  { GateLock lock; CancelScope scope(nullptr); EventScope event_scope(&events);\n   try {\n" +
     locked_body(call, plan, slots) +
-    "  }\n  napi_value result;\n  if (!" +
+    "   } catch (...) { if (!events.failed.load()) throw; }\n  }\n  if (events.failed.load()) { gate.release(std::exchange(handle_result, nullptr)); return events.Raise(env); }\n"
+  } else {
+    "  { GateLock lock; CancelScope scope(nullptr);\n" +
+    locked_body(call, plan, slots) +
+    "  }\n"
+  }
+  source += "  napi_value result;\n  if (!" +
     result_creation(call, plan, "result_value", "handle_result", "state") +
     ") return nullptr;\n  return result;\n } catch (...) { ThrowCurrent(env); return nullptr; }\n}\n" +
     entry_points(name, count)
@@ -290,12 +314,13 @@ fn async_callback(
     },
     value: "task->result_value",
     handle: "task->handle_result",
+    events: "(*task->events)",
   }
   let mut source = "static void Execute_" +
     name +
     "(napi_env, void *data) {\n  auto *task = static_cast<AsyncTask *>(data);\n  if (task->cancel->cancelled.load()) { task->outcome = Outcome::Cancelled; return; }\n  try {\n    Budget output_budget{" +
     bounded_text(call) +
-    "};\n    { GateLock lock; CancelScope scope(task->cancel.get());\n" +
+    "};\n    { GateLock lock; CancelScope scope(task->cancel.get()); EventScope events(task->events.get());\n" +
     locked_body(call, plan, slots) +
     "    if (task->cancel->cancelled.load() && task->handle_result) { moonbit_decref(task->handle_result); task->handle_result = nullptr; }\n    }\n    task->outcome = task->cancel->cancelled.load() ? Outcome::Cancelled : Outcome::Ok;\n  } catch (...) {\n    // A cancelled task reports cancellation even when MoonBit raised (e.g. @task.check()).\n    task->outcome = Classify(std::current_exception(), task->message, task->business);\n    if (task->cancel->cancelled.load()) task->outcome = Outcome::Cancelled;\n  }\n}\n"
   source += "static bool Result_" +
@@ -306,7 +331,7 @@ fn async_callback(
     ) +
     ";\n}\nstatic void Complete_" +
     name +
-    "(napi_env env, napi_status status, void *data) {\n  SettleTask(env, std::unique_ptr<AsyncTask>(static_cast<AsyncTask *>(data)), status, Result_" +
+    "(napi_env env, napi_status status, void *data) {\n  FinishTask(env, std::unique_ptr<AsyncTask>(static_cast<AsyncTask *>(data)), status, Result_" +
     name +
     ");\n}\n"
   source += "static napi_value Impl_" +
@@ -320,6 +345,13 @@ fn async_callback(
     ": missing arguments\");\n  if (!state) throw std::runtime_error(\"module state unavailable\");\n  std::unique_ptr<AsyncTask> task(new AsyncTask());\n  task->state = state->shared_from_this();\n  task->args.resize(" +
     count.to_string() +
     ");\n" +
+    (if has_callbacks(call.function) {
+      "  task->events = std::make_shared<EventChannel>(env, true);\n  if (!OpenEvents(env, *task->events, \"moonohos." +
+      name +
+      ".events\")) return nullptr;\n"
+    } else {
+      ""
+    }) +
     read_arguments(call, plan, slots) +
     "  if (!ReadToken(env, argc, argv, " +
     count.to_string() +
@@ -333,6 +365,69 @@ fn async_callback(
     name +
     ");\n } catch (...) { ThrowCurrent(env); return nullptr; }\n}\n" +
     entry_points(name, count + 1)
+  source
+}
+
+///|
+fn has_callbacks(function : Callable) -> Bool {
+  function.params.any(p => p.kind is Callback(_))
+}
+
+///|
+/// Per callback parameter: the `moonohos_event_*` function the MoonBit closure
+/// calls (copies arguments under the gate) and the maker that creates the
+/// ArkTS arguments on the JS thread.
+fn event_functions(call : CallPlan, plan : GenerationPlan) -> String {
+  let mut source = ""
+  let mut slot = 0
+  for index, param in call.function.params {
+    guard param.kind is Callback(args) else { continue }
+    let symbol = event_symbol(call.function.name, index)
+    let types = plan.types[call.inputs[index]].dependencies
+    let count = args.length().to_string()
+    source += "static bool Args_" +
+      symbol +
+      "(napi_env env, const std::vector<BridgeValue> &args, std::vector<napi_value> &argv) {\n  (void)env; (void)args;\n  argv.resize(" +
+      count +
+      ");\n  return true"
+    for i, t in types {
+      source += " && Create_" +
+        t.to_string() +
+        "(env, args[" +
+        i.to_string() +
+        "], argv[" +
+        i.to_string() +
+        "])"
+    }
+    let params = args.mapi((i, a) => a.c_name() + " a" + i.to_string())
+    params.insert(0, "int64_t id")
+    source += ";\n}\nextern \"C\" void " +
+      symbol +
+      "(" +
+      params.join(", ") +
+      ") {\n  EventChannel *events = ActiveEvents(id);\n  if (!events) return;\n  try {\n    Budget budget{true};\n    std::vector<BridgeValue> args;\n    args.reserve(" +
+      count +
+      ");\n"
+    for i, t in types {
+      source += "    args.push_back(Copy_" +
+        t.to_string() +
+        "(a" +
+        i.to_string() +
+        ", budget, 0, \"" +
+        call.function.name +
+        "." +
+        param.name +
+        "[" +
+        i.to_string() +
+        "]\"));\n"
+    }
+    source += "    events->Emit(" +
+      slot.to_string() +
+      ", std::move(args), Args_" +
+      symbol +
+      ");\n  } catch (...) { events->Fail(std::current_exception()); }\n}\n"
+    slot += 1
+  }
   source
 }
 
@@ -379,6 +474,12 @@ fn ark_type(project : Project, kind : TypeExpr) -> String raise ConfigError {
       find_adapter(project, pkg_alias, type_name).ark_type
     List(element) => "Array<" + ark_type(project, element) + ">"
     Optional(inner) => ark_type(project, inner) + " | undefined"
+    Callback(args) =>
+      "(" +
+      args
+      .mapi((i, a) => "arg" + i.to_string() + ": " + ark_type(project, a))
+      .join(", ") +
+      ") => void"
     _ => kind.ark_name()
   }
 }
@@ -451,6 +552,7 @@ fn bridge_declarations(project : Project) -> String raise ConfigError {
 fn bridge_callbacks(plan : GenerationPlan) -> String raise ConfigError {
   let mut source = adapter_declarations(plan.project)
   for call in plan.calls {
+    source += event_functions(call, plan)
     source += if call.function.is_async {
       async_callback(call, plan)
     } else {

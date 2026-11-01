@@ -21,6 +21,7 @@
   ],
   "functions": [
     {"name": "build_index", "params": [{"name": "resources", "type": "@rawfile.Manager"}, {"name": "dir", "type": "String"}], "return": "SearchIndex", "async": true, "raises": true},
+    {"name": "build_index_reporting", "params": [{"name": "resources", "type": "@rawfile.Manager"}, {"name": "dir", "type": "String"}, {"name": "on_progress", "type": "(Int, Int) -> Unit"}], "return": "SearchIndex", "async": true, "raises": true},
     {"name": "search", "params": [{"name": "index", "type": "SearchIndex"}, {"name": "query", "type": "String"}, {"name": "limit", "type": "Int"}], "return": "Array[Hit]", "async": true},
     {"name": "search_now", "params": [{"name": "index", "type": "SearchIndex"}, {"name": "query", "type": "String"}, {"name": "limit", "type": "Int"}], "return": "Array[Hit]"},
     {"name": "stats", "params": [{"name": "index", "type": "SearchIndex"}], "return": "IndexStats"}

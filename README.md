@@ -18,8 +18,8 @@
 
 | 层次 | 内容 | 文档 |
 |---|---|---|
-| 接口生成 | Int/Double/Bool/String/Bytes/Array/结构体的双向转换，d.ts 生成，清单与 `.mbti` 核对 | 本文“清单” |
-| 鸿蒙运行时 | 进程门、工作线程任务、取消、句柄生命周期、env cleanup、诊断计数 | [ASYNC-THREADING.md](docs/ASYNC-THREADING.md) |
+| 接口生成 | Int/Double/Bool/String/Bytes/Array/结构体的双向转换，ArkTS 回调，d.ts 生成，清单与 `.mbti` 核对 | 本文“清单” |
+| 鸿蒙运行时 | 进程门、工作线程任务、取消、回调投递、句柄生命周期、env cleanup、诊断计数 | [ASYNC-THREADING.md](docs/ASYNC-THREADING.md) |
 | 平台扩展 | `moonohos.native.json` 受控依赖；`hilog`、`rawfile`、`task`、`deviceinfo`、`netconn`、`vibrator` 平台包 | [NATIVE-EXTENSIONS.md](docs/NATIVE-EXTENSIONS.md) |
 | 工程分发 | `init`、`build`、`har`、`verify`；SHA256 与 ELF 校验 | 本文“命令” |
 
@@ -129,12 +129,13 @@ version 1 清单保持不变；version 2 增加工作区、句柄、异步和业
 | 结构体 | `interface` | 目标包需 `pub(all) struct`，字段为自有属性，复制 |
 | 句柄（`handles`） | 带 `close()`/`isClosed()` 的对象 | MoonBit 值保留在原生侧，不复制；不能嵌套在数组或结构体中。`"methods"` 列出的函数（第一个参数是该句柄）同时成为对象方法：`index.search(q)` 等价于 `search(index, q)`（0.5） |
 | `@包.类型`（平台适配） | 如 `resourceManager.ResourceManager` | 仅作参数；由描述文件中的适配器获取与释放 |
+| 回调 `(T1, T2) -> Unit`（仅作参数） | `(arg0: T1, arg1: T2) => void` | 同步函数在调用期间直接在 UI 线程回调，回调里可以再调用本模块；异步函数在工作线程把参数复制进队列，按顺序回到 UI 线程执行，全部送达后 Promise 才完成。回调抛错时后续回调不再执行，`@task.check()` 观察到取消，调用以该错误失败。调用返回后被保存的闭包再调用会被忽略。参数须是可复制的值（不能是句柄、平台对象或回调），最多 16 个（0.6） |
 | `"async": true` | `(..., token?: CancelToken) => Promise<T>` | 工作线程执行 |
 | `"raises": true` | 抛出/拒绝 `code = ERR_MOONOHOS_BUSINESS` | MoonBit 函数须声明 `raise`，消息取错误的 `Show` 文本 |
 
 每个模块还导出 `createCancelToken()` 和 `moonohos_diagnostics()`。
 
-函数必须是所选包公开的普通函数，参数、顺序、返回类型和 `raise` 与清单一致。每次转换最多嵌套 32 层、1,048,576 个元素/字段、复制 64 MiB，超限抛出 RangeError；缺少参数或类型错误抛出 TypeError。MoonBit `panic` 会终止进程。不支持泛型、`#value` 结构体、可选或标记参数、带载荷的枚举和回调。
+函数必须是所选包公开的普通函数，参数、顺序、返回类型和 `raise` 与清单一致。每次转换最多嵌套 32 层、1,048,576 个元素/字段、复制 64 MiB，超限抛出 RangeError；缺少参数或类型错误抛出 TypeError。MoonBit `panic` 会终止进程。不支持泛型、`#value` 结构体、可选或标记参数、带载荷的枚举、有返回值的回调。
 
 ## 命令
 
@@ -204,11 +205,11 @@ SDK、HAP 与模拟器检查在本机执行。各层证明范围见 [VALIDATION-
 
 ## 路线图
 
-已在 0.5 完成：Int64、Option、无载荷枚举、句柄方法、`deviceinfo`/`netconn`/`vibrator` 平台包、`init` 演示应用、Linux/macOS CLI。
+已在 0.5 完成：Int64、Option、无载荷枚举、句柄方法、`deviceinfo`/`netconn`/`vibrator` 平台包、`init` 演示应用、Linux/macOS CLI。开发中（未发布）：ArkTS 回调（进度、事件；异步函数经线程安全函数投递）。
 
 计划中（欢迎在 issue 中讨论优先级）：
 
-- ArkTS 回调与线程安全函数（进度、事件）；
+- 有返回值的回调；回调的模拟器与真机验证；
 - ArrayBuffer 与其他 TypedArray，在能证明安全时零复制；
 - 带载荷的枚举、可选/标记参数；
 - 更多平台包：剪贴板、传感器、图像、XComponent；

@@ -61,6 +61,8 @@ fn type_depth(
         "type: " + name + " is opaque and cannot be nested in arrays or records",
       )
     Handle(_) | External(_, _) => depth
+    Callback(_) =>
+      raise Invalid("type: callbacks are only supported as function parameters")
     List(element) => type_depth(project, element, path, depth + 1, heights)
     Optional(Optional(_)) =>
       raise Invalid("type: nested Option is ambiguous in ArkTS (undefined)")
@@ -96,6 +98,33 @@ fn type_depth(
       }
       heights[name] = maximum - depth
       maximum
+    }
+  }
+}
+
+///|
+/// Callback arguments are copied to ArkTS on every invocation, so they must be
+/// copyable values; each invocation is converted within its own budget.
+fn validate_callback(
+  project : Project,
+  function : Callable,
+  param : FieldDef,
+  args : Array[TypeExpr],
+  heights : Map[String, Int32],
+) -> Unit raise ConfigError {
+  let context = "type: " + function.name + "." + param.name
+  if args.length() > 16 {
+    raise Invalid(context + ": callbacks take at most 16 arguments")
+  }
+  for arg in args {
+    match arg {
+      Handle(name) | External(_, name) =>
+        raise Invalid(
+          context + ": " + name + " is opaque and cannot be a callback argument",
+        )
+      Callback(_) =>
+        raise Invalid(context + ": nested callbacks are unsupported")
+      _ => type_depth(project, arg, [], 0, heights) |> ignore
     }
   }
 }
@@ -156,7 +185,11 @@ pub fn Project::validate(self : Project) -> Unit raise ConfigError {
       raise Invalid("type: reserved export name " + function.name)
     }
     for param in function.params {
-      type_depth(self, param.kind, [], 0, heights) |> ignore
+      match param.kind {
+        Callback(args) =>
+          validate_callback(self, function, param, args, heights)
+        kind => type_depth(self, kind, [], 0, heights) |> ignore
+      }
     }
     if function.result is External(_, name) {
       raise Invalid("type: platform value " + name + " cannot be returned")
@@ -196,6 +229,10 @@ fn collect_type(
     Scalar(_) | Enum(_) | Handle(_) | External(_, _) => ()
     List(element) | Optional(element) =>
       collect_type(project, element, seen, result)
+    Callback(args) =>
+      for arg in args {
+        collect_type(project, arg, seen, result)
+      }
     Record(name) =>
       for field in project.record_def(name).fields {
         collect_type(project, field.kind, seen, result)

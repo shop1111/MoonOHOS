@@ -69,6 +69,26 @@ Call_f                              Execute_f                        Complete_f
 - 关闭后再使用得到 `ERR_MOONOHOS_CLOSED`；重复关闭无副作用。
 - 释放路径：显式 `close()`、对象终结器、环境清理钩子。ArkRuntime 不保证终结器及时运行，应用应显式关闭（示例中的 `SearchSession.close()` 在页面 `aboutToDisappear` 中调用）。
 
+### 回调（开发中，未发布）
+
+清单参数类型写作 `(T1, T2) -> Unit`，ArkTS 侧是 `(arg0: T1, arg1: T2) => void`。业务函数收到的是生成的 MoonBit 闭包，不是 ArkTS 函数：包装层把 ArkTS 函数换成本次调用的编号（`Int64`），闭包把参数降为边界形式（Option 为数组、枚举为整数标签）后调用桥接层的 `moonohos_event_<函数>_<参数序号>`。桥接层在门内把参数复制为 C++ 数据，此后不再接触 MoonBit 对象。
+
+| | 同步函数 | 异步函数 |
+|---|---|---|
+| 执行线程 | 调用期间在 ArkTS 线程直接调用（每次一个 handle scope） | 工作线程入队 `napi_call_threadsafe_function`（非阻塞、队列不限长），在 ArkTS 线程按入队顺序调用 |
+| 与结果的顺序 | 函数返回前全部执行完 | `Complete` 时若仍有排队的回调，任务暂存，最后一个回调执行后才 resolve/reject |
+| 回调中调用本模块 | 允许：进程门对持有线程可重入，取消与回调作用域会在嵌套调用后恢复 | 回调运行时工作线程可能仍持有门，回调中的同步调用会等待任务结束 |
+| 回调抛错 | 后续回调跳过；`@task.check()`/`@task.cancelled()` 看到取消；MoonBit 返回后抛出该错误（优先于业务错误） | 同左，Promise 以该错误拒绝 |
+| 参数无法转换（如非有限 Double、超出转换上限） | 不调用 ArkTS，按 RangeError/TypeError 失败 | 同左，拒绝 |
+
+规则：
+
+- 只有本次调用正在运行时，闭包调用才会送达。业务代码把闭包保存起来，调用返回后再调用，会因编号不匹配被忽略。
+- 用户的 `CancelToken` 不会因回调失败而被置为取消；失败只影响本次调用。
+- 线程安全函数在 ArkTS 线程创建，任务结算时释放；每个异步任务最多一个。环境销毁时，排队中的回调不再执行，暂存的任务直接释放（计入 `cancelledTasks`）。
+- 工作线程上唯一的 Node-API 调用是事件函数中的 `napi_call_threadsafe_function`，它按规范可在任意线程调用；`Execute_*` 函数体本身仍不含 Node-API 调用。
+- 回调的每次调用单独计算转换上限（深度 32、元素数和字节数同上）。
+
 ### 环境销毁
 
 - 每个 ArkTS 环境注册 env cleanup hook：标记关闭、取消该环境登记的令牌、关闭其句柄。

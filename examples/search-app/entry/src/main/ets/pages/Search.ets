@@ -65,8 +65,14 @@ struct SearchPage {
     this.building = true;
     this.status = `正在建立索引：${dir}`;
     const started: number = now();
+    let reported: number = 0;
     try {
-      const stats: IndexStats = await this.session.open(this.resources(), dir);
+      // Progress arrives on the UI thread while MoonBit indexes on a worker.
+      const stats: IndexStats = await this.session.open(this.resources(), dir, (indexed: number, total: number) => {
+        reported = indexed;
+        this.status = `正在建立索引：${dir} ${indexed}/${total}`;
+      });
+      log(`MOONSEARCH_PROGRESS dir=${dir} reported=${reported} documents=${stats.documents}`);
       this.status = `已索引 ${stats.documents} 篇文档，${stats.terms} 个词项，用时 ${now() - started} ms`;
       return stats;
     } catch (error) {

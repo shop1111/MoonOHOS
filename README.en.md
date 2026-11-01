@@ -24,7 +24,7 @@ token.cancel();                                                    // e.g. when 
 
 | Layer | What MoonOHOS does | Docs |
 |---|---|---|
-| Bridge generation | Int/Double/Bool/String/Bytes/Array/struct conversion both ways, `.d.ts` generation, manifest checked against `.mbti` | [Manifest](#manifest-moonohosjson) |
+| Bridge generation | Int/Double/Bool/String/Bytes/Array/struct conversion both ways, ArkTS callbacks, `.d.ts` generation, manifest checked against `.mbti` | [Manifest](#manifest-moonohosjson) |
 | HarmonyOS runtime | Worker-thread async exports, `CancelToken`, handle lifecycle (close, finalizer, env cleanup), business errors | [ASYNC-THREADING.md](docs/ASYNC-THREADING.md) (Chinese) |
 | Platform APIs | `moonohos.native.json` for controlled C dependencies; packages `hilog`, `rawfile`, `task`, `deviceinfo`, `netconn`, `vibrator` | [NATIVE-EXTENSIONS.md](docs/NATIVE-EXTENSIONS.md) (Chinese) |
 | Distribution | `init`, `build`, `har`, `verify`; SHA-256 and ELF verification of every package | [Commands](#commands) |
@@ -112,6 +112,7 @@ Use the HAR from an app's `oh-package.json5`:
 | struct | `interface` | `pub(all) struct`; own properties; copied |
 | handle (`handles`) | object with `close()` / `isClosed()` | MoonBit value stays native; not nestable in arrays or structs. Functions listed in `"methods"` (handle as first parameter) also become methods: `index.search(q)` is `search(index, q)` (0.5) |
 | `@pkg.Type` (platform adapter) | e.g. `resourceManager.ResourceManager` | Parameter only; acquired and released by the adapter descriptor |
+| callback `(T1, T2) -> Unit` (parameter only) | `(arg0: T1, arg1: T2) => void` | Sync functions call it on the UI thread during the call, and it may call the module again. Async functions copy the arguments into a queue on the worker; calls run on the UI thread in order, and the Promise settles after the last one. If a callback throws, later calls are skipped, `@task.check()` sees cancellation and the call fails with that error. A closure kept after its call returns is ignored. Arguments must be copyable values (not handles, platform objects or callbacks), at most 16 (0.6) |
 | `"async": true` | `(..., token?: CancelToken) => Promise<T>` | Runs on a Node-API worker thread |
 | `"raises": true` | throws / rejects with `code = ERR_MOONOHOS_BUSINESS` | The MoonBit function must declare `raise` |
 
@@ -119,7 +120,7 @@ Every module also exports `createCancelToken()` and `moonohos_diagnostics()`.
 Conversions are limited to depth 32, 1,048,576 elements and 64 MiB; violations
 throw `RangeError`, wrong argument types throw `TypeError`. A MoonBit `panic`
 terminates the process. Not yet supported: generics, `#value` structs, optional or
-labelled parameters, enums with payloads and callbacks (see
+labelled parameters, enums with payloads and callbacks that return values (see
 [CHANGELOG](CHANGELOG.md) for progress).
 
 ## Commands
@@ -169,11 +170,11 @@ what each layer proves.
 
 ## Roadmap
 
-Done in 0.5: Int64, Option, payload-free enums, handle methods, the `deviceinfo` / `netconn` / `vibrator` platform packages, the `init` demo app, and the CLI on Linux/macOS.
+Done in 0.5: Int64, Option, payload-free enums, handle methods, the `deviceinfo` / `netconn` / `vibrator` platform packages, the `init` demo app, and the CLI on Linux/macOS. In development (unreleased): ArkTS callbacks for progress and events, delivered through a threadsafe function for async functions.
 
 Planned (priorities are open for discussion in issues):
 
-- ArkTS callbacks and threadsafe functions (progress, events);
+- callbacks that return values; emulator and device validation of callbacks;
 - ArrayBuffer and other typed arrays, zero-copy where provably safe;
 - enums with payloads, optional and labelled parameters;
 - more platform packages: pasteboard, sensors, image, XComponent;

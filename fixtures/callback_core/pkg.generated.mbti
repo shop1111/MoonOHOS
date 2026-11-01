@@ -1,0 +1,40 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonohos/callback_fixture"
+
+import {
+  "shop1111/moonohos_ohos/task",
+}
+
+// Values
+pub fn count_up(Int32, (Int32) -> Unit) -> Int32 raise @task.Cancelled
+
+pub fn each_word(String, (String, Int32) -> Unit) -> Int32
+
+pub fn emit_ratio(Double, Double, (Double) -> Unit) -> Unit
+
+pub fn plain(Int32) -> Int32
+
+pub fn remember((Int32) -> Unit) -> Unit
+
+pub fn replay(Int32) -> Int32
+
+pub fn report(Int32, (Progress, Int32?, Bytes, Int64, Level) -> Unit) -> Unit
+
+pub fn scan(Array[String], (String) -> Unit, (Array[String]) -> Unit) -> Int32
+
+// Errors
+
+// Types and methods
+pub(all) enum Level {
+  Low
+  High
+}
+
+pub(all) struct Progress {
+  done : Int32
+  total : Int32
+}
+
+// Type aliases
+
+// Traits

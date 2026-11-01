@@ -500,6 +500,7 @@ pub(all) enum TypeExpr {
   Record(String)
   Handle(String)
   External(String, String)
+  Callback(Array[TypeExpr])
 } derive(Eq, @debug.Debug)
 pub fn TypeExpr::ark_name(Self) -> String
 pub fn TypeExpr::c_name(Self) -> String

@@ -4,6 +4,26 @@ All notable changes to MoonOHOS are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may break).
 
+## [Unreleased]
+
+### Added
+- ArkTS callbacks: a parameter typed `(T1, T2) -> Unit` becomes
+  `(arg0: T1, arg1: T2) => void`. The business function receives a generated
+  MoonBit closure; arguments are copied under the gate and may be any copyable
+  type (scalars, String, Bytes, arrays, records, Options, enums). Sync
+  functions invoke the callback on the JS thread during the call (the callback
+  may call the module again); async functions queue each call through a
+  threadsafe function, deliver in order on the JS thread and settle the
+  Promise after the last one. A throwing callback skips later calls, is seen
+  by `@task.check()` as cancellation and becomes the call's error. Closures
+  kept after their call are ignored. Host ASan suite `callback_core` /
+  `callback_bridge.cpp`; the search example adds `build_index_reporting` and
+  `SearchSession.open(..., onProgress)`.
+
+### Changed
+- The process gate is re-entrant on its owning thread, and cancellation scopes
+  restore the previous scope, so nested calls from callbacks are safe.
+
 ## [0.5.0] - 2026-11-01
 
 ### Added
@@ -21,7 +41,6 @@ All notable changes to MoonOHOS are recorded here. The format follows
   `match`; unknown names throw `TypeError`; cases are checked against `.mbti`.
   The HAR facade re-exports the type. Host ASan suite `enum_core` /
   `enum_bridge.cpp`.
-
 - Handle methods: `"handles": [{"name": "Index", "methods": ["search"]}]`
   attaches the listed functions (whose first parameter is the handle) to every
   handle object, so ArkTS can call `index.search(q)`; sync, async and raising
@@ -65,7 +84,6 @@ All notable changes to MoonOHOS are recorded here. The format follows
 - Migrated to the current core API: `Json(value)` instead of `.to_json()` on
   standard collections, `StringBuilder()`, `@debug.debug_inspect`.
 - CI pins the tested toolchain.
-
 - The README inside each build output describes 0.4 behaviour instead of 0.3.
 - Scripts read the DevEco Studio location from `DEVECO_STUDIO`.
 

@@ -123,6 +123,16 @@ pub fn build_index(
   resources : @rawfile.Manager,
   dir : String,
 ) -> SearchIndex raise {
+  build_index_reporting(resources, dir, (_, _) => ())
+}
+
+///|
+/// Like `build_index`, calling `on_progress(indexed, total)` after each file.
+pub fn build_index_reporting(
+  resources : @rawfile.Manager,
+  dir : String,
+  on_progress : (Int, Int) -> Unit,
+) -> SearchIndex raise {
   let log = logger()
   let names = @rawfile.list(resources, dir).filter(name => {
     name.has_suffix(".md") || name.has_suffix(".txt")
@@ -144,6 +154,7 @@ pub fn build_index(
       }
       error => raise error
     }
+    on_progress(position + 1, names.length())
   }
   let stats = stats(index)
   log.info(

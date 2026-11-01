@@ -3,8 +3,10 @@ import native, { CancelToken, Hit, IndexStats, SearchIndex } from './generated/N
 
 /**
  * One searchable index owned by a page. `open` builds the index on a worker
- * thread, `cancel` stops a running build, and `close` cancels and releases the
- * MoonBit index. Close is idempotent; call it when the page disappears.
+ * thread (reporting `onProgress(indexed, total)` on the UI thread after each
+ * file when given), `cancel` stops a running build, and `close` cancels and
+ * releases the MoonBit index. Close is idempotent; call it when the page
+ * disappears.
  */
 export class SearchSession {
   private index: SearchIndex | undefined = undefined;
@@ -14,11 +16,14 @@ export class SearchSession {
     return this.index !== undefined;
   }
 
-  async open(resources: resourceManager.ResourceManager, dir: string): Promise<IndexStats> {
+  async open(resources: resourceManager.ResourceManager, dir: string,
+    onProgress?: (indexed: number, total: number) => void): Promise<IndexStats> {
     this.close();
     const token: CancelToken = native.createCancelToken();
     this.token = token;
-    const index: SearchIndex = await native.build_index(resources, dir, token);
+    const index: SearchIndex = onProgress === undefined
+      ? await native.build_index(resources, dir, token)
+      : await native.build_index_reporting(resources, dir, onProgress, token);
     if (this.token !== token) {
       // Cancelled or superseded after the worker finished: do not keep it.
       index.close();

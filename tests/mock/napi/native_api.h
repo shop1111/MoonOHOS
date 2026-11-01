@@ -13,15 +13,17 @@
 #include <thread>
 #include <cstdint>
 #include <stdexcept>
+#include <deque>
+#include <mutex>
 #define NAPI_AUTO_LENGTH SIZE_MAX
-enum napi_status { napi_ok, napi_generic_failure, napi_pending_exception, napi_invalid_arg, napi_cancelled };
+enum napi_status { napi_ok, napi_generic_failure, napi_pending_exception, napi_invalid_arg, napi_cancelled, napi_closing, napi_function_expected };
 enum napi_qos_t { napi_qos_background, napi_qos_utility, napi_qos_default, napi_qos_user_initiated };
 struct Env;
 using napi_env = Env *;
 using napi_finalize = void (*)(napi_env, void *, void *);
 using napi_async_execute_callback = void (*)(napi_env, void *);
 using napi_async_complete_callback = void (*)(napi_env, napi_status, void *);
-enum napi_valuetype { napi_undefined, napi_number, napi_boolean, napi_string, napi_object, napi_bigint };
+enum napi_valuetype { napi_undefined, napi_number, napi_boolean, napi_string, napi_object, napi_bigint, napi_function };
 enum napi_typedarray_type { napi_uint8_array, napi_uint8_clamped_array, napi_int8_array, napi_int16_array };
 enum ObjectKind { PlainObject, ArrayBuffer, TypedArray, DataView, SharedBuffer, OrdinaryArray };
 enum napi_property_attributes { napi_default };
@@ -42,6 +44,8 @@ struct Value {
   std::string error_kind; int promise_state = 0; std::shared_ptr<Value> settled;
   // BigInt payload; `lossless` is false for values outside the int64 range.
   int64_t big = 0; bool lossless = true;
+  // ArkTS function body for napi_call_function; it throws by setting env->exception.
+  std::function<void(struct Env *, const std::vector<std::shared_ptr<Value>> &)> js;
 };
 using napi_value = Value *;
 struct Call { std::vector<napi_value> args; napi_value self = nullptr; void *data = nullptr; };
@@ -50,12 +54,45 @@ struct AsyncWork { napi_async_execute_callback execute; napi_async_complete_call
 using napi_async_work = AsyncWork *;
 struct Deferred { napi_value promise; bool settled = false; };
 using napi_deferred = Deferred *;
+struct Reference { napi_value value; bool deleted = false; };
+using napi_ref = Reference *;
+struct HandleScope { int unused = 0; };
+using napi_handle_scope = HandleScope *;
+using napi_threadsafe_function_call_js = void (*)(Env *, napi_value, void *, void *);
+enum napi_threadsafe_function_call_mode { napi_tsfn_nonblocking, napi_tsfn_blocking };
+enum napi_threadsafe_function_release_mode { napi_tsfn_release, napi_tsfn_abort };
+struct ThreadsafeFunction {
+  void *context; napi_threadsafe_function_call_js call_js;
+  std::mutex m; std::deque<void *> queue; bool released = false, closing = false; size_t calls = 0;
+};
+using napi_threadsafe_function = ThreadsafeFunction *;
 struct Env {
   std::string exception; std::string message; int operations = 0; int fail_at = -1; bool pending = false;
   Value result; Value buffer; size_t exports = 0; std::vector<std::unique_ptr<Value>> arena;
   std::vector<std::unique_ptr<AsyncWork>> works; std::vector<AsyncWork *> queue;
   std::vector<std::unique_ptr<Deferred>> deferreds;
   std::vector<std::pair<void (*)(void *), void *>> hooks; bool destroyed = false;
+  // Callback support: references, handle scopes, threadsafe functions.
+  std::vector<std::unique_ptr<Reference>> refs; int live_refs = 0, open_scopes = 0;
+  std::vector<std::unique_ptr<ThreadsafeFunction>> tsfns;
+  // Scalar results normally share one slot; callbacks need distinct values.
+  bool stable_results = false;
+  // Order of queued callbacks relative to complete: real loops do not guarantee one.
+  bool events_first = false;
+  // Delivers queued threadsafe-function calls on this (JS) thread.
+  size_t DrainEvents() {
+    size_t delivered = 0;
+    for (size_t i = 0; i < tsfns.size(); ++i) {
+      auto *fn = tsfns[i].get();
+      while (true) {
+        void *data;
+        { std::lock_guard<std::mutex> guard(fn->m); if (fn->queue.empty()) break; data = fn->queue.front(); fn->queue.pop_front(); }
+        fn->call_js(destroyed ? nullptr : this, nullptr, fn->context, data); ++delivered;
+      }
+    }
+    return delivered;
+  }
+  int LiveThreadsafeFunctions() { int live = 0; for (auto &fn : tsfns) live += fn->released ? 0 : 1; return live; }
   // Runs queued work: execute on worker threads (all at once when threaded), complete here.
   void RunWorks(bool threaded = false, napi_status status = napi_ok) {
     while (!queue.empty()) {
@@ -68,11 +105,19 @@ struct Env {
         }
         for (auto &worker : workers) worker.join();
       }
+      if (events_first) DrainEvents();
       for (auto *work : batch) work->complete(this, status, work->data);
+      DrainEvents();
     }
   }
   // Env teardown: cleanup hooks in reverse registration order.
-  void Teardown() { for (auto it = hooks.rbegin(); it != hooks.rend(); ++it) it->first(it->second); hooks.clear(); destroyed = true; }
+  void Teardown() {
+    for (auto it = hooks.rbegin(); it != hooks.rend(); ++it) it->first(it->second);
+    hooks.clear(); destroyed = true;
+    // Threadsafe functions close; queued calls are handed back with a null env.
+    for (auto &fn : tsfns) { std::lock_guard<std::mutex> guard(fn->m); fn->closing = true; }
+    DrainEvents();
+  }
   // Simulated GC of every wrapped object allocated in this env.
   void Collect() { for (auto &value : arena) if (value->native && value->finalize) { value->finalize(this, value->native, nullptr); value->native = nullptr; } }
   ~Env() { if (!destroyed) Teardown(); Collect(); }
@@ -82,6 +127,11 @@ struct napi_property_descriptor {
   const char *utf8name; napi_value name; napi_callback method; void *getter;
   void *setter; napi_value value; napi_property_attributes attributes; void *data;
 };
+inline napi_value Allocate(napi_env env, Value value);
+inline napi_value ResultSlot(napi_env e, Value value) {
+  if (e->stable_results) return Allocate(e, std::move(value));
+  e->result = std::move(value); return &e->result;
+}
 inline napi_status Step(napi_env e) {
   if (e->operations++ == e->fail_at) {
     if (e->pending) { e->exception = "PendingException"; return napi_pending_exception; }
@@ -110,20 +160,20 @@ inline napi_status napi_get_value_bool(napi_env e, napi_value value, bool *out) 
   auto s = Step(e); if (s == napi_ok) *out = value->boolean; return s;
 }
 inline napi_status napi_create_double(napi_env e, double value, napi_value *out) {
-  auto s = Step(e); if (s == napi_ok) { e->result = {napi_number, value, false}; *out = &e->result; } return s;
+  auto s = Step(e); if (s == napi_ok) *out = ResultSlot(e, {napi_number, value, false}); return s;
 }
 inline napi_status napi_create_int32(napi_env e, int value, napi_value *out) { return napi_create_double(e, value, out); }
 inline napi_status napi_get_value_bigint_int64(napi_env e, napi_value value, int64_t *out, bool *lossless) {
   auto s = Step(e); if (s == napi_ok) { *out = value->big; *lossless = value->lossless; } return s;
 }
 inline napi_status napi_create_bigint_int64(napi_env e, int64_t value, napi_value *out) {
-  auto s = Step(e); if (s == napi_ok) { e->result = {}; e->result.type = napi_bigint; e->result.big = value; *out = &e->result; } return s;
+  auto s = Step(e); if (s == napi_ok) { Value v; v.type = napi_bigint; v.big = value; *out = ResultSlot(e, std::move(v)); } return s;
 }
 inline napi_status napi_get_boolean(napi_env e, bool value, napi_value *out) {
-  auto s = Step(e); if (s == napi_ok) { e->result = {napi_boolean, 0, value}; *out = &e->result; } return s;
+  auto s = Step(e); if (s == napi_ok) *out = ResultSlot(e, {napi_boolean, 0, value}); return s;
 }
 inline napi_status napi_get_undefined(napi_env e, napi_value *out) {
-  auto s = Step(e); if (s == napi_ok) { e->result = {}; *out = &e->result; } return s;
+  auto s = Step(e); if (s == napi_ok) *out = ResultSlot(e, {}); return s;
 }
 inline napi_status napi_define_properties(napi_env e, napi_value object, size_t count, const napi_property_descriptor *descriptors) {
   auto s = Step(e); if (s != napi_ok) return s;
@@ -154,8 +204,7 @@ inline napi_status napi_get_value_string_utf16(napi_env e, napi_value v, char16_
 }
 inline napi_status napi_create_string_utf16(napi_env e, const char16_t *data, size_t length, napi_value *out) {
   auto status = Step(e); if (status != napi_ok) return status;
-  e->result = Value{}; e->result.type = napi_string;
-  e->result.text.assign(data, length); *out = &e->result; return napi_ok;
+  Value v; v.type = napi_string; v.text.assign(data, length); *out = ResultSlot(e, std::move(v)); return napi_ok;
 }
 inline napi_status napi_is_typedarray(napi_env e, napi_value v, bool *out) {
   auto status = Step(e); if (status == napi_ok) *out = v->kind == TypedArray; return status;
@@ -311,4 +360,55 @@ inline napi_value CallMethod(napi_env e, Value &object, const std::string &name,
   auto &method = object.properties.at(name);
   Call call{std::move(args), &object, method->method_data};
   return method->method(e, &call);
+}
+
+// ArkTS functions, references, handle scopes and threadsafe functions.
+inline napi_status napi_call_function(napi_env e, napi_value, napi_value function, size_t argc, const napi_value *argv, napi_value *result) {
+  auto s = Step(e); if (s != napi_ok) return s;
+  if (function->type != napi_function || !function->js) return napi_function_expected;
+  std::vector<std::shared_ptr<Value>> args;
+  for (size_t i = 0; i < argc; ++i) args.push_back(Clone(*argv[i]));
+  e->exception.clear();
+  function->js(e, args);
+  if (!e->exception.empty()) return napi_pending_exception;
+  *result = Allocate(e, Value{});
+  return napi_ok;
+}
+inline napi_status napi_create_reference(napi_env e, napi_value value, uint32_t, napi_ref *out) {
+  auto s = Step(e); if (s != napi_ok) return s;
+  e->refs.push_back(std::make_unique<Reference>(Reference{value})); ++e->live_refs; *out = e->refs.back().get(); return s;
+}
+inline napi_status napi_get_reference_value(napi_env e, napi_ref ref, napi_value *out) {
+  auto s = Step(e); if (s != napi_ok) return s;
+  if (ref->deleted) throw std::logic_error("reference used after delete");
+  *out = ref->value; return s;
+}
+inline napi_status napi_delete_reference(napi_env e, napi_ref ref) {
+  if (ref->deleted) throw std::logic_error("reference deleted twice");
+  ref->deleted = true; --e->live_refs; return napi_ok;
+}
+inline napi_status napi_open_handle_scope(napi_env e, napi_handle_scope *out) {
+  static HandleScope scope; auto s = Step(e); if (s == napi_ok) { ++e->open_scopes; *out = &scope; } return s;
+}
+inline napi_status napi_close_handle_scope(napi_env e, napi_handle_scope) { --e->open_scopes; return napi_ok; }
+inline napi_status napi_create_threadsafe_function(napi_env e, napi_value, napi_value, napi_value, size_t, size_t, void *, napi_finalize, void *context, napi_threadsafe_function_call_js call_js, napi_threadsafe_function *out) {
+  auto s = Step(e); if (s != napi_ok) return s;
+  e->tsfns.push_back(std::make_unique<ThreadsafeFunction>());
+  e->tsfns.back()->context = context; e->tsfns.back()->call_js = call_js; *out = e->tsfns.back().get(); return s;
+}
+// Thread-safe; not counted by failure injection (it runs on worker threads).
+inline napi_status napi_call_threadsafe_function(napi_threadsafe_function fn, void *data, napi_threadsafe_function_call_mode) {
+  std::lock_guard<std::mutex> guard(fn->m);
+  if (fn->released || fn->closing) return napi_closing;
+  fn->queue.push_back(data); ++fn->calls; return napi_ok;
+}
+inline napi_status napi_release_threadsafe_function(napi_threadsafe_function fn, napi_threadsafe_function_release_mode) {
+  std::lock_guard<std::mutex> guard(fn->m);
+  if (fn->released) throw std::logic_error("threadsafe function released twice");
+  if (!fn->queue.empty()) throw std::logic_error("threadsafe function released with queued calls");
+  fn->released = true; return napi_ok;
+}
+// Test helper: an ArkTS function value.
+inline Value Function(std::function<void(Env *, const std::vector<std::shared_ptr<Value>> &)> body) {
+  Value v; v.type = napi_function; v.js = std::move(body); return v;
 }

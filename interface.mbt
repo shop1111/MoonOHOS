@@ -154,7 +154,28 @@ fn InterfaceCursor::primary(
     raise Invalid("interface: type nesting exceeds 32")
   }
   let name = self.take()
-  if name == "Array" || name == "Option" {
+  if name == "(" {
+    // Function type `(T1, T2) -> R`; only `Unit` results without effects.
+    let args : Array[TypeExpr] = []
+    if self.peek() != ")" {
+      while true {
+        args.push(self.kind(depth + 1))
+        if self.peek() != "," {
+          break
+        }
+        self.take() |> ignore
+      }
+    }
+    self.expect(")")
+    self.expect("-")
+    self.expect(">")
+    if self.take() != "Unit" || self.peek() == "raise" || self.peek() == "?" {
+      raise Invalid(
+        "interface: callbacks must be (T1, T2) -> Unit without raise or Option",
+      )
+    }
+    Callback(args)
+  } else if name == "Array" || name == "Option" {
     self.expect("[")
     let element = self.kind(depth + 1)
     self.expect("]")

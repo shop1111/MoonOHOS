@@ -63,3 +63,16 @@ test "rawfile documents are indexed on the host" {
   }
   assert_eq(missing, "rawfile not found: missing")
 }
+
+///|
+test "index builds report progress per file" {
+  let resources = @rawfile.host_manager("testdata")
+  let reported : Array[(Int, Int)] = []
+  let index = build_index_reporting(resources, "docs", (done, total) => {
+    reported.push((done, total))
+  })
+  assert_eq(stats(index).documents, 12)
+  assert_eq(reported.length(), 12)
+  assert_eq(reported[0], (1, 12))
+  assert_eq(reported[11], (12, 12))
+}

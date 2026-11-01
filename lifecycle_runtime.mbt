@@ -14,8 +14,16 @@ fn lifecycle_core() -> String {
     #|static std::atomic<int32_t> completed_tasks{0}, cancelled_tasks{0}, env_cleanups{0};
     #|class Gate {
     #| public:
-    #|  void lock() { m_.lock(); owner_.store(std::this_thread::get_id()); std::call_once(initialized, moonohos_initialize); }
-    #|  void unlock() { Drain(); owner_.store(std::thread::id()); m_.unlock(); Retry(); }
+    #|  // Re-entrant on the owning thread: an ArkTS callback invoked during a sync
+    #|  // call may call the module again.
+    #|  void lock() {
+    #|    if (held()) { ++depth_; return; }
+    #|    m_.lock(); owner_.store(std::this_thread::get_id()); std::call_once(initialized, moonohos_initialize);
+    #|  }
+    #|  void unlock() {
+    #|    if (depth_ > 0) { --depth_; return; }
+    #|    Drain(); owner_.store(std::thread::id()); m_.unlock(); Retry();
+    #|  }
     #|  bool held() const { return owner_.load() == std::this_thread::get_id(); }
     #|  // Releases one owned reference without blocking a JS thread behind a long task.
     #|  void release(void *value) noexcept {
@@ -40,6 +48,7 @@ fn lifecycle_core() -> String {
     #|    m_.unlock();
     #|  }
     #|  std::mutex m_, queue_;
+    #|  int32_t depth_ = 0; // owner only
     #|  std::atomic<std::thread::id> owner_{};
     #|  std::vector<void *> deferred_;
     #|};
@@ -52,10 +61,14 @@ fn lifecycle_core() -> String {
     #|};
     #|struct CancelState { std::atomic<bool> cancelled{false}; };
     #|static CancelState *current_cancel = nullptr; // gate-protected
-    #|extern "C" int32_t moonohos_bridge_cancelled(void) { return current_cancel && current_cancel->cancelled.load() ? 1 : 0; }
+    #|static const std::atomic<bool> *current_failed = nullptr; // gate-protected: a callback of the running call failed
+    #|extern "C" int32_t moonohos_bridge_cancelled(void) {
+    #|  return (current_cancel && current_cancel->cancelled.load()) || (current_failed && current_failed->load()) ? 1 : 0;
+    #|}
     #|struct CancelScope {
-    #|  explicit CancelScope(CancelState *state) { current_cancel = state; }
-    #|  ~CancelScope() { current_cancel = nullptr; }
+    #|  CancelState *previous;
+    #|  explicit CancelScope(CancelState *state) : previous(current_cancel) { current_cancel = state; }
+    #|  ~CancelScope() { current_cancel = previous; }
     #|};
     #|static bool business_raised = false; // gate-protected
     #|static std::u16string business_message;
@@ -304,9 +317,11 @@ fn lifecycle_napi() -> String {
     #|  }
     #|  return result;
     #|}
+    #|struct EventChannel;
     #|struct AsyncTask {
     #|  std::shared_ptr<EnvState> state;
     #|  std::shared_ptr<CancelState> cancel;
+    #|  std::shared_ptr<EventChannel> events; // set when the function takes callbacks
     #|  napi_async_work work = nullptr;
     #|  napi_deferred deferred = nullptr;
     #|  std::vector<BridgeValue> args;
@@ -318,14 +333,135 @@ fn lifecycle_napi() -> String {
     #|  std::u16string business;
     #|  ~AsyncTask() { gate.release(handle_result); }
     #|};
+    #|using TaskCreator = bool (*)(napi_env, AsyncTask &, napi_value &);
+    #|using EventMaker = bool (*)(napi_env, const std::vector<BridgeValue> &, std::vector<napi_value> &);
+    #|struct PendingEvent { size_t slot; std::vector<BridgeValue> args; EventMaker make; };
+    #|static std::atomic<int64_t> next_channel{1};
+    #|// The ArkTS callbacks of one call. Sync calls invoke them directly on the JS
+    #|// thread; async calls copy the arguments under the gate and queue them through
+    #|// a threadsafe function, and the Promise settles after the queue drains. The
+    #|// first failure wins, cancels the call cooperatively and skips later events.
+    #|struct EventChannel {
+    #|  const int64_t id = next_channel.fetch_add(1);
+    #|  napi_env env; // JS thread; null once closed
+    #|  const bool threaded;
+    #|  std::vector<napi_value> functions; // sync: valid for the duration of the call
+    #|  std::vector<napi_ref> refs;        // async
+    #|  napi_threadsafe_function tsfn = nullptr;
+    #|  std::atomic<bool> failed{false};
+    #|  std::atomic<int32_t> pending{0};
+    #|  std::exception_ptr fault;   // written once, by the first failure
+    #|  napi_ref thrown = nullptr;  // JS thread
+    #|  std::unique_ptr<AsyncTask> parked; // completed task waiting for queued events
+    #|  napi_status parked_status = napi_ok;
+    #|  TaskCreator parked_create = nullptr;
+    #|  EventChannel(napi_env value, bool queue) : env(value), threaded(queue) {}
+    #|  ~EventChannel() { Close(); }
+    #|  EventChannel(const EventChannel &) = delete;
+    #|  EventChannel &operator=(const EventChannel &) = delete;
+    #|  void Close() noexcept {
+    #|    if (!env) return;
+    #|    napi_env e = std::exchange(env, nullptr);
+    #|    for (napi_ref ref : refs) napi_delete_reference(e, ref);
+    #|    refs.clear();
+    #|    if (thrown) napi_delete_reference(e, std::exchange(thrown, nullptr));
+    #|    if (tsfn) napi_release_threadsafe_function(std::exchange(tsfn, nullptr), napi_tsfn_release);
+    #|  }
+    #|  void Fail(std::exception_ptr error) noexcept { if (!failed.exchange(true)) fault = error; }
+    #|  // JS thread: keeps the pending exception (or a native error) for the caller.
+    #|  void Capture(napi_env e) noexcept {
+    #|    napi_value error = nullptr;
+    #|    napi_valuetype type = napi_undefined;
+    #|    if (napi_get_and_clear_last_exception(e, &error) != napi_ok || !error || napi_typeof(e, error, &type) != napi_ok) error = nullptr;
+    #|    if (!error || type == napi_undefined) error = MakeError(e, Outcome::Native, "callback failed", u"");
+    #|    if (failed.exchange(true)) return;
+    #|    if (!error || napi_create_reference(e, error, 1, &thrown) != napi_ok) {
+    #|      thrown = nullptr;
+    #|      fault = std::make_exception_ptr(std::runtime_error("callback failed"));
+    #|    }
+    #|  }
+    #|  void Call(napi_env e, napi_value function, const std::vector<BridgeValue> &args, EventMaker make) noexcept {
+    #|    try {
+    #|      std::vector<napi_value> argv;
+    #|      napi_value receiver, ignored;
+    #|      if (!make(e, args, argv) || !Check(e, napi_get_undefined(e, &receiver)) ||
+    #|          napi_call_function(e, receiver, function, argv.size(), argv.data(), &ignored) != napi_ok) Capture(e);
+    #|    } catch (...) { Fail(std::current_exception()); }
+    #|  }
+    #|  // Gate holder: deliver now (sync) or queue for the JS thread (async).
+    #|  void Emit(size_t slot, std::vector<BridgeValue> args, EventMaker make) {
+    #|    if (!threaded) {
+    #|      napi_handle_scope scope;
+    #|      if (napi_open_handle_scope(env, &scope) != napi_ok) { Capture(env); return; }
+    #|      Call(env, functions[slot], args, make);
+    #|      napi_close_handle_scope(env, scope);
+    #|      return;
+    #|    }
+    #|    std::unique_ptr<PendingEvent> event(new PendingEvent{slot, std::move(args), make});
+    #|    pending.fetch_add(1);
+    #|    if (napi_call_threadsafe_function(tsfn, event.get(), napi_tsfn_nonblocking) != napi_ok) {
+    #|      pending.fetch_sub(1);
+    #|      throw std::runtime_error("cannot queue callback");
+    #|    }
+    #|    event.release();
+    #|  }
+    #|  // Sync calls, after the gate is released: rethrow the first failure.
+    #|  napi_value Raise(napi_env e) {
+    #|    if (thrown) {
+    #|      napi_value error = nullptr;
+    #|      bool found = napi_get_reference_value(e, thrown, &error) == napi_ok && error;
+    #|      napi_delete_reference(e, std::exchange(thrown, nullptr));
+    #|      if (found && napi_throw(e, error) == napi_ok) return nullptr;
+    #|    }
+    #|    if (fault) std::rethrow_exception(fault);
+    #|    throw std::runtime_error("callback failed");
+    #|  }
+    #|};
+    #|static EventChannel *current_events = nullptr; // gate-protected
+    #|struct EventScope {
+    #|  EventChannel *previous;
+    #|  const std::atomic<bool> *previous_failed;
+    #|  explicit EventScope(EventChannel *value) : previous(current_events), previous_failed(current_failed) {
+    #|    current_events = value; current_failed = value ? &value->failed : nullptr;
+    #|  }
+    #|  ~EventScope() { current_events = previous; current_failed = previous_failed; }
+    #|};
+    #|// Called from generated `moonohos_event_*` while MoonBit runs. A closure kept
+    #|// beyond its call no longer matches the running call and is ignored.
+    #|static EventChannel *ActiveEvents(int64_t id) {
+    #|  return current_events && current_events->id == id && !current_events->failed.load() ? current_events : nullptr;
+    #|}
+    #|static bool ReadCallback(napi_env env, napi_value value, EventChannel &events, const std::string &path) {
+    #|  napi_valuetype type;
+    #|  if (!Check(env, napi_typeof(env, value, &type))) return false;
+    #|  if (type != napi_function) throw TypeFault(path + ": function required");
+    #|  if (!events.threaded) { events.functions.push_back(value); return true; }
+    #|  napi_ref ref;
+    #|  if (!Check(env, napi_create_reference(env, value, 1, &ref))) return false;
+    #|  try { events.refs.push_back(ref); } catch (...) { napi_delete_reference(env, ref); throw; }
+    #|  return true;
+    #|}
     #|// Runs on the JS thread; never resolves twice and never touches MoonBit objects.
-    #|static void SettleTask(napi_env env, std::unique_ptr<AsyncTask> task, napi_status status, bool (*create)(napi_env, AsyncTask &, napi_value &)) {
+    #|static void SettleTask(napi_env env, std::unique_ptr<AsyncTask> task, napi_status status, TaskCreator create) {
     #|  pending_tasks.fetch_sub(1);
     #|  napi_delete_async_work(env, task->work);
     #|  if (status == napi_cancelled) task->outcome = Outcome::Cancelled;
+    #|  // A failing callback decides the outcome, whatever the task itself did.
+    #|  napi_value thrown = nullptr;
+    #|  if (task->events) {
+    #|    EventChannel &events = *task->events;
+    #|    if (events.failed.load()) {
+    #|      if (events.thrown && napi_get_reference_value(env, events.thrown, &thrown) != napi_ok) thrown = nullptr;
+    #|      if (thrown) task->outcome = Outcome::Native;
+    #|      else if (events.fault) task->outcome = Classify(events.fault, task->message, task->business);
+    #|      else { task->outcome = Outcome::Native; task->message = "callback failed"; }
+    #|    }
+    #|    events.Close();
+    #|  }
     #|  if (task->outcome == Outcome::Cancelled) task->message = "task cancelled";
     #|  (task->outcome == Outcome::Cancelled ? cancelled_tasks : completed_tasks).fetch_add(1);
     #|  if (task->state->Closing()) return;
+    #|  if (thrown) { napi_reject_deferred(env, task->deferred, thrown); return; }
     #|  if (task->outcome == Outcome::Ok) {
     #|    napi_value value = nullptr;
     #|    bool created = false;
@@ -342,6 +478,43 @@ fn lifecycle_napi() -> String {
     #|  }
     #|  if (!error) napi_get_undefined(env, &error);
     #|  napi_reject_deferred(env, task->deferred, error);
+    #|}
+    #|// Generated Complete_* entry: a task whose events are still queued settles
+    #|// after the last one, so ArkTS sees every callback before the Promise.
+    #|static void FinishTask(napi_env env, std::unique_ptr<AsyncTask> task, napi_status status, TaskCreator create) {
+    #|  EventChannel *events = task->events.get();
+    #|  if (events && events->pending.load() > 0) {
+    #|    events->parked_status = status;
+    #|    events->parked_create = create;
+    #|    events->parked = std::move(task);
+    #|    return;
+    #|  }
+    #|  SettleTask(env, std::move(task), status, create);
+    #|}
+    #|// Threadsafe-function call_js on the JS thread; `env` is null during teardown.
+    #|static void DeliverEvent(napi_env env, napi_value, void *context, void *data) {
+    #|  auto *events = static_cast<EventChannel *>(context);
+    #|  std::unique_ptr<PendingEvent> event(static_cast<PendingEvent *>(data));
+    #|  if (env && events->env && !events->failed.load()) {
+    #|    napi_value function = nullptr;
+    #|    if (napi_get_reference_value(env, events->refs[event->slot], &function) == napi_ok && function)
+    #|      events->Call(env, function, event->args, event->make);
+    #|    else events->Capture(env);
+    #|  }
+    #|  event.reset();
+    #|  if (events->pending.fetch_sub(1) != 1 || !events->parked) return;
+    #|  std::unique_ptr<AsyncTask> task = std::move(events->parked);
+    #|  if (!env) { // teardown: drop JS state without Node-API
+    #|    events->env = nullptr;
+    #|    pending_tasks.fetch_sub(1); cancelled_tasks.fetch_add(1);
+    #|    return;
+    #|  }
+    #|  SettleTask(env, std::move(task), events->parked_status, events->parked_create);
+    #|}
+    #|static bool OpenEvents(napi_env env, EventChannel &events, const char *name) {
+    #|  napi_value resource;
+    #|  if (!Check(env, napi_create_string_utf8(env, name, NAPI_AUTO_LENGTH, &resource))) return false;
+    #|  return Check(env, napi_create_threadsafe_function(env, nullptr, nullptr, resource, 0, 1, nullptr, nullptr, &events, DeliverEvent, &events.tsfn));
     #|}
     #|static napi_value QueueTask(napi_env env, std::unique_ptr<AsyncTask> task, const char *name, napi_async_execute_callback execute, napi_async_complete_callback complete) {
     #|  if (task->state->Closing()) throw ClosedFault(std::string(name) + ": environment is closing");

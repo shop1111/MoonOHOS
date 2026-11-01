@@ -9,6 +9,8 @@ import {
 // Values
 pub fn build_index(@rawfile.Manager, String) -> SearchIndex raise
 
+pub fn build_index_reporting(@rawfile.Manager, String, (Int32, Int32) -> Unit) -> SearchIndex raise
+
 pub fn index_texts(Array[String], Array[String]) -> SearchIndex raise @task.Cancelled
 
 pub fn search(SearchIndex, String, Int32) -> Array[Hit]

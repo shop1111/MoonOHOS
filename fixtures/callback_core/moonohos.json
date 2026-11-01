@@ -1,0 +1,13 @@
+{"version":2,"module":".","package":"moonohos/callback_fixture","nativeModule":"callbackfix","workspace":"moon.work",
+ "enums":[{"name":"Level","cases":["Low","High"]}],
+ "types":[{"name":"Progress","fields":[{"name":"done","type":"Int"},{"name":"total","type":"Int"}]}],
+ "functions":[
+  {"name":"each_word","params":[{"name":"text","type":"String"},{"name":"visit","type":"(String, Int) -> Unit"}],"return":"Int"},
+  {"name":"report","params":[{"name":"steps","type":"Int"},{"name":"on_step","type":"(Progress, Int?, Bytes, Int64, Level) -> Unit"}],"return":"Unit"},
+  {"name":"count_up","params":[{"name":"n","type":"Int"},{"name":"on_progress","type":"(Int) -> Unit"}],"return":"Int","async":true,"raises":true},
+  {"name":"scan","params":[{"name":"words","type":"Array[String]"},{"name":"on_word","type":"(String) -> Unit"},{"name":"on_done","type":"(Array[String]) -> Unit"}],"return":"Int","async":true},
+  {"name":"remember","params":[{"name":"callback","type":"(Int) -> Unit"}],"return":"Unit"},
+  {"name":"replay","params":[{"name":"x","type":"Int"}],"return":"Int"},
+  {"name":"emit_ratio","params":[{"name":"a","type":"Double"},{"name":"b","type":"Double"},{"name":"on_ratio","type":"(Double) -> Unit"}],"return":"Unit"},
+  {"name":"plain","params":[{"name":"x","type":"Int"}],"return":"Int"}
+ ]}
