@@ -2,7 +2,8 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { systemDateTime } from '@kit.BasicServicesKit';
 import { resourceManager } from '@kit.LocalizationKit';
 import native, { Hit, IndexStats, SearchSession } from '@moonohos/search';
-import { typeTagProbe } from './TypeTagProbe';
+import { memoryProbe, typeTagProbe, typedArrayProbe } from './BridgeProbes';
+import { runTaskPool, runWorker } from './Concurrency';
 
 const TAG: string = 'MoonSearchApp';
 
@@ -102,6 +103,10 @@ struct SearchPage {
     log(`MOONSEARCH_SYNC_QUERY hits=${quick.length} top=${quick.length > 0 ? quick[0].path : ''}`);
     if (this.round <= 1) {
       log(`MOONSEARCH_TYPETAG ${await typeTagProbe(native, this.resources())}`);
+      log(`MOONSEARCH_TYPEDARRAY ${await typedArrayProbe(native, this.resources())}`);
+      log(`MOONSEARCH_MEMORY ${await memoryProbe(native, this.resources())}`);
+      log(`MOONSEARCH_WORKER ${await runWorker()}`);
+      log(`MOONSEARCH_TASKPOOL ${await runTaskPool()}`);
     }
 
     const cancelStarted: number = now();

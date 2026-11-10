@@ -30,7 +30,7 @@
 
 | 层次 | 作用 | 状态 |
 |---|---|---|
-| 鸿蒙运行时 | ArkTS ↔ MoonBit：类型转换、d.ts 生成、后台线程任务、取消、ArkTS 回调、句柄生命周期 | **已实现**。宿主 ASan 覆盖全部能力。**x86_64 模拟器上已运行**（moonc 0.10.20 构建，2026-11-11）：后台线程异步任务、取消、ArkTS 进度回调、句柄方法、句柄类型标记、句柄生命周期。**设备上尚未运行**：Int64、Option、枚举 |
+| 鸿蒙运行时 | ArkTS ↔ MoonBit：类型转换、d.ts 生成、后台线程任务、取消、ArkTS 回调、句柄生命周期 | **已实现**。宿主 ASan 覆盖全部能力。**x86_64 模拟器上已运行**（moonc 0.10.20 构建，2026-11-11）：后台线程异步任务、取消、ArkTS 进度回调、句柄方法、句柄类型标记、句柄生命周期，以及 0.7 的 `Float64Array`、外部内存上报、在 Worker 和 TaskPool 中加载模块。**设备上尚未运行**：Int64、Option、枚举、其他三种 TypedArray |
 | 系统能力 | MoonBit 直接调用鸿蒙 NDK | **部分实现**：`hilog`、`rawfile`、`task`、`deviceinfo`、`netconn`、`vibrator` 6 个平台包，以及第三方 C 依赖的接入机制。**计划**：用 SDK 头文件生成绑定，批量覆盖更多模块 |
 | 图形 | MoonBit 通过 XComponent 渲染画面、处理触摸 | **计划中** |
 | 工程集成 | 初始化、交叉编译、HAR 打包、产物校验 | **已实现** CLI（`init`、`build`、`har`、`verify`）。**计划**：Hvigor 插件，在 DevEco 中直接构建；发布到 ohpm |
@@ -40,7 +40,7 @@
 | [ASYNC-THREADING.md](docs/ASYNC-THREADING.md) | 线程模型、取消、回调、生命周期 |
 | [NATIVE-EXTENSIONS.md](docs/NATIVE-EXTENSIONS.md) | 平台包与 Native 依赖接入 |
 | [COMPARISON.md](docs/COMPARISON.md) | 与 napi-mbt、ohos-rs 的逐项对照 |
-| [VALIDATION-0.7.md](docs/VALIDATION-0.7.md) | moonc 0.10.20 构建的模拟器运行记录：异步、取消、回调、类型标记 |
+| [VALIDATION-0.7.md](docs/VALIDATION-0.7.md) | moonc 0.10.20 构建的模拟器运行记录：异步、取消、回调、类型标记、TypedArray、外部内存、Worker/TaskPool |
 | [VALIDATION-0.5.md](docs/VALIDATION-0.5.md) | 各项能力的验证范围（0.4 见 [VALIDATION-0.4.md](docs/VALIDATION-0.4.md)） |
 
 ### 与 napi-mbt 的关系
@@ -148,17 +148,20 @@ version 1 清单保持不变；version 2 增加工作区、句柄、异步和业
 | `Unit`（返回值） | `void` | |
 | `String` | `string` | UTF-16 码元原样复制，支持内嵌 NUL 与未配对代理 |
 | `Bytes` | `Uint8Array` | 只接受普通、未分离 ArrayBuffer 上的视图，复制 |
+| `FixedArray[Double]` / `FixedArray[Float]` / `FixedArray[Int]` / `FixedArray[Int64]` | `Float64Array` / `Float32Array` / `Int32Array` / `BigInt64Array` | 元素存储整块复制（memcpy），接受带偏移的视图；元素类型不符、普通数组、Sendable 或已分离的缓冲区抛 TypeError。NaN、Infinity 原样保留。可用于参数、返回值、结构体字段、数组元素、Option、异步结果和回调参数（0.7）。用 `FixedArray[Float]` 的包需在 `moon.pkg` 中导入 `moonbitlang/core/float` |
 | `Array[T]` | `Array<T>` | 稠密、非 Sendable，复制 |
 | 结构体 | `interface` | 目标包需 `pub(all) struct`，字段为自有属性，复制 |
-| 句柄（`handles`） | 带 `close()`/`isClosed()` 的对象 | MoonBit 值保留在原生侧，不复制；不能嵌套在数组或结构体中。`"methods"` 列出的函数（第一个参数是该句柄）同时成为对象方法：`index.search(q)` 等价于 `search(index, q)`（0.5） |
+| 句柄（`handles`） | 带 `close()`/`isClosed()` 的对象 | MoonBit 值保留在原生侧，不复制；不能嵌套在数组或结构体中。`"methods"` 列出的函数（第一个参数是该句柄）同时成为对象方法：`index.search(q)` 等价于 `search(index, q)`（0.5）。对象带本模块的类型标记，别的原生模块的对象在读取指针前被拒绝（0.7）。`"size"` 指定一个 `(句柄) -> Int` 函数，句柄创建时调用一次，返回的字节数通过 `napi_wrap_enhance` 告知 ArkTS 垃圾回收器（0.7） |
 | `@包.类型`（平台适配） | 如 `resourceManager.ResourceManager` | 仅作参数；由描述文件中的适配器获取与释放 |
 | 回调 `(T1, T2) -> Unit`（仅作参数） | `(arg0: T1, arg1: T2) => void` | 同步函数在调用期间直接在 UI 线程回调，回调里可以再调用本模块；异步函数在工作线程把参数复制进队列，按顺序回到 UI 线程执行，全部送达后 Promise 才完成。回调抛错时后续回调不再执行，`@task.check()` 观察到取消，调用以该错误失败。调用返回后被保存的闭包再调用会被忽略。参数须是可复制的值（不能是句柄、平台对象或回调），最多 16 个（0.6） |
 | `"async": true` | `(..., token?: CancelToken) => Promise<T>` | 工作线程执行 |
 | `"raises": true` | 抛出/拒绝 `code = ERR_MOONOHOS_BUSINESS` | MoonBit 函数须声明 `raise`，消息取错误的 `Show` 文本 |
 
-每个模块还导出 `createCancelToken()` 和 `moonohos_diagnostics()`。
+每个模块还导出 `createCancelToken()` 和 `moonohos_diagnostics()`（存活句柄、任务计数、`liveEnvs`、`nativeBytes` 等）。
 
-函数必须是所选包公开的普通函数，参数、顺序、返回类型和 `raise` 与清单一致。每次转换最多嵌套 32 层、1,048,576 个元素/字段、复制 64 MiB，超限抛出 RangeError；缺少参数或类型错误抛出 TypeError。MoonBit `panic` 会终止进程。不支持泛型、`#value` 结构体、可选或标记参数、带载荷的枚举、有返回值的回调。
+模块可以在 UI 线程、Worker 和 TaskPool 中分别加载（0.7）：每个 ArkTS 环境有自己的模块状态，句柄和任务属于创建它们的环境，Worker 销毁时只关闭它自己的句柄、取消它自己的任务。所有环境共用一个 MoonBit 运行时，调用 MoonBit 时互斥（见 [ASYNC-THREADING.md](docs/ASYNC-THREADING.md)）。
+
+函数必须是所选包公开的普通函数，参数、顺序、返回类型和 `raise` 与清单一致。参数或返回值含数组、结构体或 Option 的调用，每次转换最多嵌套 32 层、1,048,576 个元素/字段、复制 64 MiB，超限抛出 RangeError；其余调用中的 String、Bytes 和 TypedArray 只受 32 位长度限制；缺少参数或类型错误抛出 TypeError。MoonBit `panic` 会终止进程。不支持泛型、`#value` 结构体、可选或标记参数、带载荷的枚举、有返回值的回调。
 
 ## 命令
 
@@ -228,11 +231,11 @@ SDK、HAP 与模拟器检查在本机执行。各层证明范围见 [VALIDATION-
 
 ## 路线图
 
-已完成：0.4 鸿蒙运行时、平台包与 HAR 分发；0.5 Int64、Option、无载荷枚举、句柄方法、`deviceinfo`/`netconn`/`vibrator`、`init` 演示应用、Linux/macOS CLI；0.6 ArkTS 回调。
+已完成：0.4 鸿蒙运行时、平台包与 HAR 分发；0.5 Int64、Option、无载荷枚举、句柄方法、`deviceinfo`/`netconn`/`vibrator`、`init` 演示应用、Linux/macOS CLI；0.6 ArkTS 回调；0.7（进行中）句柄类型标记、TypedArray、外部内存上报、Worker/TaskPool 加载。
 
 接下来按层推进（欢迎在 issue 中讨论优先级）：
 
-1. **鸿蒙运行时**：在模拟器上验证 Int64、Option、枚举和平台包（异步、取消、回调、句柄方法与类型标记已在模拟器上运行）。借鉴 napi-mbt 的设计补充移动端需要的部分：句柄类型标记（已完成）、外部内存上报、每个环境独立的实例数据（模块可在 Worker/TaskPool 中加载）、`Float64Array` 等 TypedArray。不追求通用绑定的完整度。
+1. **鸿蒙运行时**：在模拟器上验证 Int64、Option、枚举和平台包。借鉴 napi-mbt 设计的四项补强（句柄类型标记、外部内存上报、每个环境独立的状态、TypedArray）已完成，并在模拟器上运行（0.7）。不追求通用绑定的完整度。
 2. **系统能力**：基于 SDK 头文件的绑定生成器，自动生成 MoonBit 声明和 C 中转代码，再手写安全封装（资源释放、错误码转为 `raise`）。首批覆盖 8 到 10 个不需要特殊权限的模块，如文件、加解密、剪贴板、HiTrace。
 3. **图形**：XComponent 与 Native Drawing，MoonBit 绘制 2D 画面、处理触摸事件，附示例应用。
 4. **工程集成**：Hvigor 插件，在 DevEco 中直接构建 MoonBit 模块；发布 HAR 到 ohpm；纯 MoonBit 的 Mooncakes 包一键转为 HAR。

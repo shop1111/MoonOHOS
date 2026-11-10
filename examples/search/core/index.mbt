@@ -177,3 +177,19 @@ pub fn stats(index : SearchIndex) -> IndexStats {
     characters: index.characters,
   }
 }
+
+///|
+/// Approximate native size of the index in bytes: document text (UTF-16),
+/// postings and term entries. MoonOHOS samples it once, when the ArkTS handle
+/// is created, and reports it to the ArkTS GC (`"size"` in moonohos.json).
+pub fn index_bytes(index : SearchIndex) -> Int {
+  let estimate = index.characters.to_int64() * 2L +
+    index.postings.to_int64() * 24L +
+    index.terms.length().to_int64() * 64L +
+    index.docs.length().to_int64() * 96L
+  if estimate > 2147483647L {
+    2147483647
+  } else {
+    estimate.to_int()
+  }
+}

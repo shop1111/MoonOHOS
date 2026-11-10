@@ -6,6 +6,28 @@ All notable changes to MoonOHOS are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Typed arrays: `FixedArray[Double]`, `FixedArray[Float]`, `FixedArray[Int]`
+  and `FixedArray[Int64]` map to `Float64Array`, `Float32Array`, `Int32Array`
+  and `BigInt64Array`. Element storage is copied in one block; views at an
+  offset are accepted, other element types, plain arrays, Sendable and
+  detached buffers are TypeErrors, and NaN/Infinity cross unchanged. They work
+  as parameters, results, record fields, array elements, Option, async results
+  and callback arguments (`typed_bridge.cpp`).
+- Native size reporting: a handle entry may name `"size"`, a synchronous
+  `(Handle) -> Int` function. It is called once, under the gate, when the
+  handle is created, and the bytes are reported to the ArkTS GC with
+  `napi_wrap_enhance`. HarmonyOS does not export `napi_adjust_external_memory`,
+  which napi-mbt exposes on Node.
+- Several ArkTS environments: the module can be loaded on the UI thread, in
+  Workers and in TaskPool tasks; each env keeps its own state, handles and
+  tasks (`env_bridge.cpp`: separate state, Worker teardown while tasks are
+  pending, four envs calling concurrently).
+- `moonohos_diagnostics()` reports `liveEnvs` and `nativeBytes`.
+- Search example: `index_texts` (in-memory documents, used from a Worker and
+  TaskPool), `term_idf` (a `Float64Array` method) and a declared size for
+  `SearchIndex`.
+
 ### Changed
 - README, README.en and COMPARISON describe the new direction: the bridge stays
   focused on mobile UI apps (MoonBit on background threads), and new work goes
@@ -23,8 +45,16 @@ All notable changes to MoonOHOS are recorded here. The format follows
   emulator (API 26): background indexing, cancellation, ArkTS progress
   callbacks, handle methods and the new type tags (the system ResourceManager
   passed as a SearchIndex is rejected). See docs/VALIDATION-0.7.md.
+- On the same emulator: `term_idf` returns a real `Float64Array`; the 20 MB
+  index size reaches `nativeBytes` and is released on close; the module loads
+  and runs async work in a Worker (its env is cleaned up within 100 ms of
+  `terminate()`) and in three parallel TaskPool tasks.
 
 ### Fixed
+- A handle released from one thread while another thread was draining the
+  release queue could stay unreleased until the next MoonBit call (the gate's
+  retry did not re-check the queue after unlocking). Found by `env_bridge.cpp`
+  with four concurrent envs (2 of 25 runs); 60 of 60 runs pass after the fix.
 - Package manifests record only the first line of `moon version` /
   `moonc -v`; Moon 0.1.20261104 appends feature-flag lines.
 - Handles and `CancelToken` objects carry a per-module type tag

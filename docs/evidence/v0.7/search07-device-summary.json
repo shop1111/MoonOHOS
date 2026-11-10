@@ -1,0 +1,21 @@
+﻿{
+    "target":  "127.0.0.1:5555",
+    "bundle":  "com.moonohos.search",
+    "hapSha256":  "C086510A81C13D42E8FDDD4DE9AB98A199CC02DBAFE4575C6D90CAE217984D34",
+    "runs":  [
+                 {
+                     "run":  1,
+                     "missing":  [
+
+                                 ],
+                     "pass":  true
+                 },
+                 {
+                     "run":  2,
+                     "missing":  [
+
+                                 ],
+                     "pass":  true
+                 }
+             ]
+}

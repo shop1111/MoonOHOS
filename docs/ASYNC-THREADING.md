@@ -51,7 +51,7 @@ Call_f                              Execute_f                        Complete_f
 
 - 同步调用、异步任务和所有 ArkTS 环境共享一把门。
 - 门首次获取时初始化 MoonBit 运行时（每进程一次）。
-- JS 线程需要释放句柄而门正被长任务占用时，释放请求进入延迟队列，由持门线程在解锁前处理，JS 线程不阻塞。
+- JS 线程需要释放句柄而门正被长任务占用时，释放请求进入延迟队列，由持门线程在解锁前处理，JS 线程不阻塞。每个持门线程解锁后会再检查一次队列，直到队列为空或门已被别的线程拿走（0.7 修复：此前持门线程清空队列后、解锁前新进入队列的释放请求会一直留到下一次调用 MoonBit，`env_bridge.cpp` 4 线程并发约 8% 复现，修复后连续 60 次通过）。
 - 同步调用在长任务执行期间会等待门；长时间计算应导出为异步函数，交互查询可保留同步变体（示例中的 `search_now`）。
 
 ### 取消
@@ -68,6 +68,7 @@ Call_f                              Execute_f                        Complete_f
 - 调用时句柄被固定（pin）；关闭正在被任务使用的句柄会推迟到最后一次解除固定时释放。
 - 关闭后再使用得到 `ERR_MOONOHOS_CLOSED`；重复关闭无副作用。
 - 句柄和 `CancelToken` 对象带有本模块的类型标记（`napi_type_tag_object`，标记值由包名和 `nativeModule` 的 SHA-256 得出）。读取前先核对标记：别的原生模块创建的对象，包括另一个 MoonOHOS 模块的句柄，会在读取其内部指针之前被拒绝，抛出 TypeError。做法借鉴自 napi-mbt。
+- 清单为句柄声明 `"size"`（一个 `(句柄) -> Int` 函数）时，句柄在门内产生后立即调用它一次，字节数通过 `napi_wrap_enhance(..., native_binding_size, ...)` 告知 ArkTS 垃圾回收器，并计入诊断的 `nativeBytes`，关闭时扣除。HarmonyOS 的 `libace_napi.z.so` 不导出 `napi_adjust_external_memory`（头文件中标为 deprecated），所以没有照搬 napi-mbt 的做法。大小只在创建时取一次，之后对象增长不会再上报。
 - 释放路径：显式 `close()`、对象终结器、环境清理钩子。ArkRuntime 不保证终结器及时运行，应用应显式关闭（示例中的 `SearchSession.close()` 在页面 `aboutToDisappear` 中调用）。
 
 ### 回调（0.6）
@@ -90,6 +91,15 @@ Call_f                              Execute_f                        Complete_f
 - 工作线程上唯一的 Node-API 调用是事件函数中的 `napi_call_threadsafe_function`，它按规范可在任意线程调用；`Execute_*` 函数体本身仍不含 Node-API 调用。
 - 回调的每次调用单独计算转换上限（深度 32、元素数和字节数同上）。
 
+### 多个 ArkTS 环境（0.7）
+
+UI 线程、每个 Worker、每个 TaskPool 线程都是独立的 ArkTS 环境，各自加载一次模块，`Init` 随之各运行一次：
+
+- 每次 `Init` 新建一份 `EnvState`，作为回调数据绑定到该环境的每个导出函数上，并注册该环境的 cleanup hook。不用进程全局变量保存环境状态，也不用 `napi_set_instance_data`：SDK 头文件只说明它把数据关联到当前环境，没有说明是否按模块区分；用回调数据就不必依赖这一点，同一应用里的多个 MoonOHOS 模块互不影响。
+- 句柄、令牌和任务登记在创建它们的环境里；一个环境销毁只影响它自己的句柄和任务。
+- MoonBit 运行时和进程门是进程级的，各环境调用 MoonBit 时互斥。
+- 诊断的 `liveEnvs` 是当前已加载且未销毁的环境数。
+
 ### 环境销毁
 
 - 每个 ArkTS 环境注册 env cleanup hook：标记关闭、取消该环境登记的令牌、关闭其句柄。
@@ -111,7 +121,7 @@ MoonBit `panic` 仍会终止进程，不能当作业务错误。设备验证发�
 
 ### 诊断
 
-每个模块导出 `moonohos_diagnostics()`，返回进程级计数：`liveHandles`、`releasedHandles`、`pendingTasks`、`completedTasks`、`cancelledTasks`、`envCleanups`。设备脚本用它确认离开页面后句柄和任务归零。
+每个模块导出 `moonohos_diagnostics()`，返回进程级计数：`liveHandles`、`releasedHandles`、`pendingTasks`、`completedTasks`、`cancelledTasks`、`envCleanups`，以及 0.7 新增的 `liveEnvs`（存活环境数）和 `nativeBytes`（已上报给垃圾回收器的句柄字节数）。设备脚本用它确认离开页面后句柄和任务归零。
 
 ## 验证范围
 

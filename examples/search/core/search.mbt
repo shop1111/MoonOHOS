@@ -104,3 +104,20 @@ pub fn search_now(
 ) -> Array[Hit] {
   search(index, query, limit)
 }
+
+///|
+/// Inverse document frequency of each query term, in query order; 0 for terms
+/// that occur in no document. Crosses to ArkTS as a Float64Array.
+pub fn term_idf(index : SearchIndex, query : String) -> FixedArray[Double] {
+  let terms = query_terms(query)
+  let n = index.docs.length().to_double()
+  FixedArray::makei(terms.length(), i => {
+    match index.terms.get(terms[i]) {
+      Some(list) => {
+        let df = list.length().to_double()
+        @math.ln(1.0 + (n - df + 0.5) / (df + 0.5))
+      }
+      None => 0.0
+    }
+  })
+}

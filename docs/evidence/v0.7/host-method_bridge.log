@@ -1,1 +1,1 @@
-HOST_METHOD_PASS sync/async/raises/closed/errors/status/repeat=10000 live_handles=0
+HOST_METHOD_PASS sync/async/raises/closed/errors/sizes/typetag/status/repeat=10000 live_handles=0

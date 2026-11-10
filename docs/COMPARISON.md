@@ -47,7 +47,7 @@
 |---|---|---|---|---|
 | 胶水层 | 目标宿主 | Node.js（Windows、Linux、macOS），只在本机编译 | HarmonyOS / OpenHarmony | HarmonyOS API 26，交叉编译 `arm64-v8a`/`x86_64` |
 | | 接口来源 | Tree-sitter 解析 MoonBit 源码 | Rust 宏 | `moonohos.json` 清单，并与 `.mbti` 核对 |
-| | 类型 | 标量、Int64/UInt64、String、Bytes、Option、数组、结构体、枚举、Map、JSON、TypedArray/ArrayBuffer/DataView、类、闭包、底层 JS 值 | 完整 napi-rs 类型系统 | 标量、Int64（bigint）、String、Bytes、数组、结构体、Option、无载荷枚举、带方法的句柄、平台适配参数、ArkTS 回调参数 |
+| | 类型 | 标量、Int64/UInt64、String、Bytes、Option、数组、结构体、枚举、Map、JSON、TypedArray/ArrayBuffer/DataView、类、闭包、底层 JS 值 | 完整 napi-rs 类型系统 | 标量、Int64（bigint）、String、Bytes、数组、结构体、Option、无载荷枚举、带方法的句柄、平台适配参数、ArkTS 回调参数；0.7 增加 Float64Array/Float32Array/Int32Array/BigInt64Array |
 | | 后台执行 | 见上节 | 工作线程 `Task`、tokio | 后台线程执行 MoonBit，`CancelToken` 取消 |
 | | 回调 | 闭包、线程安全函数 | ThreadsafeFunction | 同步直接调用；异步经线程安全函数按序投递，全部送达后 Promise 才完成 |
 | | 资源生命周期 | 类 `dispose()`、GC 兜底、环境清理 | `napi_wrap` + Drop、环境清理 | 句柄 `close()`、终结器兜底、环境清理、诊断计数 |
@@ -64,10 +64,10 @@
 
 | napi-mbt 的做法 | MoonOHOS 计划 | 状态 |
 |---|---|---|
-| 对象类型标记（`napi_type_tag_object`） | 给句柄打标记，拒绝把 A 类句柄传给需要 B 类句柄的参数 | 计划中 |
-| 外部内存上报（`napi_adjust_external_memory`） | 句柄持有大块 MoonBit 内存时通知 ArkTS 的垃圾回收 | 计划中 |
-| 每个环境独立的实例数据（`napi_set_instance_data`） | 模块可在 Worker/TaskPool 中加载，每个环境独立状态 | 计划中 |
-| TypedArray 复制规则：严格校验类型，拒绝已分离和共享内存 | 增加 `Float64Array` 等类型 | 计划中 |
+| 对象类型标记（`napi_type_tag_object`） | 句柄和 `CancelToken` 带本模块的标记，别的原生模块（含另一个 MoonOHOS 模块）的对象在读取指针前被拒绝 | 已完成，模拟器验证（系统 ResourceManager 冒充句柄被拒） |
+| 外部内存上报（`napi_adjust_external_memory`） | HarmonyOS 不导出该接口，改用鸿蒙的 `napi_wrap_enhance`：清单为句柄声明 `"size"` 函数，创建时把字节数随包装一起告知 ArkTS 垃圾回收器 | 已完成（0.7） |
+| 每个环境独立的实例数据（`napi_set_instance_data`） | 每个环境的状态作为回调数据绑定在导出函数上（不依赖实例数据是否按模块区分）；模块可在 Worker/TaskPool 中加载，诊断给出 `liveEnvs` | 已完成（0.7） |
+| TypedArray 复制规则：严格校验类型，拒绝已分离和共享内存 | `FixedArray[Double/Float/Int/Int64]` ↔ `Float64Array/Float32Array/Int32Array/BigInt64Array`，整块复制 | 已完成（0.7） |
 
 只借鉴设计，不复制代码；实现时在源码注释中注明出处。
 

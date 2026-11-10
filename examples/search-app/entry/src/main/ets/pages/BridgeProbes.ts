@@ -36,3 +36,27 @@ export async function typeTagProbe(native: any, resources: object): Promise<stri
     [foreign, kind, plain, method, close].every((r: string) => r === 'TypeError');
   return `${pass ? 'pass' : 'fail'} own=${own} foreign=${foreign} kind=${kind} plain=${plain} method=${method} close=${close} after=${after}`;
 }
+
+// Typed arrays (0.7): `term_idf` returns FixedArray[Double] as a Float64Array.
+export async function typedArrayProbe(native: any, resources: object): Promise<string> {
+  const index = await native.build_index(resources, 'docs', native.createCancelToken());
+  const idf = index.term_idf('rawfile 离线 absentterm');
+  index.close();
+  const typed = idf instanceof Float64Array;
+  const values = Array.from(idf as Float64Array).map((x: number) => x.toFixed(3)).join(',');
+  const pass = typed && idf.length === 3 && idf[0] > 0 && idf[1] > 0 && idf[2] === 0;
+  return `${pass ? 'pass' : 'fail'} type=${Object.prototype.toString.call(idf)} length=${idf.length} values=${values}`;
+}
+
+// Native size (0.7): the size declared for SearchIndex is reported when the
+// handle is wrapped (napi_wrap_enhance) and counted until close().
+export async function memoryProbe(native: any, resources: object): Promise<string> {
+  const before: number = native.moonohos_diagnostics().nativeBytes;
+  const index = await native.build_index(resources, 'docs_large', native.createCancelToken());
+  const declared: number = native.index_bytes(index);
+  const during: number = native.moonohos_diagnostics().nativeBytes;
+  index.close();
+  const after: number = native.moonohos_diagnostics().nativeBytes;
+  const pass = declared > 0 && during - before === declared && after === before;
+  return `${pass ? 'pass' : 'fail'} declared=${declared} delta=${during - before} after_close_delta=${after - before}`;
+}

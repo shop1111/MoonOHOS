@@ -43,7 +43,7 @@ It is not a good fit for:
 
 | Layer | Purpose | Status |
 |---|---|---|
-| HarmonyOS runtime | ArkTS ↔ MoonBit: conversions, `.d.ts` generation, background-thread tasks, cancellation, ArkTS callbacks, handle lifecycle | **Done.** Host ASan covers everything. **Run on the x86_64 emulator** (built with moonc 0.10.20, 2026-11-11): background-thread tasks, cancellation, ArkTS progress callbacks, handle methods, handle type tags, handle lifecycle. **Not yet run on a device**: Int64, Option, enums |
+| HarmonyOS runtime | ArkTS ↔ MoonBit: conversions, `.d.ts` generation, background-thread tasks, cancellation, ArkTS callbacks, handle lifecycle | **Done.** Host ASan covers everything. **Run on the x86_64 emulator** (built with moonc 0.10.20, 2026-11-11): background-thread tasks, cancellation, ArkTS progress callbacks, handle methods, handle type tags, handle lifecycle, and the 0.7 additions `Float64Array`, native size reporting and loading the module in a Worker and in TaskPool. **Not yet run on a device**: Int64, Option, enums, the other three typed arrays |
 | System APIs | MoonBit calls the HarmonyOS NDK directly | **Partial**: six platform packages (`hilog`, `rawfile`, `task`, `deviceinfo`, `netconn`, `vibrator`) and a mechanism for third-party C dependencies. **Planned**: bindings generated from SDK headers to cover many more modules |
 | Graphics | MoonBit renders through XComponent and handles touch | **Planned** |
 | Project integration | Init, cross-compilation, HAR packaging, artifact verification | **Done**: the CLI (`init`, `build`, `har`, `verify`). **Planned**: a Hvigor plugin to build from DevEco; publishing to ohpm |
@@ -53,7 +53,7 @@ It is not a good fit for:
 | [ASYNC-THREADING.md](docs/ASYNC-THREADING.md) (Chinese) | Threading, cancellation, callbacks, lifecycle |
 | [NATIVE-EXTENSIONS.md](docs/NATIVE-EXTENSIONS.md) (Chinese) | Platform packages and native dependencies |
 | [COMPARISON.md](docs/COMPARISON.md) (Chinese) | Point-by-point comparison with napi-mbt and ohos-rs |
-| [VALIDATION-0.7.md](docs/VALIDATION-0.7.md) (Chinese) | Emulator run with moonc 0.10.20: async, cancellation, callbacks, type tags |
+| [VALIDATION-0.7.md](docs/VALIDATION-0.7.md) (Chinese) | Emulator runs with moonc 0.10.20: async, cancellation, callbacks, type tags, typed arrays, native size, Worker/TaskPool |
 | [VALIDATION-0.5.md](docs/VALIDATION-0.5.md) (Chinese) | What each test level proves |
 
 ### Relation to napi-mbt
@@ -142,17 +142,29 @@ Use the HAR from an app's `oh-package.json5`:
 | `Unit` (result) | `void` | |
 | `String` | `string` | UTF-16 code units copied as-is, including NUL and lone surrogates |
 | `Bytes` | `Uint8Array` | Views on ordinary, attached ArrayBuffers; copied |
+| `FixedArray[Double]` / `FixedArray[Float]` / `FixedArray[Int]` / `FixedArray[Int64]` | `Float64Array` / `Float32Array` / `Int32Array` / `BigInt64Array` | Element storage is copied in one block (memcpy); views at an offset are fine; another element type, plain arrays, Sendable or detached buffers throw TypeError. NaN and Infinity cross unchanged. Allowed as parameters, results, struct fields, array elements, Option, async results and callback arguments (0.7). Packages using `FixedArray[Float]` import `moonbitlang/core/float` in `moon.pkg` |
 | `Array[T]` | `Array<T>` | Dense, non-Sendable; copied |
 | struct | `interface` | `pub(all) struct`; own properties; copied |
-| handle (`handles`) | object with `close()` / `isClosed()` | MoonBit value stays native; not nestable in arrays or structs. Functions listed in `"methods"` (handle as first parameter) also become methods: `index.search(q)` is `search(index, q)` (0.5) |
+| handle (`handles`) | object with `close()` / `isClosed()` | MoonBit value stays native; not nestable in arrays or structs. Functions listed in `"methods"` (handle as first parameter) also become methods: `index.search(q)` is `search(index, q)` (0.5). Objects carry a per-module type tag; objects wrapped by other native modules are rejected before their pointer is read (0.7). `"size"` names a `(Handle) -> Int` function called once when the handle is created; the bytes are reported to the ArkTS GC through `napi_wrap_enhance` (0.7) |
 | `@pkg.Type` (platform adapter) | e.g. `resourceManager.ResourceManager` | Parameter only; acquired and released by the adapter descriptor |
 | callback `(T1, T2) -> Unit` (parameter only) | `(arg0: T1, arg1: T2) => void` | Sync functions call it on the UI thread during the call, and it may call the module again. Async functions copy the arguments into a queue on the worker; calls run on the UI thread in order, and the Promise settles after the last one. If a callback throws, later calls are skipped, `@task.check()` sees cancellation and the call fails with that error. A closure kept after its call returns is ignored. Arguments must be copyable values (not handles, platform objects or callbacks), at most 16 (0.6) |
 | `"async": true` | `(..., token?: CancelToken) => Promise<T>` | Runs on a Node-API worker thread |
 | `"raises": true` | throws / rejects with `code = ERR_MOONOHOS_BUSINESS` | The MoonBit function must declare `raise` |
 
-Every module also exports `createCancelToken()` and `moonohos_diagnostics()`.
-Conversions are limited to depth 32, 1,048,576 elements and 64 MiB; violations
-throw `RangeError`, wrong argument types throw `TypeError`. A MoonBit `panic`
+Every module also exports `createCancelToken()` and `moonohos_diagnostics()`
+(live handles, task counters, `liveEnvs`, `nativeBytes`, ...).
+
+A module can be loaded on the UI thread, in Workers and in TaskPool tasks (0.7):
+each ArkTS environment gets its own module state, handles and tasks belong to
+the environment that created them, and a terminated Worker closes only its own
+handles and cancels only its own tasks. All environments share one MoonBit
+runtime and enter it one at a time (see
+[ASYNC-THREADING.md](docs/ASYNC-THREADING.md)).
+
+In calls whose parameters or result contain arrays, structs or Option,
+conversions are limited to depth 32, 1,048,576 elements and 64 MiB; in other
+calls String, Bytes and typed arrays are limited by their 32-bit length only.
+Violations throw `RangeError`, wrong argument types throw `TypeError`. A MoonBit `panic`
 terminates the process. Not yet supported: generics, `#value` structs, optional or
 labelled parameters, enums with payloads and callbacks that return values (see
 [CHANGELOG](CHANGELOG.md) for progress).
@@ -205,11 +217,11 @@ layer proves.
 
 ## Roadmap
 
-Done: 0.4 HarmonyOS runtime, platform packages and HAR distribution; 0.5 Int64, Option, payload-free enums, handle methods, `deviceinfo` / `netconn` / `vibrator`, the `init` demo app and the CLI on Linux/macOS; 0.6 ArkTS callbacks.
+Done: 0.4 HarmonyOS runtime, platform packages and HAR distribution; 0.5 Int64, Option, payload-free enums, handle methods, `deviceinfo` / `netconn` / `vibrator`, the `init` demo app and the CLI on Linux/macOS; 0.6 ArkTS callbacks; 0.7 (in progress) handle type tags, typed arrays, native size reporting, Worker/TaskPool loading.
 
 Next, layer by layer (priorities are open for discussion in issues):
 
-1. **HarmonyOS runtime**: run Int64, Option, enums and the platform packages on the emulator (async, cancellation, callbacks, handle methods and type tags already ran there). Borrow napi-mbt designs for what mobile apps need: type tags on handles (done), external memory reporting, per-environment instance data (loading in Worker/TaskPool), and typed arrays such as `Float64Array`. Full general-purpose binding coverage is not a goal.
+1. **HarmonyOS runtime**: run Int64, Option, enums and the platform packages on the emulator. The four additions borrowed from napi-mbt's designs (handle type tags, native size reporting, per-environment state, typed arrays) are done and ran on the emulator (0.7). Full general-purpose binding coverage is not a goal.
 2. **System APIs**: a binding generator driven by SDK headers that emits MoonBit declarations and C shims, topped by hand-written safe wrappers (resource release, error codes as `raise`). The first batch targets 8–10 modules that need no special permission, such as files, cryptography, pasteboard and HiTrace.
 3. **Graphics**: XComponent and Native Drawing, so MoonBit draws 2D content and handles touch events, with an example app.
 4. **Project integration**: a Hvigor plugin that builds MoonBit modules from DevEco; publishing HARs to ohpm; turning pure-MoonBit Mooncakes packages into HARs in one step.

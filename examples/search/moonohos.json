@@ -4,7 +4,7 @@
   "package": "moonohos/search",
   "nativeModule": "moonsearch",
   "workspace": "moon.work",
-  "handles": [{"name": "SearchIndex", "methods": ["search", "search_now", "stats"]}],
+  "handles": [{"name": "SearchIndex", "methods": ["search", "search_now", "stats", "term_idf"], "size": "index_bytes"}],
   "types": [
     {"name": "Hit", "fields": [
       {"name": "path", "type": "String"},
@@ -24,6 +24,9 @@
     {"name": "build_index_reporting", "params": [{"name": "resources", "type": "@rawfile.Manager"}, {"name": "dir", "type": "String"}, {"name": "on_progress", "type": "(Int, Int) -> Unit"}], "return": "SearchIndex", "async": true, "raises": true},
     {"name": "search", "params": [{"name": "index", "type": "SearchIndex"}, {"name": "query", "type": "String"}, {"name": "limit", "type": "Int"}], "return": "Array[Hit]", "async": true},
     {"name": "search_now", "params": [{"name": "index", "type": "SearchIndex"}, {"name": "query", "type": "String"}, {"name": "limit", "type": "Int"}], "return": "Array[Hit]"},
-    {"name": "stats", "params": [{"name": "index", "type": "SearchIndex"}], "return": "IndexStats"}
+    {"name": "stats", "params": [{"name": "index", "type": "SearchIndex"}], "return": "IndexStats"},
+    {"name": "index_texts", "params": [{"name": "paths", "type": "Array[String]"}, {"name": "texts", "type": "Array[String]"}], "return": "SearchIndex", "async": true, "raises": true},
+    {"name": "index_bytes", "params": [{"name": "index", "type": "SearchIndex"}], "return": "Int"},
+    {"name": "term_idf", "params": [{"name": "index", "type": "SearchIndex"}, {"name": "query", "type": "String"}], "return": "FixedArray[Double]"}
   ]
 }

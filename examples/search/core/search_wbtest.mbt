@@ -76,3 +76,21 @@ test "index builds report progress per file" {
   assert_eq(reported[0], (1, 12))
   assert_eq(reported[11], (12, 12))
 }
+
+///|
+test "term IDF and native size estimates" {
+  let index = index_texts(["a.md", "b.md", "c.md"], [
+    "# RawFile\nrawfile manager reads rawfile resources", "# HiLog\nlogging only",
+    "# 离线检索\n离线检索适合帮助文档。rawfile appears once",
+  ])
+  let idf = term_idf(index, "rawfile hilog absent")
+  assert_eq(idf.length(), 3)
+  // A term in fewer documents weighs more; an unknown term weighs nothing.
+  assert_true(idf[1] > idf[0] && idf[0] > 0.0)
+  assert_eq(idf[2], 0.0)
+  assert_eq(term_idf(index, "").length(), 0)
+  let small = index_bytes(index)
+  assert_true(small > stats(index).characters * 2)
+  let empty = index_texts([], [])
+  assert_eq(index_bytes(empty), 0)
+}

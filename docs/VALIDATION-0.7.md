@@ -55,8 +55,45 @@
 
 截图 `evidence/v0.7/search-page.jpeg` 是第一轮大型文档集查询后的页面。完整日志：`evidence/v0.7/search-device-run-1.log`、`search-device-run-2.log`；HAP 的 SHA-256 记录在 `search-device-summary.json`。
 
+## 胶水层补强：TypedArray、外部内存、多环境（2026-11-11）
+
+### 宿主
+
+| 检查 | 结果 |
+|---|---|
+| 根模块测试（新增 `typed_array_types_test.mbt`，`method_types_test.mbt` 增加 size 校验） | 77 / 77 |
+| `typed_core` / `typed_bridge.cpp` | 通过：四种 TypedArray 作为参数、返回值、结构体字段、Option、数组元素、异步结果和回调参数；带偏移的视图、空数组、NaN/-0/Infinity 原样；元素类型不符、Uint8Array、普通数组、Sendable 视图或缓冲区、已分离缓冲区抛 TypeError；超出元素数和 64 MiB 预算抛 RangeError；Node-API 失败注入、C++ 分配失败注入、10000 轮无泄漏 |
+| `async_core` / `method_bridge.cpp` | 通过：`size` 在同步和异步创建时各取一次，`napi_wrap_enhance` 收到 1028 字节，`nativeBytes` 随关闭扣除；`CancelToken` 仍走 `napi_wrap` |
+| `async_core` / `env_bridge.cpp` | 通过：两个环境的导出各绑定自己的状态；Worker 环境在任务排队时销毁，只关闭它自己的句柄、只取消它自己的任务，UI 环境的句柄继续可用；4 个环境在 4 个线程上同时调用（每轮 500 次同步调用加异步任务，共 20 轮） |
+| 其余 10 个 ASan 套件 | 全部通过 |
+
+`env_bridge.cpp` 发现了一个进程门的竞态：一个线程清空待释放队列之后、解锁之前，另一个线程放进队列的释放请求会一直留到下一次调用 MoonBit。4 线程场景下 25 次中有 2 次各剩 3 个分配（一个 Counter 对象）。修复后 `Retry` 在解锁后重新检查队列，连续 60 次通过。
+
+HarmonyOS SDK 的 `libace_napi.z.so`（两个 ABI）不导出 `napi_adjust_external_memory`，头文件中该函数标为 deprecated；外部内存上报因此改用导出的 `napi_wrap_enhance`（API 18 起）。
+
+### 模拟器
+
+检索示例新增 `index_texts`（内存文本建索引）、`term_idf`（返回 `FixedArray[Double]` 的句柄方法），并为 `SearchIndex` 声明 `"size": "index_bytes"`。应用新增 Worker 脚本和 TaskPool 并发函数。`verify_search_device.ps1` 连续两轮通过，HiLog：
+
+```text
+MOONSEARCH_TYPEDARRAY pass type=[object Float64Array] length=3 values=2.159,1.649,0.000
+MOONSEARCH_MEMORY pass declared=20395336 delta=20395336 after_close_delta=0
+MOONSEARCH_WORKER pass ok hits=2 top=mem/a.md idf=2 envs=2 cleaned=1 envs_before=1 envs_after=1 waited_ms=100
+MOONSEARCH_TASKPOOL pass ok hits=1 top=mem/b.md idf=2 envs=2 | ok hits=1 top=mem/b.md idf=2 envs=2 | ok hits=1 top=mem/b.md idf=2 envs=2
+MOONSEARCH_PASS live_handles=0 released=11 pending_tasks=0 completed=16 cancelled=4
+```
+
+- TypedArray：返回值在 ArkTS 中是真正的 `Float64Array`，未出现的词 IDF 为 0。
+- 外部内存：2000 篇文档的索引声明 20,395,336 字节，`nativeBytes` 恰好增加这么多，关闭后回到原值。设备上看不到 ArkTS 垃圾回收器内部如何使用这个数字，这里只证明它经 `napi_wrap_enhance` 传入并随关闭扣除。
+- Worker：模块在 Worker 中加载（`liveEnvs` 为 2），在 Worker 里异步建索引、检索、取 TypedArray 都正常；`terminate()` 后 100 ms 内该环境的清理钩子运行（`envCleanups` 加 1），`liveEnvs` 回到 1。
+- TaskPool：3 个并发任务都在 TaskPool 线程中完成异步建索引和检索。3 个任务报告的 `liveEnvs` 都是 2，说明它们落在同一个 TaskPool 线程环境里；TaskPool 线程不随任务结束而销毁，所以这里没有观察清理。
+- 第一次构建时 `Concurrency.ets` 从 Worker 脚本导入 `SearchJob`，主线程因此执行了 Worker 脚本的顶层代码，页面没有继续运行。把消息类挪到单独的 `workers/SearchJob.ets` 后通过。Worker 脚本只应被 `ThreadWorker` 加载。
+
+证据：`evidence/v0.7/search07-device-run-1.log`、`search07-device-run-2.log`、`search07-page.jpeg`、`host-typed_bridge.log`、`host-env_bridge.log`、`host-method_bridge.log`。
+
 ## 未验证
 
-- 0.5 的 `Int64`、Option、枚举，以及 `deviceinfo`、`netconn`、`vibrator` 平台包仍未在设备上运行（检索示例没有用到它们）。
+- 0.5 的 `Int64`、Option、枚举，以及 `deviceinfo`、`netconn`、`vibrator` 平台包仍未在设备上运行（检索示例没有用到它们）。`Float32Array`、`Int32Array`、`BigInt64Array` 只在宿主上验证，设备上只运行了 `Float64Array`。
+- TaskPool 线程环境的销毁（应用退出时）没有单独观察。
 - `init` 演示应用的 HAP 只完成构建，没有在模拟器上运行。
 - ARM64 真机、签名与上架流程。

@@ -1,1 +1,1 @@
-{"apiType":"stageMode","buildOption":{},"targets":[{"name":"default"}]}
+{"apiType":"stageMode","buildOption":{"sourceOption":{"workers":["./src/main/ets/workers/SearchWorker.ets"]}},"targets":[{"name":"default"}]}
