@@ -67,6 +67,7 @@ Call_f                              Execute_f                        Complete_f
 - 句柄是带 `close()`、`isClosed()` 的 ArkTS 对象，内部持有一个 MoonBit 引用。
 - 调用时句柄被固定（pin）；关闭正在被任务使用的句柄会推迟到最后一次解除固定时释放。
 - 关闭后再使用得到 `ERR_MOONOHOS_CLOSED`；重复关闭无副作用。
+- 句柄和 `CancelToken` 对象带有本模块的类型标记（`napi_type_tag_object`，标记值由包名和 `nativeModule` 的 SHA-256 得出）。读取前先核对标记：别的原生模块创建的对象，包括另一个 MoonOHOS 模块的句柄，会在读取其内部指针之前被拒绝，抛出 TypeError。做法借鉴自 napi-mbt。
 - 释放路径：显式 `close()`、对象终结器、环境清理钩子。ArkRuntime 不保证终结器及时运行，应用应显式关闭（示例中的 `SearchSession.close()` 在页面 `aboutToDisappear` 中调用）。
 
 ### 回调（0.6）

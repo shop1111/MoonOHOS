@@ -72,7 +72,7 @@ test "help names every command and per-command help lists options" {
 ///|
 test "failure diagnostics derive a code and next-step hints" {
   let toolchain = @moonohos.failure_diagnostic(
-    "build", "toolchain: requires moonc >= 0.10.16, found v0.10.14",
+    "build", "toolchain: requires moonc >= 0.10.20, found v0.10.18",
   )
   assert_eq(toolchain.code, "toolchain")
   assert_true(toolchain.context[0].contains("doctor"))

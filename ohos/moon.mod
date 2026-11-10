@@ -8,7 +8,14 @@ supported_targets = [ "native" ]
 
 repository = "https://github.com/shop1111/MoonOHOS"
 
-keywords = [ "harmonyos", "hilog", "rawfile", "deviceinfo", "vibrator", "native" ]
+keywords = [
+  "harmonyos",
+  "hilog",
+  "rawfile",
+  "deviceinfo",
+  "vibrator",
+  "native",
+]
 
 license = "Apache-2.0"
 

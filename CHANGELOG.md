@@ -4,6 +4,31 @@ All notable changes to MoonOHOS are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may break).
 
+## [Unreleased]
+
+### Changed
+- README, README.en and COMPARISON describe the new direction: the bridge stays
+  focused on mobile UI apps (MoonBit on background threads), and new work goes
+  to system APIs, XComponent graphics and project integration. COMPARISON is
+  rewritten against napi-mbt v0.3.7 with source references.
+- Toolchain: CI and `doctor` now use moonc `v0.10.20+65efd5b93` (Moon
+  `0.1.20261104`). Types use the `#derive(...)` attribute instead of the
+  deprecated trailing `derive(...)`, which moonc 0.10.18 and older cannot parse,
+  so `build` and `doctor` now require moonc >= 0.10.20. Package verification
+  keeps its own floor (moonc >= 0.10.16), so HARs built by 0.4.1 to 0.6.x stay
+  verifiable.
+
+### Fixed
+- Handles and `CancelToken` objects carry a per-module type tag
+  (`napi_type_tag_object`, derived from the package and `nativeModule`). Objects
+  wrapped by another native module, including another MoonOHOS module, are now
+  rejected with a TypeError before their native pointer is read; previously
+  such an object could be mistaken for one of this module's handles. The design
+  follows napi-mbt.
+- The callback ASan fixture no longer builds a `Ref` from a record literal,
+  which moonc 0.10.20 rejects outside `moonbitlang/core/ref`; the suite
+  previously stopped at code generation without a pass or fail line.
+
 ## [0.6.0] - 2026-11-01
 
 ### Added

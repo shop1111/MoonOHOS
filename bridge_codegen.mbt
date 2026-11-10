@@ -563,9 +563,24 @@ fn bridge_callbacks(plan : GenerationPlan) -> String raise ConfigError {
 }
 
 ///|
+/// Tags every wrapped object with an identity derived from this module, so
+/// objects created by another native module (including another MoonOHOS
+/// module with the same struct layout) are rejected before `napi_unwrap`.
+/// Approach borrowed from napi-mbt's use of `napi_type_tag_object`.
+fn module_tag(project : Project) -> String {
+  let digest = sha256(
+    @utf8.encode(project.package_name + "\u{0}" + project.native_module),
+  )
+  let lower = digest[0:16]
+  let upper = digest[16:32]
+  "static const napi_type_tag &ModuleTag() {\n  static const napi_type_tag tag = {0x\{lower}ull, 0x\{upper}ull};\n  return tag;\n}\n"
+}
+
+///|
 /// Defines each handle kind's methods on newly created handle objects.
 fn attach_methods(project : Project) -> String {
-  let mut source = "static bool AttachMethods(napi_env env, uint32_t kind, napi_value object, EnvState *state) {\n  (void)env; (void)object; (void)state;\n  switch (kind) {\n"
+  let mut source = module_tag(project) +
+    "static bool AttachMethods(napi_env env, uint32_t kind, napi_value object, EnvState *state) {\n  (void)env; (void)object; (void)state;\n  switch (kind) {\n"
   for handle in project.handles {
     let methods = project.methods.filter(m => m.handle == handle)
     if methods.is_empty() {

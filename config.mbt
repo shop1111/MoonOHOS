@@ -1,4 +1,5 @@
 ///|
+#derive(Eq, Debug)
 pub(all) enum ValueType {
   Int32
   /// MoonBit `Int64`, ArkTS `bigint` (lossless, signed 64-bit).
@@ -8,7 +9,7 @@ pub(all) enum ValueType {
   Text
   Binary
   Void
-} derive(Eq, Debug)
+}
 
 ///|
 pub struct Parameter {
@@ -32,9 +33,10 @@ pub struct Config {
 }
 
 ///|
+#derive(Debug)
 pub(all) suberror ConfigError {
   Invalid(String)
-} derive(Debug)
+}
 
 ///|
 fn field(value : Json, key : String) -> Json? {

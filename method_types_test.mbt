@@ -40,3 +40,24 @@ test "methods must name functions taking the handle first" {
     assert_true(rejected)
   }
 }
+
+///|
+test "wrapped objects carry a type tag unique to the module" {
+  let first = method_project("\"size\"").generate().native
+  let renamed = @moonohos.parse_project(
+      (
+        #|{"version":2,"module":"core","package":"a/core","nativeModule":"other","handles":[{"name":"Index"}],"functions":[{"name":"open","params":[],"return":"Index"}]}
+      ),
+    ).generate().native
+  let tag = fn(native : String) -> String raise {
+    guard native.find("static const napi_type_tag tag = {") is Some(start) else {
+      fail("module tag missing")
+    }
+    "\{native[start:start + 80]}"
+  }
+  assert_true(first.contains("napi_type_tag_object(env, result, &ModuleTag())"))
+  assert_true(
+    first.contains("napi_check_object_type_tag(env, value, &ModuleTag(), &own)"),
+  )
+  assert_true(tag(first) != tag(renamed))
+}

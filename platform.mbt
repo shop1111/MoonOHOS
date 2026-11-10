@@ -1,11 +1,12 @@
 ///|
 /// Host operating system. It decides executable names, the Moon home fallback
 /// and where DevEco Studio keeps node, ohpm, hvigor and the JDK.
+#derive(Eq, Debug)
 pub(all) enum HostOs {
   Windows
   MacOS
   Linux
-} derive(Eq, Debug)
+}
 
 ///|
 #deprecated

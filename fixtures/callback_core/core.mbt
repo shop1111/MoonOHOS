@@ -74,18 +74,19 @@ pub fn scan(
 }
 
 ///|
-let saved : Ref[((Int) -> Unit)?] = { val: None }
+let saved : Array[(Int) -> Unit] = []
 
 ///|
 /// Keeps the callback beyond the call; later invocations must be ignored.
 pub fn remember(callback : (Int) -> Unit) -> Unit {
   callback(1)
-  saved.val = Some(callback)
+  saved.clear()
+  saved.push(callback)
 }
 
 ///|
 pub fn replay(x : Int) -> Int {
-  match saved.val {
+  match saved.get(0) {
     Some(f) => {
       f(x)
       1

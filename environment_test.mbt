@@ -21,13 +21,13 @@ test "version floors accept newer releases and reject older ones" {
   }
   assert_false(fact("v0.10.14+7d59c7ec9 (2026-09-18)"))
   assert_false(fact("v0.10.15+0000000 (2026-10-01)"))
-  assert_true(fact("v0.10.16+abcdef0 (2026-10-15)"))
-  assert_true(fact("v0.10.18+6c83a7f62 (2026-10-28)"))
+  assert_false(fact("v0.10.18+6c83a7f62 (2026-10-28)"))
+  assert_true(fact("v0.10.20+65efd5b93 (2026-11-05)"))
   assert_true(fact("v0.11.0+1234567"))
   assert_true(fact("v1.0.0"))
   assert_false(fact("moonc: command not found"))
   assert_false(
-    @moonohos.environment_fact("moonc", "v0.10.18", floor, false).passed(),
+    @moonohos.environment_fact("moonc", "v0.10.20", floor, false).passed(),
   )
 }
 
@@ -68,4 +68,12 @@ test "required environment floors the compiler and SDK, not the Moon CLI" {
       @moonohos.minimum_moonc_version,
     ),
   )
+}
+
+///|
+test "packages built by older supported compilers stay verifiable" {
+  assert_true(@moonohos.package_moonc_supported("v0.10.18+6c83a7f62"))
+  assert_true(@moonohos.package_moonc_supported("v0.10.16+abcdef0"))
+  assert_false(@moonohos.package_moonc_supported("v0.10.14+7d59c7ec9"))
+  assert_false(@moonohos.moonc_supported("v0.10.18+6c83a7f62"))
 }

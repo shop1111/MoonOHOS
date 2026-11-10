@@ -18,12 +18,12 @@ jobs:
           python-version: '3.12'
       - uses: hustcer/setup-moonbit@v1.22
         with:
-          version: '0.10.18+6c83a7f62'
-          core-version: '0.10.18+6c83a7f62'
+          version: '0.10.20+65efd5b93'
+          core-version: '0.10.20+65efd5b93'
       - name: Fixed baseline
         run: |
           moon version --all
-          if (-not ((moonc -v) -match 'v0.10.18\+6c83a7f62')) { throw 'Wrong moonc (expected tested v0.10.18; minimum supported is v0.10.16)' }
+          if (-not ((moonc -v) -match 'v0.10.20\+65efd5b93')) { throw 'Wrong moonc (expected tested and minimum supported v0.10.20)' }
           moon update
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Format, strict checks, tests and public interface

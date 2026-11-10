@@ -87,6 +87,7 @@ pub fn is_device() -> Bool {
 
 ///|
 /// The commonly needed properties in one value.
+#derive(Debug)
 pub(all) struct DeviceInfo {
   device_type : String
   manufacturer : String
@@ -96,7 +97,7 @@ pub(all) struct DeviceInfo {
   os_full_name : String
   display_version : String
   sdk_api_version : Int32
-} derive(Debug)
+}
 
 ///|
 pub fn snapshot() -> DeviceInfo {

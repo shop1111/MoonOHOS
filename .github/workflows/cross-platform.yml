@@ -20,8 +20,8 @@ jobs:
           python-version: '3.12'
       - uses: hustcer/setup-moonbit@v1.22
         with:
-          version: '0.10.18+6c83a7f62'
-          core-version: '0.10.18+6c83a7f62'
+          version: '0.10.20+65efd5b93'
+          core-version: '0.10.20+65efd5b93'
       - name: Toolchain
         run: |
           moon version --all

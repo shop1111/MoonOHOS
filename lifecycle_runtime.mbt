@@ -198,11 +198,21 @@ fn lifecycle_napi() -> String {
     #|  napi_value error = MakeError(env, outcome, message, business);
     #|  if (!error || napi_throw(env, error) != napi_ok) napi_throw_error(env, nullptr, "Node-API operation failed");
     #|}
+    #|// Generated per module: the type tag carried by every object this module wraps.
+    #|static const napi_type_tag &ModuleTag();
+    #|// Sets `own` when `value` (an object) was wrapped by this module.
+    #|static bool OwnObject(napi_env env, napi_value value, bool &own) {
+    #|  return Check(env, napi_check_object_type_tag(env, value, &ModuleTag(), &own));
+    #|}
     #|static bool UnwrapKind(napi_env env, napi_value value, uint32_t kind, const std::string &path, Wrapped *&out) {
     #|  napi_valuetype type;
     #|  if (!Check(env, napi_typeof(env, value, &type))) return false;
+    #|  if (type != napi_object) throw TypeFault(path + ": MoonOHOS object required");
+    #|  bool own = false;
+    #|  if (!OwnObject(env, value, own)) return false;
+    #|  if (!own) throw TypeFault(path + ": MoonOHOS object of this module required");
     #|  void *data = nullptr;
-    #|  if (type != napi_object || napi_unwrap(env, value, &data) != napi_ok || !data) throw TypeFault(path + ": MoonOHOS object required");
+    #|  if (napi_unwrap(env, value, &data) != napi_ok || !data) throw TypeFault(path + ": MoonOHOS object required");
     #|  out = static_cast<Wrapped *>(data);
     #|  if (out->kind != kind) throw TypeFault(path + ": MoonOHOS object of another kind");
     #|  return true;
@@ -237,8 +247,14 @@ fn lifecycle_napi() -> String {
     #|  size_t argc = 0;
     #|  napi_value self = nullptr;
     #|  if (!Check(env, napi_get_cb_info(env, info, &argc, nullptr, &self, nullptr))) return false;
+    #|  bool own = false;
+    #|  if (self) {
+    #|    napi_valuetype type;
+    #|    if (!Check(env, napi_typeof(env, self, &type))) return false;
+    #|    if (type == napi_object && !OwnObject(env, self, own)) return false;
+    #|  }
     #|  void *data = nullptr;
-    #|  if (!self || napi_unwrap(env, self, &data) != napi_ok || !data ||
+    #|  if (!own || napi_unwrap(env, self, &data) != napi_ok || !data ||
     #|      (handle ? !static_cast<Wrapped *>(data)->handle : !static_cast<Wrapped *>(data)->cancel)) {
     #|    Check(env, napi_throw_type_error(env, nullptr, "MoonOHOS method called on another object"));
     #|    return false;
@@ -281,7 +297,7 @@ fn lifecycle_napi() -> String {
     #|  if (!Check(env, napi_define_properties(env, result, 2, methods))) return false;
     #|  if (!Check(env, napi_wrap(env, result, wrapped.get(), FinalizeWrapped, nullptr, nullptr))) return false;
     #|  wrapped.release();
-    #|  return true;
+    #|  return Check(env, napi_type_tag_object(env, result, &ModuleTag()));
     #|}
     #|// Generated per module: defines the methods declared for a handle kind.
     #|static bool AttachMethods(napi_env env, uint32_t kind, napi_value object, EnvState *state);

@@ -1,4 +1,5 @@
 ///|
+#derive(Eq, Debug)
 pub(all) enum TypeExpr {
   Scalar(ValueType)
   List(TypeExpr)
@@ -16,7 +17,7 @@ pub(all) enum TypeExpr {
   /// ArkTS function parameter `(T1, T2) -> Unit`; crosses C as an `Int64` call
   /// id and each invocation copies its arguments to the JS thread.
   Callback(Array[TypeExpr])
-} derive(Eq, Debug)
+}
 
 ///|
 pub struct FieldDef {

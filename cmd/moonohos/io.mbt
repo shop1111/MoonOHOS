@@ -1,7 +1,8 @@
 ///|
+#derive(Debug)
 suberror BuildFailure {
   Failure(String)
-} derive(Debug)
+}
 
 ///|
 /// Operating system the CLI is running on.

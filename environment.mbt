@@ -53,7 +53,9 @@ pub fn environment_report(facts : Array[EnvironmentFact]) -> Json {
 
 ///|
 /// Oldest moonc accepted by `build`, `doctor` and package verification.
-pub let minimum_moonc_version : String = "0.10.16"
+/// 0.10.20 is the first release that parses `#derive(...)`, which the
+/// platform packages use since 0.7.
+pub let minimum_moonc_version : String = "0.10.20"
 
 ///|
 /// Oldest HarmonyOS SDK API level the generated Native code targets.
@@ -64,9 +66,9 @@ pub let minimum_sdk_api : Int32 = 26
 /// `doctor` reports them as untested.
 pub fn tested_environment() -> Array[(String, String)] {
   [
-    ("moon", "0.1.20261028"),
-    ("moonc", "v0.10.18+6c83a7f62"),
-    ("core", "0.10.18+6c83a7f62"),
+    ("moon", "0.1.20261104"),
+    ("moonc", "v0.10.20+65efd5b93"),
+    ("core", "0.10.20+65efd5b93"),
     ("async", "0.21.0"),
     ("sdkApi", "26"),
   ]
@@ -135,6 +137,19 @@ pub fn version_at_least(actual : String, minimum : String) -> Bool {
 /// True when moonc output (`moonc -v`) satisfies `minimum_moonc_version`.
 pub fn moonc_supported(version : String) -> Bool {
   version_at_least(version, minimum_moonc_version)
+}
+
+///|
+/// Oldest moonc whose packages `verify` and HAR assembly still accept.
+/// Packages are compiled artifacts, so the source-syntax floor of
+/// `minimum_moonc_version` does not apply; 0.4.1 to 0.6.x packages were built
+/// with moonc 0.10.16 to 0.10.18.
+pub let minimum_package_moonc_version : String = "0.10.16"
+
+///|
+/// True when a package manifest's `moonc` field is new enough to verify.
+pub fn package_moonc_supported(version : String) -> Bool {
+  version_at_least(version, minimum_package_moonc_version)
 }
 
 ///|

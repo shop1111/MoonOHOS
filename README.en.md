@@ -7,10 +7,9 @@
 
 [中文](README.md) | English
 
-Write the reusable core of a HarmonyOS app (search, parsing, computation) in
-MoonBit. MoonOHOS generates the Node-API bridge and ArkTS types, cross-compiles
-for both device ABIs, links HarmonyOS platform APIs, and packages everything as a
-HAR that any Stage app can depend on. ArkTS keeps the UI and system interaction.
+Write the native part of a HarmonyOS app in MoonBit. Heavy computation runs on a
+background thread so the UI stays responsive, MoonBit code can call HarmonyOS
+system APIs directly, and the result is packaged as a HAR that ArkTS imports.
 
 ```typescript
 import textkit, { CancelToken } from '@alice/textkit';
@@ -20,24 +19,58 @@ const words: number = await textkit.count_words(longText, token); // runs on a w
 token.cancel();                                                    // e.g. when the page closes
 ```
 
-## What you get
+## Why use it
 
-| Layer | What MoonOHOS does | Docs |
+Most HarmonyOS apps need nothing but ArkTS. Moving part of an app to native
+code pays off for:
+
+- **CPU-heavy work**: search, parsing, compression, cryptography, image and audio processing.
+- **Shared core logic**: the same code also serves other platforms.
+- **NDK access**: system capabilities that only have a C interface.
+
+The official native option is C/C++. MoonOHOS lets you use MoonBit instead: memory
+safe, close to TypeScript in syntax, fast to compile, small binaries, and MoonBit
+code that does not use the platform packages also compiles to Wasm and JavaScript.
+
+It is not a good fit for:
+
+- ordinary UI and business logic: use ArkTS;
+- projects built mainly on existing C++ libraries: use C++ directly;
+- projects that need a mature ecosystem: MoonBit has few libraries and the compiler is still evolving;
+- code that must never take the process down: a MoonBit `panic` ends the app process.
+
+## Architecture and status
+
+| Layer | Purpose | Status |
 |---|---|---|
-| Bridge generation | Int/Double/Bool/String/Bytes/Array/struct conversion both ways, ArkTS callbacks, `.d.ts` generation, manifest checked against `.mbti` | [Manifest](#manifest-moonohosjson) |
-| HarmonyOS runtime | Worker-thread async exports, `CancelToken`, handle lifecycle (close, finalizer, env cleanup), business errors | [ASYNC-THREADING.md](docs/ASYNC-THREADING.md) (Chinese) |
-| Platform APIs | `moonohos.native.json` for controlled C dependencies; packages `hilog`, `rawfile`, `task`, `deviceinfo`, `netconn`, `vibrator` | [NATIVE-EXTENSIONS.md](docs/NATIVE-EXTENSIONS.md) (Chinese) |
-| Distribution | `init`, `build`, `har`, `verify`; SHA-256 and ELF verification of every package | [Commands](#commands) |
+| HarmonyOS runtime | ArkTS ↔ MoonBit: conversions, `.d.ts` generation, background-thread tasks, cancellation, ArkTS callbacks, handle lifecycle | **Done.** Host ASan covers everything; 0.4.0 features ran on the x86_64 emulator (built with moonc 0.10.14), while builds with the current compiler and the 0.5 and 0.6 additions have not run on a device yet |
+| System APIs | MoonBit calls the HarmonyOS NDK directly | **Partial**: six platform packages (`hilog`, `rawfile`, `task`, `deviceinfo`, `netconn`, `vibrator`) and a mechanism for third-party C dependencies. **Planned**: bindings generated from SDK headers to cover many more modules |
+| Graphics | MoonBit renders through XComponent and handles touch | **Planned** |
+| Project integration | Init, cross-compilation, HAR packaging, artifact verification | **Done**: the CLI (`init`, `build`, `har`, `verify`). **Planned**: a Hvigor plugin to build from DevEco; publishing to ohpm |
 
-How it relates to napi-mbt (desktop Node.js) and ohos-rs (Rust):
-[COMPARISON.md](docs/COMPARISON.md). Test evidence:
-[VALIDATION-0.5.md](docs/VALIDATION-0.5.md).
+| Document | Contents |
+|---|---|
+| [ASYNC-THREADING.md](docs/ASYNC-THREADING.md) (Chinese) | Threading, cancellation, callbacks, lifecycle |
+| [NATIVE-EXTENSIONS.md](docs/NATIVE-EXTENSIONS.md) (Chinese) | Platform packages and native dependencies |
+| [COMPARISON.md](docs/COMPARISON.md) (Chinese) | Point-by-point comparison with napi-mbt and ohos-rs |
+| [VALIDATION-0.5.md](docs/VALIDATION-0.5.md) (Chinese) | What each test level proves |
+
+### Relation to napi-mbt
+
+[napi-mbt](https://github.com/unmbt/napi-mbt) is a MoonBit binding tool for
+Node.js with broader general-purpose coverage than MoonOHOS. Its MoonBit code
+runs only on the JS thread, background work relies on spawning Node child
+processes, it does not cross-compile, and it ships npm packages. None of that
+works on HarmonyOS. The MoonOHOS bridge is designed for mobile UI apps and runs
+MoonBit on background threads. MoonOHOS does not aim for the breadth of a
+general binding tool; its effort goes into system APIs, graphics and project
+integration. See [COMPARISON.md](docs/COMPARISON.md) for the evidence.
 
 ## Requirements
 
 | Component | Requirement | Notes |
 |---|---|---|
-| MoonBit | moonc **≥ 0.10.16** | Tested with Moon `0.1.20261028` and moonc `v0.10.18+6c83a7f62`; newer releases work and `doctor` marks them untested |
+| MoonBit | moonc **≥ 0.10.20** | Tested with Moon `0.1.20261104` and moonc `v0.10.20+65efd5b93`; newer releases work and `doctor` marks them untested. 0.10.18 and older cannot parse `#derive(...)` |
 | Host | Windows x64 (fully validated); Linux and macOS (CLI and library covered by CI) | The CLI is a native MoonBit program: MSVC Build Tools on Windows, cc/clang elsewhere |
 | HarmonyOS SDK | API **≥ 26** | From DevEco Studio or the command-line tools; needed by `build` and `har`, not by `init`, `check`, `inspect`, `plan` or `verify` |
 | Target ABIs | `arm64-v8a`, `x86_64` | Run on the x86_64 emulator (API 26); ARM64 hardware not yet validated |
@@ -170,17 +203,15 @@ what each layer proves.
 
 ## Roadmap
 
-Done in 0.5: Int64, Option, payload-free enums, handle methods, the `deviceinfo` / `netconn` / `vibrator` platform packages, the `init` demo app, and the CLI on Linux/macOS. Done in 0.6: ArkTS callbacks for progress and events, delivered through a threadsafe function for async functions.
+Done: 0.4 HarmonyOS runtime, platform packages and HAR distribution; 0.5 Int64, Option, payload-free enums, handle methods, `deviceinfo` / `netconn` / `vibrator`, the `init` demo app and the CLI on Linux/macOS; 0.6 ArkTS callbacks.
 
-Planned (priorities are open for discussion in issues):
+Next, layer by layer (priorities are open for discussion in issues):
 
-- callbacks that return values; emulator and device validation of callbacks;
-- ArrayBuffer and other typed arrays, zero-copy where provably safe;
-- enums with payloads, optional and labelled parameters;
-- more platform packages: pasteboard, sensors, image, XComponent;
-- move internals into an `internal/` package and document the whole public API;
-- a bilingual docs site; N-API tests under ArkVM in Linux CI;
-- validation on ARM64 hardware.
+1. **HarmonyOS runtime**: run the 0.5 and 0.6 features on the emulator. Borrow napi-mbt designs for what mobile apps need: type tags on handles, external memory reporting, per-environment instance data (loading in Worker/TaskPool), and typed arrays such as `Float64Array`. Full general-purpose binding coverage is not a goal.
+2. **System APIs**: a binding generator driven by SDK headers that emits MoonBit declarations and C shims, topped by hand-written safe wrappers (resource release, error codes as `raise`). The first batch targets 8–10 modules that need no special permission, such as files, cryptography, pasteboard and HiTrace.
+3. **Graphics**: XComponent and Native Drawing, so MoonBit draws 2D content and handles touch events, with an example app.
+4. **Project integration**: a Hvigor plugin that builds MoonBit modules from DevEco; publishing HARs to ohpm; turning pure-MoonBit Mooncakes packages into HARs in one step.
+5. **Other**: ARM64 hardware validation and a bilingual docs site.
 
 ## Contributing
 

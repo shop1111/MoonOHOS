@@ -20,12 +20,12 @@ pub fn validate_distribution_metadata(json : Json) -> Unit raise ConfigError {
       "functions": Array(functions),
       ..
     } => {
-      if moon == "" || !moonc_supported(moonc) {
+      if moon == "" || !package_moonc_supported(moonc) {
         raise Invalid(
           "package: built with unsupported compiler " +
           moonc +
           "; requires moonc >= " +
-          minimum_moonc_version,
+          minimum_package_moonc_version,
         )
       }
       let seen : Map[String, Bool] = Map([])

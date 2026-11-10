@@ -41,6 +41,8 @@ struct Value {
   // Functions, wrapped native data, errors and promises.
   Value *(*method)(Env *, struct Call *) = nullptr; void *method_data = nullptr;
   void *native = nullptr; napi_finalize finalize = nullptr;
+  // napi_type_tag_object: at most one tag per object.
+  bool tagged = false; uint64_t tag_lower = 0, tag_upper = 0;
   std::string error_kind; int promise_state = 0; std::shared_ptr<Value> settled;
   // BigInt payload; `lossless` is false for values outside the int64 range.
   int64_t big = 0; bool lossless = true;
@@ -318,6 +320,17 @@ inline napi_status napi_wrap(napi_env e, napi_value object, void *native, napi_f
   auto s = Step(e); if (s != napi_ok) return s;
   if (object->native || result) return napi_invalid_arg;
   object->native = native; object->finalize = finalize; return s;
+}
+struct napi_type_tag { uint64_t lower; uint64_t upper; };
+inline napi_status napi_type_tag_object(napi_env e, napi_value object, const napi_type_tag *tag) {
+  auto s = Step(e); if (s != napi_ok) return s;
+  if (object->type != napi_object || object->tagged) return napi_invalid_arg;
+  object->tagged = true; object->tag_lower = tag->lower; object->tag_upper = tag->upper; return s;
+}
+inline napi_status napi_check_object_type_tag(napi_env e, napi_value object, const napi_type_tag *tag, bool *result) {
+  auto s = Step(e); if (s != napi_ok) return s;
+  if (object->type != napi_object) return napi_invalid_arg;
+  *result = object->tagged && object->tag_lower == tag->lower && object->tag_upper == tag->upper; return s;
 }
 inline napi_status napi_unwrap(napi_env e, napi_value object, void **out) {
   auto s = Step(e); if (s != napi_ok) return s;

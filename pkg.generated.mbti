@@ -3,6 +3,7 @@ package "shop1111/moonohos"
 
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
 }
 
 // Values
@@ -36,11 +37,11 @@ pub fn empty_native_build() -> NativeBuild
 
 pub fn environment_fact(String, String, String, Bool) -> EnvironmentFact
 
-pub fn environment_report(Array[EnvironmentFact]) -> Json
+pub fn environment_report(Array[EnvironmentFact]) -> @json.Json
 
 pub fn failure_diagnostic(String, String) -> Diagnostic
 
-pub fn failure_report(String, Diagnostic, parameter? : Bool) -> Json
+pub fn failure_report(String, Diagnostic, parameter? : Bool) -> @json.Json
 
 pub fn fingerprint(String, String, Bytes) -> ContentFingerprint
 
@@ -50,7 +51,7 @@ pub fn har_facade(String, String) -> String
 
 pub fn har_package_manifest(String, String) -> String raise ConfigError
 
-pub fn har_provenance(PackageManifest, String) -> Json
+pub fn har_provenance(PackageManifest, String) -> @json.Json
 
 pub fn identifier(String) -> Bool
 
@@ -67,6 +68,8 @@ pub fn linked_packages(Array[String]) -> Array[(String, String)]
 pub let macos_marker : String
 
 pub let minimum_moonc_version : String
+
+pub let minimum_package_moonc_version : String
 
 pub let minimum_sdk_api : Int32
 
@@ -87,6 +90,8 @@ pub fn native_stubs(String) -> Array[String]
 pub fn native_tool(HostOs, String, String) -> String
 
 pub fn package_file(String, Bytes) -> PackageFile raise ConfigError
+
+pub fn package_moonc_supported(String) -> Bool
 
 pub fn package_readme(String) -> String
 
@@ -126,7 +131,7 @@ pub fn sdk_candidates(String) -> Array[String]
 
 pub fn sdk_files(os? : HostOs) -> Array[String]
 
-pub fn seal_manifest(Json, Array[PackageFile]) -> Json raise ConfigError
+pub fn seal_manifest(@json.Json, Array[PackageFile]) -> @json.Json raise ConfigError
 
 pub fn sha256(Bytes) -> String
 
@@ -134,7 +139,7 @@ pub fn signature(Function) -> String
 
 pub fn staged_workspace(Int32) -> String
 
-pub fn success_report(String, Json) -> Json
+pub fn success_report(String, @json.Json) -> @json.Json
 
 pub fn system_library_allowlist() -> Array[String]
 
@@ -146,7 +151,7 @@ pub fn usage_text(String) -> String
 
 pub fn valid_module_name(String) -> Bool
 
-pub fn validate_distribution_metadata(Json) -> Unit raise ConfigError
+pub fn validate_distribution_metadata(@json.Json) -> Unit raise ConfigError
 
 pub fn validate_har_module(String) -> Unit raise ConfigError
 
@@ -171,9 +176,10 @@ pub fn wrapper_package(Config) -> String
 pub fn wrapper_source(Config) -> String
 
 // Errors
+#derive(@debug.Debug)
 pub(all) suberror ConfigError {
   Invalid(String)
-} derive(@debug.Debug)
+}
 #deprecated
 pub fn ConfigError::to_repr(Self) -> @debug.Repr
 
@@ -203,7 +209,7 @@ pub struct BuildStage {
   abi : String?
   outputs : Array[String]
 }
-pub fn BuildStage::to_json(Self) -> Json
+pub fn BuildStage::to_json(Self) -> @json.Json
 
 pub struct Callable {
   name : String
@@ -236,6 +242,7 @@ pub struct CliOptions {
   help_topic : Command?
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Command {
   Build
   Doctor
@@ -247,7 +254,7 @@ pub(all) enum Command {
   Har
   Help
   Version
-} derive(Eq, @debug.Debug)
+}
 #deprecated
 pub fn Command::equal(Self, Self) -> Bool
 #deprecated
@@ -268,14 +275,14 @@ pub struct ContentFingerprint {
   name : String
   digest : String
 }
-pub fn ContentFingerprint::to_json(Self) -> Json
+pub fn ContentFingerprint::to_json(Self) -> @json.Json
 
 pub struct ConversionLimits {
   depth : Int32
   nodes : Int32
   bytes : Int32
 }
-pub fn ConversionLimits::to_json(Self) -> Json
+pub fn ConversionLimits::to_json(Self) -> @json.Json
 
 pub struct DevEcoTools {
   sdk : String
@@ -295,7 +302,7 @@ pub(all) struct Diagnostic {
   context : Array[String]
 }
 pub fn Diagnostic::render(Self) -> String
-pub fn Diagnostic::to_json(Self) -> Json
+pub fn Diagnostic::to_json(Self) -> @json.Json
 
 pub struct ElfInfo {
   abi : String
@@ -305,7 +312,7 @@ pub struct ElfInfo {
   soname : String?
   segments : Array[ElfSegment]
 }
-pub fn ElfInfo::to_json(Self) -> Json
+pub fn ElfInfo::to_json(Self) -> @json.Json
 
 pub struct ElfSegment {
   offset : Int32
@@ -315,7 +322,7 @@ pub struct ElfSegment {
   flags : Int32
   alignment : UInt64
 }
-pub fn ElfSegment::to_json(Self) -> Json
+pub fn ElfSegment::to_json(Self) -> @json.Json
 
 pub struct EnumDef {
   name : String
@@ -329,7 +336,7 @@ pub struct EnvironmentFact {
   available : Bool
 }
 pub fn EnvironmentFact::passed(Self) -> Bool
-pub fn EnvironmentFact::to_json(Self) -> Json
+pub fn EnvironmentFact::to_json(Self) -> @json.Json
 
 pub struct FieldDef {
   name : String
@@ -352,11 +359,12 @@ pub struct GeneratedArtifacts {
   cmake : String
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) enum HostOs {
   Windows
   MacOS
   Linux
-} derive(Eq, @debug.Debug)
+}
 pub fn HostOs::case_insensitive_paths(Self) -> Bool
 #deprecated
 pub fn HostOs::equal(Self, Self) -> Bool
@@ -418,14 +426,14 @@ pub struct NativeDescriptor {
   abis : Array[String]
   adapters : Array[AdapterSpec]
 }
-pub fn NativeDescriptor::to_json(Self) -> Json
+pub fn NativeDescriptor::to_json(Self) -> @json.Json
 
 pub struct PackageFile {
   path : String
   size : Int32
   checksum : String
 }
-pub fn PackageFile::to_json(Self) -> Json
+pub fn PackageFile::to_json(Self) -> @json.Json
 pub fn PackageFile::verify(Self, Bytes) -> Unit raise ConfigError
 
 pub struct PackageInterface {
@@ -462,18 +470,18 @@ pub struct Project {
   functions : Array[Callable]
   adapters : Array[AdapterDef]
 }
-pub fn Project::build_plan(Self, Array[String]) -> Json raise ConfigError
+pub fn Project::build_plan(Self, Array[String]) -> @json.Json raise ConfigError
 pub fn Project::business_adapters(Self) -> String raise ConfigError
 pub fn Project::business_header(Self) -> String raise ConfigError
 pub fn Project::business_wrapper(Self) -> String raise ConfigError
 pub fn Project::enum_def(Self, String) -> EnumDef raise ConfigError
 pub fn Project::generate(Self) -> GeneratedArtifacts raise ConfigError
 pub fn Project::generate_arrays(Self) -> GeneratedArtifacts raise ConfigError
-pub fn Project::generation_plan(Self) -> Json raise ConfigError
+pub fn Project::generation_plan(Self) -> @json.Json raise ConfigError
 pub fn Project::reachable_types(Self) -> Array[TypeExpr] raise ConfigError
 pub fn Project::record_def(Self, String) -> RecordDef raise ConfigError
 pub fn Project::record_order(Self) -> Array[RecordDef] raise ConfigError
-pub fn Project::summary(Self) -> Json raise ConfigError
+pub fn Project::summary(Self) -> @json.Json raise ConfigError
 pub fn Project::validate(Self) -> Unit raise ConfigError
 pub fn Project::verify_interface(Self, String) -> Unit raise ConfigError
 pub fn Project::with_adapters(Self, Array[AdapterDef]) -> Self
@@ -492,6 +500,7 @@ pub fn Sha256::digest(Self) -> String
 pub fn Sha256::new() -> Self
 pub fn Sha256::update(Self, Bytes) -> Unit
 
+#derive(Eq, @debug.Debug)
 pub(all) enum TypeExpr {
   Scalar(ValueType)
   List(TypeExpr)
@@ -501,7 +510,7 @@ pub(all) enum TypeExpr {
   Handle(String)
   External(String, String)
   Callback(Array[TypeExpr])
-} derive(Eq, @debug.Debug)
+}
 pub fn TypeExpr::ark_name(Self) -> String
 pub fn TypeExpr::c_name(Self) -> String
 #deprecated
@@ -515,6 +524,7 @@ pub fn TypeExpr::not_equal(Self, Self) -> Bool
 pub fn TypeExpr::to_repr(Self) -> @debug.Repr
 pub fn TypeExpr::wrapper_name(Self) -> String
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ValueType {
   Int32
   Int64
@@ -523,7 +533,7 @@ pub(all) enum ValueType {
   Text
   Binary
   Void
-} derive(Eq, @debug.Debug)
+}
 pub fn ValueType::ark_name(Self) -> String
 pub fn ValueType::c_name(Self) -> String
 #deprecated

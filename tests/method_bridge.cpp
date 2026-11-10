@@ -71,6 +71,25 @@ int main() {
     m.On(&handle, "close"); m.On(bad, "close");
     assert(m.Diag("liveHandles") == 0);
   }
+  // An object wrapped by another native module (here: same methods, foreign
+  // pointer, no MoonOHOS type tag) is rejected before its pointer is read.
+  {
+    Module m; Value one = Number(1);
+    napi_value counter = m.Call("open_counter", {&one});
+    assert(counter->tagged);
+    napi_value token = m.Call("createCancelToken", {});
+    assert(token->tagged);
+    static int foreign_native = 0;
+    Value foreign; foreign.type = napi_object; foreign.properties = counter->properties;
+    assert(napi_wrap(&m.env, &foreign, &foreign_native, nullptr, nullptr, nullptr) == napi_ok);
+    assert(!m.Call("add", {&foreign, &one}) && m.env.exception == "TypeError");
+    assert(m.env.message.find("MoonOHOS object of this module required") != std::string::npos);
+    assert(!m.On(&foreign, "add", {&one}) && m.env.exception == "TypeError");
+    assert(!m.On(&foreign, "close") && m.env.exception == "TypeError");
+    assert(!m.Call("add_later", {counter, &one, &foreign}) && m.env.exception == "TypeError");
+    m.On(counter, "close");
+    assert(m.Diag("liveHandles") == 0);
+  }
   // Node-API failure injection on a method call leaves no leaks.
   {
     Env probe; Value exports; exports.type = napi_object; assert(Init(&probe, &exports));

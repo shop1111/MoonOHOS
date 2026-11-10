@@ -19,6 +19,7 @@ pub fn snapshot() -> DeviceInfo
 // Errors
 
 // Types and methods
+#derive(@debug.Debug)
 pub(all) struct DeviceInfo {
   device_type : String
   manufacturer : String
@@ -28,7 +29,7 @@ pub(all) struct DeviceInfo {
   os_full_name : String
   display_version : String
   sdk_api_version : Int32
-} derive(@debug.Debug)
+}
 #deprecated
 pub fn DeviceInfo::to_repr(Self) -> @debug.Repr
 

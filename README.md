@@ -7,29 +7,50 @@
 
 中文 | [English](README.en.md)
 
-开发者用 MoonBit 编写可复用的 Native 模块；MoonOHOS 负责鸿蒙宿主适配、系统能力扩展、构建与打包，最终以 HAR 形式通过 ArkTS 接口接入应用。ArkTS 负责界面和系统交互，MoonBit 负责检索、解析、计算等业务核心。
+用 MoonBit 编写鸿蒙应用的 Native 部分：耗时计算在后台线程执行，界面不卡；MoonBit 可以直接调用鸿蒙系统能力；结果打包成 HAR，ArkTS 导入即可使用。
 
-0.4 在 0.3 的接口生成与双 ABI 构建底座之上，新增：
+## 为什么用它
 
-- **鸿蒙运行时**：异步导出在 Node-API 工作线程执行 MoonBit，支持 `CancelToken` 取消；MoonBit 对象可作为句柄交给 ArkTS，关闭、回收和环境退出时释放。
-- **平台能力**：`ohos` 模块让 MoonBit 直接使用 HiLog、RawFile 和任务取消；第三方 MoonBit 包可按描述文件携带 C 代码进入 HarmonyOS 动态库。
-- **工程分发**：`moonohos init` 生成工程，`moonohos har` 生成 HAR，独立 Stage 应用通过 `file:` 依赖即可使用，无需手工拼接 CMake、类型包和库目录。
-- **真实示例**：离线文档检索应用，覆盖资源读取、工作线程建索引、取消、离开页面释放和 HAR 消费。
+大多数鸿蒙应用只用 ArkTS 就够了。以下情况值得把一部分代码放到 Native 层：
 
-| 层次 | 内容 | 文档 |
+- **CPU 密集计算**：检索、解析、压缩、加密、图像和音频处理。
+- **跨平台复用**：同一份核心逻辑还要给其他平台使用。
+- **直接调用 NDK**：使用只有 C 接口的系统能力。
+
+鸿蒙官方的 Native 方案是 C/C++。MoonOHOS 让你改用 MoonBit：内存安全，语法接近 TypeScript，编译快，产物小；不依赖平台包的 MoonBit 代码还能编译到 Wasm 和 JavaScript。
+
+不适合的情况：
+
+- 普通界面和业务逻辑：用 ArkTS 即可。
+- 主要依赖现成 C++ 库的项目：直接用 C++ 更省事。
+- 要求生态成熟度的项目：MoonBit 的库还不多，编译器仍在演进。
+- 不能接受进程退出的场景：MoonBit `panic` 会结束应用进程。
+
+## 架构与状态
+
+| 层次 | 作用 | 状态 |
 |---|---|---|
-| 接口生成 | Int/Double/Bool/String/Bytes/Array/结构体的双向转换，ArkTS 回调，d.ts 生成，清单与 `.mbti` 核对 | 本文“清单” |
-| 鸿蒙运行时 | 进程门、工作线程任务、取消、回调投递、句柄生命周期、env cleanup、诊断计数 | [ASYNC-THREADING.md](docs/ASYNC-THREADING.md) |
-| 平台扩展 | `moonohos.native.json` 受控依赖；`hilog`、`rawfile`、`task`、`deviceinfo`、`netconn`、`vibrator` 平台包 | [NATIVE-EXTENSIONS.md](docs/NATIVE-EXTENSIONS.md) |
-| 工程分发 | `init`、`build`、`har`、`verify`；SHA256 与 ELF 校验 | 本文“命令” |
+| 鸿蒙运行时 | ArkTS ↔ MoonBit：类型转换、d.ts 生成、后台线程任务、取消、ArkTS 回调、句柄生命周期 | **已实现**。宿主 ASan 覆盖全部能力；0.4.0 的能力曾在 x86_64 模拟器上运行（当时的编译器是 moonc 0.10.14），换用新编译器后的构建以及 0.5、0.6 新增的能力还没在设备上运行 |
+| 系统能力 | MoonBit 直接调用鸿蒙 NDK | **部分实现**：`hilog`、`rawfile`、`task`、`deviceinfo`、`netconn`、`vibrator` 6 个平台包，以及第三方 C 依赖的接入机制。**计划**：用 SDK 头文件生成绑定，批量覆盖更多模块 |
+| 图形 | MoonBit 通过 XComponent 渲染画面、处理触摸 | **计划中** |
+| 工程集成 | 初始化、交叉编译、HAR 打包、产物校验 | **已实现** CLI（`init`、`build`、`har`、`verify`）。**计划**：Hvigor 插件，在 DevEco 中直接构建；发布到 ohpm |
 
-与 napi-mbt、ohos-rs 的功能对照和借鉴关系见 [COMPARISON.md](docs/COMPARISON.md)。验证结果见 [VALIDATION-0.5.md](docs/VALIDATION-0.5.md)（0.4 见 [VALIDATION-0.4.md](docs/VALIDATION-0.4.md)）。
+| 文档 | 内容 |
+|---|---|
+| [ASYNC-THREADING.md](docs/ASYNC-THREADING.md) | 线程模型、取消、回调、生命周期 |
+| [NATIVE-EXTENSIONS.md](docs/NATIVE-EXTENSIONS.md) | 平台包与 Native 依赖接入 |
+| [COMPARISON.md](docs/COMPARISON.md) | 与 napi-mbt、ohos-rs 的逐项对照 |
+| [VALIDATION-0.5.md](docs/VALIDATION-0.5.md) | 各项能力的验证范围（0.4 见 [VALIDATION-0.4.md](docs/VALIDATION-0.4.md)） |
+
+### 与 napi-mbt 的关系
+
+[napi-mbt](https://github.com/unmbt/napi-mbt) 是面向 Node.js 的 MoonBit 绑定工具，通用绑定的覆盖面比 MoonOHOS 广。但它的 MoonBit 代码只在 JS 线程上运行，后台计算依靠启动 Node 子进程；它也不支持交叉编译，产物是 npm 包。这些在鸿蒙上都无法使用。MoonOHOS 的胶水层为移动端 UI 应用设计，MoonBit 在后台线程执行；本项目不追求通用绑定的广度，主要投入在系统能力、图形和工程集成上。逐项依据见 [COMPARISON.md](docs/COMPARISON.md)。
 
 ## 环境
 
 | 组件 | 要求 | 说明 |
 |---|---|---|
-| MoonBit | moonc **≥ 0.10.16** | 已测试 Moon `0.1.20261028`、moonc `v0.10.18+6c83a7f62`；更新版本可用，`doctor` 标为 untested |
+| MoonBit | moonc **≥ 0.10.20** | 已测试 Moon `0.1.20261104`、moonc `v0.10.20+65efd5b93`；更新版本可用，`doctor` 标为 untested。0.10.18 及更早版本不支持 `#derive(...)` 写法 |
 | 主机 | Windows x64（完整验证）；Linux、macOS（CI 覆盖 CLI 与库） | CLI 是 MoonBit Native 程序，Windows 需 MSVC C++ Build Tools，其他平台需 cc/clang |
 | HarmonyOS SDK | API **≥ 26** | DevEco Studio 自带，或 command-line-tools；`build`、`har` 需要，`init`/`check`/`inspect`/`plan`/`verify` 不需要 |
 | 目标 ABI | `arm64-v8a`、`x86_64` | 已在 x86_64 模拟器（API 26）运行；ARM64 真机尚未验证 |
@@ -81,17 +102,18 @@ token.cancel();                                                     // 页面退
 
 生成的 `core/moon.mod` 从 Mooncakes 依赖 `shop1111/moonohos_ohos@0.6.0`。修改平台模块时可加 `--ohos <MoonOHOS/ohos>`，让工作区引用本地目录；构建时工作区全部成员被复制到隔离目录，原始文件不被修改。
 
-### 与 0.3 手工接入的对比
+### 与手工接入的对比
 
-| 步骤 | 0.3 | 0.4 |
+| 步骤 | 手工（NDK + CMake） | MoonOHOS |
 |---|---|---|
-| 新建工程 | 手写 MoonBit 模块、清单、DevEco 工程 | `moonohos init` |
+| 新建工程 | 手写 Node-API 胶水代码、CMake 和 DevEco 工程 | `moonohos init` |
+| 编译 | 自己配置 MoonBit 生成的 C 代码、运行时和鸿蒙 clang，分别编两个 ABI | `moonohos build` |
 | 原生库进入应用 | 复制两个 ABI 的 `.so` 到 `entry/libs/<abi>/` | `moonohos har` 放入 HAR 模块 |
-| 类型声明 | 复制类型包到 `entry/src/main/cpp/types/`，手写本地依赖 | HAR 内置类型包与 ArkTS 门面 |
-| 打包分发 | 无 | `--assemble` 调用 hvigor 生成 `.har` |
+| 类型声明 | 手写 `index.d.ts` 并复制到 `entry/src/main/cpp/types/` | 自动生成，HAR 内置类型包与 ArkTS 门面 |
+| 打包分发 | 自己配置 HAR 模块 | `--assemble` 调用 hvigor 生成 `.har` |
 | 其他应用复用 | 重复以上复制 | 一行 `file:` 依赖 |
-| 耗时计算 | 只能同步调用，阻塞 UI | 异步导出 + 取消 |
-| 使用系统能力 | 不支持（拒绝所有 Native stub） | HiLog、RawFile、任务取消；受控扩展 |
+| 耗时计算 | 自己写 async work，保证 MoonBit 堆不被并发访问 | `"async": true`，带取消 |
+| 使用系统能力 | 自己写 MoonBit extern 和 C 中转代码 | 平台包；第三方 C 依赖按描述文件接入 |
 
 ## 清单 moonohos.json
 
@@ -205,17 +227,15 @@ SDK、HAP 与模拟器检查在本机执行。各层证明范围见 [VALIDATION-
 
 ## 路线图
 
-已在 0.5 完成：Int64、Option、无载荷枚举、句柄方法、`deviceinfo`/`netconn`/`vibrator` 平台包、`init` 演示应用、Linux/macOS CLI。已在 0.6 完成：ArkTS 回调（进度、事件；异步函数经线程安全函数投递）。
+已完成：0.4 鸿蒙运行时、平台包与 HAR 分发；0.5 Int64、Option、无载荷枚举、句柄方法、`deviceinfo`/`netconn`/`vibrator`、`init` 演示应用、Linux/macOS CLI；0.6 ArkTS 回调。
 
-计划中（欢迎在 issue 中讨论优先级）：
+接下来按层推进（欢迎在 issue 中讨论优先级）：
 
-- 有返回值的回调；回调的模拟器与真机验证；
-- ArrayBuffer 与其他 TypedArray，在能证明安全时零复制；
-- 带载荷的枚举、可选/标记参数；
-- 更多平台包：剪贴板、传感器、图像、XComponent；
-- 内部实现移入 `internal/` 包，公开 API 补全文档注释；
-- 中英文档站；用 ArkVM 在 Linux CI 中运行 N-API 测试；
-- ARM64 真机验证。
+1. **鸿蒙运行时**：在模拟器上验证 0.5、0.6 的能力。借鉴 napi-mbt 的设计补充移动端需要的部分：句柄类型标记、外部内存上报、每个环境独立的实例数据（模块可在 Worker/TaskPool 中加载）、`Float64Array` 等 TypedArray。不追求通用绑定的完整度。
+2. **系统能力**：基于 SDK 头文件的绑定生成器，自动生成 MoonBit 声明和 C 中转代码，再手写安全封装（资源释放、错误码转为 `raise`）。首批覆盖 8 到 10 个不需要特殊权限的模块，如文件、加解密、剪贴板、HiTrace。
+3. **图形**：XComponent 与 Native Drawing，MoonBit 绘制 2D 画面、处理触摸事件，附示例应用。
+4. **工程集成**：Hvigor 插件，在 DevEco 中直接构建 MoonBit 模块；发布 HAR 到 ohpm；纯 MoonBit 的 Mooncakes 包一键转为 HAR。
+5. **其他**：ARM64 真机验证、中英文档站。
 
 ## 参与贡献
 

@@ -1,4 +1,5 @@
 ///|
+#derive(Eq, Debug)
 pub(all) enum Command {
   Build
   Doctor
@@ -10,7 +11,7 @@ pub(all) enum Command {
   Har
   Help
   Version
-} derive(Eq, Debug)
+}
 
 ///|
 pub struct CliOptions {

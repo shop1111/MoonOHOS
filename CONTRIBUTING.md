@@ -17,7 +17,7 @@ welcome in Chinese or English.
 
 | Need | Version |
 |---|---|
-| MoonBit toolchain | moonc ≥ 0.10.16 (CI uses `v0.10.18+6c83a7f62`) |
+| MoonBit toolchain | moonc ≥ 0.10.20 (CI uses `v0.10.20+65efd5b93`) |
 | Python | 3.10+ (verification scripts) |
 | C/C++ compiler | MSVC on Windows (host ASan), clang or gcc elsewhere |
 | DevEco Studio | 26+, only for SDK builds, HAR/HAP and device checks |
