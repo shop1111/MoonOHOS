@@ -18,7 +18,15 @@ All notable changes to MoonOHOS are recorded here. The format follows
   keeps its own floor (moonc >= 0.10.16), so HARs built by 0.4.1 to 0.6.x stay
   verifiable.
 
+### Verified
+- The search example, rebuilt with moonc 0.10.20, ran twice on the x86_64
+  emulator (API 26): background indexing, cancellation, ArkTS progress
+  callbacks, handle methods and the new type tags (the system ResourceManager
+  passed as a SearchIndex is rejected). See docs/VALIDATION-0.7.md.
+
 ### Fixed
+- Package manifests record only the first line of `moon version` /
+  `moonc -v`; Moon 0.1.20261104 appends feature-flag lines.
 - Handles and `CancelToken` objects carry a per-module type tag
   (`napi_type_tag_object`, derived from the package and `nativeModule`). Objects
   wrapped by another native module, including another MoonOHOS module, are now

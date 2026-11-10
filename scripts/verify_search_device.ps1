@@ -30,10 +30,13 @@ Device @('install', '-r', $hap) 120 | Out-Null
 $required = @(
   'MOONSEARCH_SCENARIO_BEGIN',
   'MOONSEARCH_INDEX_END documents=12',
+  'MOONSEARCH_PROGRESS dir=docs reported=12 documents=12',
   'MOONSEARCH_SMALL round=1 documents=12',
   'MOONSEARCH_SYNC_QUERY hits=',
+  'MOONSEARCH_TYPETAG pass',
   'MOONSEARCH_INDEX_CANCELLED',
   'MOONSEARCH_CANCELLED round=1 error=AbortError',
+  'MOONSEARCH_PROGRESS dir=docs_large',
   'MOONSEARCH_LARGE round=1',
   'MOONSEARCH_LARGE_QUERY hits=10',
   'MOONSEARCH_PAGE_CLOSED round=1',

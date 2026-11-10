@@ -147,6 +147,8 @@ pub fn tested_environment() -> Array[(String, String)]
 
 pub fn tokenize(String) -> Array[String] raise ConfigError
 
+pub fn tool_banner(String) -> String
+
 pub fn usage_text(String) -> String
 
 pub fn valid_module_name(String) -> Bool

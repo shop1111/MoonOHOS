@@ -77,3 +77,18 @@ test "packages built by older supported compilers stay verifiable" {
   assert_false(@moonohos.package_moonc_supported("v0.10.14+7d59c7ec9"))
   assert_false(@moonohos.moonc_supported("v0.10.18+6c83a7f62"))
 }
+
+///|
+test "tool banners drop feature-flag lines" {
+  assert_eq(
+    @moonohos.tool_banner(
+      "moon 0.1.20261104 (940aa18 2026-11-04)\r\n\r\nFeature flags enabled: rr_moon_mod\r\n",
+    ),
+    "moon 0.1.20261104 (940aa18 2026-11-04)",
+  )
+  assert_eq(
+    @moonohos.tool_banner("\nv0.10.20+65efd5b93 (2026-11-05)\n"),
+    "v0.10.20+65efd5b93 (2026-11-05)",
+  )
+  assert_eq(@moonohos.tool_banner(""), "")
+}

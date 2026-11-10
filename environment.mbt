@@ -140,6 +140,20 @@ pub fn moonc_supported(version : String) -> Bool {
 }
 
 ///|
+/// First non-empty line of a tool's version output. Moon 0.1.20261104 and
+/// newer append feature-flag lines to `moon version`, which do not belong in
+/// package manifests.
+pub fn tool_banner(output : String) -> String {
+  for line in output.split("\n") {
+    let text = line.trim().to_owned()
+    if text != "" {
+      return text
+    }
+  }
+  ""
+}
+
+///|
 /// Oldest moonc whose packages `verify` and HAR assembly still accept.
 /// Packages are compiled artifacts, so the source-syntax floor of
 /// `minimum_moonc_version` does not apply; 0.4.1 to 0.6.x packages were built

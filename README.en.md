@@ -43,7 +43,7 @@ It is not a good fit for:
 
 | Layer | Purpose | Status |
 |---|---|---|
-| HarmonyOS runtime | ArkTS ↔ MoonBit: conversions, `.d.ts` generation, background-thread tasks, cancellation, ArkTS callbacks, handle lifecycle | **Done.** Host ASan covers everything; 0.4.0 features ran on the x86_64 emulator (built with moonc 0.10.14), while builds with the current compiler and the 0.5 and 0.6 additions have not run on a device yet |
+| HarmonyOS runtime | ArkTS ↔ MoonBit: conversions, `.d.ts` generation, background-thread tasks, cancellation, ArkTS callbacks, handle lifecycle | **Done.** Host ASan covers everything. **Run on the x86_64 emulator** (built with moonc 0.10.20, 2026-11-11): background-thread tasks, cancellation, ArkTS progress callbacks, handle methods, handle type tags, handle lifecycle. **Not yet run on a device**: Int64, Option, enums |
 | System APIs | MoonBit calls the HarmonyOS NDK directly | **Partial**: six platform packages (`hilog`, `rawfile`, `task`, `deviceinfo`, `netconn`, `vibrator`) and a mechanism for third-party C dependencies. **Planned**: bindings generated from SDK headers to cover many more modules |
 | Graphics | MoonBit renders through XComponent and handles touch | **Planned** |
 | Project integration | Init, cross-compilation, HAR packaging, artifact verification | **Done**: the CLI (`init`, `build`, `har`, `verify`). **Planned**: a Hvigor plugin to build from DevEco; publishing to ohpm |
@@ -53,6 +53,7 @@ It is not a good fit for:
 | [ASYNC-THREADING.md](docs/ASYNC-THREADING.md) (Chinese) | Threading, cancellation, callbacks, lifecycle |
 | [NATIVE-EXTENSIONS.md](docs/NATIVE-EXTENSIONS.md) (Chinese) | Platform packages and native dependencies |
 | [COMPARISON.md](docs/COMPARISON.md) (Chinese) | Point-by-point comparison with napi-mbt and ohos-rs |
+| [VALIDATION-0.7.md](docs/VALIDATION-0.7.md) (Chinese) | Emulator run with moonc 0.10.20: async, cancellation, callbacks, type tags |
 | [VALIDATION-0.5.md](docs/VALIDATION-0.5.md) (Chinese) | What each test level proves |
 
 ### Relation to napi-mbt
@@ -198,8 +199,9 @@ moonohos <command> --help
 | Latest MoonBit | Check and test against the newest toolchain as an early warning (non-blocking) |
 
 SDK builds, HAR/HAP assembly and emulator runs are executed locally with the
-scripts in [scripts/](scripts); see [VALIDATION-0.5.md](docs/VALIDATION-0.5.md) for
-what each layer proves.
+scripts in [scripts/](scripts); see [VALIDATION-0.7.md](docs/VALIDATION-0.7.md) for
+the emulator run and [VALIDATION-0.5.md](docs/VALIDATION-0.5.md) for what each
+layer proves.
 
 ## Roadmap
 
@@ -207,7 +209,7 @@ Done: 0.4 HarmonyOS runtime, platform packages and HAR distribution; 0.5 Int64, 
 
 Next, layer by layer (priorities are open for discussion in issues):
 
-1. **HarmonyOS runtime**: run the 0.5 and 0.6 features on the emulator. Borrow napi-mbt designs for what mobile apps need: type tags on handles, external memory reporting, per-environment instance data (loading in Worker/TaskPool), and typed arrays such as `Float64Array`. Full general-purpose binding coverage is not a goal.
+1. **HarmonyOS runtime**: run Int64, Option, enums and the platform packages on the emulator (async, cancellation, callbacks, handle methods and type tags already ran there). Borrow napi-mbt designs for what mobile apps need: type tags on handles (done), external memory reporting, per-environment instance data (loading in Worker/TaskPool), and typed arrays such as `Float64Array`. Full general-purpose binding coverage is not a goal.
 2. **System APIs**: a binding generator driven by SDK headers that emits MoonBit declarations and C shims, topped by hand-written safe wrappers (resource release, error codes as `raise`). The first batch targets 8–10 modules that need no special permission, such as files, cryptography, pasteboard and HiTrace.
 3. **Graphics**: XComponent and Native Drawing, so MoonBit draws 2D content and handles touch events, with an example app.
 4. **Project integration**: a Hvigor plugin that builds MoonBit modules from DevEco; publishing HARs to ohpm; turning pure-MoonBit Mooncakes packages into HARs in one step.

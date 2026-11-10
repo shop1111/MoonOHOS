@@ -1,7 +1,8 @@
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { systemDateTime } from '@kit.BasicServicesKit';
 import { resourceManager } from '@kit.LocalizationKit';
-import { Hit, IndexStats, SearchSession } from '@moonohos/search';
+import native, { Hit, IndexStats, SearchSession } from '@moonohos/search';
+import { typeTagProbe } from './TypeTagProbe';
 
 const TAG: string = 'MoonSearchApp';
 
@@ -99,6 +100,9 @@ struct SearchPage {
     log(`MOONSEARCH_SMALL round=${this.round} documents=${small.documents} hits=${hits.length} top=${hits.length > 0 ? hits[0].path : ''}`);
     const quick: Hit[] = this.session.searchNow('rawfile', 3);
     log(`MOONSEARCH_SYNC_QUERY hits=${quick.length} top=${quick.length > 0 ? quick[0].path : ''}`);
+    if (this.round <= 1) {
+      log(`MOONSEARCH_TYPETAG ${await typeTagProbe(native, this.resources())}`);
+    }
 
     const cancelStarted: number = now();
     const cancelled: Promise<IndexStats> = this.buildIndex('docs_large');
