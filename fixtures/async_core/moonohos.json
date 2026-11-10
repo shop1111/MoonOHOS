@@ -1,8 +1,9 @@
 {"version":2,"module":".","package":"moonohos/async_fixture","nativeModule":"asyncfix","workspace":"moon.work",
- "handles":[{"name":"Counter","methods":["add","add_later","reset"]}],
+ "handles":[{"name":"Counter","methods":["add","add_later","reset"],"size":"counter_bytes"}],
  "functions":[
   {"name":"open_counter","params":[{"name":"start","type":"Int"}],"return":"Counter"},
   {"name":"open_counter_later","params":[{"name":"start","type":"Int"}],"return":"Counter","async":true},
+  {"name":"counter_bytes","params":[{"name":"counter","type":"Counter"}],"return":"Int"},
   {"name":"add","params":[{"name":"counter","type":"Counter"},{"name":"value","type":"Int"}],"return":"Int"},
   {"name":"add_later","params":[{"name":"counter","type":"Counter"},{"name":"value","type":"Int"}],"return":"Int","async":true},
   {"name":"reset","params":[{"name":"counter","type":"Counter"}],"return":"Unit","raises":true},

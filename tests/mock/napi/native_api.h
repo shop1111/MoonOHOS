@@ -24,7 +24,7 @@ using napi_finalize = void (*)(napi_env, void *, void *);
 using napi_async_execute_callback = void (*)(napi_env, void *);
 using napi_async_complete_callback = void (*)(napi_env, napi_status, void *);
 enum napi_valuetype { napi_undefined, napi_number, napi_boolean, napi_string, napi_object, napi_bigint, napi_function };
-enum napi_typedarray_type { napi_uint8_array, napi_uint8_clamped_array, napi_int8_array, napi_int16_array };
+enum napi_typedarray_type { napi_uint8_array, napi_uint8_clamped_array, napi_int8_array, napi_int16_array, napi_int32_array, napi_float32_array, napi_float64_array, napi_bigint64_array };
 enum ObjectKind { PlainObject, ArrayBuffer, TypedArray, DataView, SharedBuffer, OrdinaryArray };
 enum napi_property_attributes { napi_default };
 struct Value {
@@ -40,7 +40,7 @@ struct Value {
   std::shared_ptr<Value> buffer_owner;
   // Functions, wrapped native data, errors and promises.
   Value *(*method)(Env *, struct Call *) = nullptr; void *method_data = nullptr;
-  void *native = nullptr; napi_finalize finalize = nullptr;
+  void *native = nullptr; napi_finalize finalize = nullptr; size_t native_size = 0;
   // napi_type_tag_object: at most one tag per object.
   bool tagged = false; uint64_t tag_lower = 0, tag_upper = 0;
   std::string error_kind; int promise_state = 0; std::shared_ptr<Value> settled;
@@ -320,6 +320,12 @@ inline napi_status napi_wrap(napi_env e, napi_value object, void *native, napi_f
   auto s = Step(e); if (s != napi_ok) return s;
   if (object->native || result) return napi_invalid_arg;
   object->native = native; object->finalize = finalize; return s;
+}
+// HarmonyOS napi_wrap_enhance (API 18): wraps and reports the native size to the GC.
+inline napi_status napi_wrap_enhance(napi_env e, napi_value object, void *native, napi_finalize finalize, bool, void *, size_t size, napi_ref *result) {
+  auto s = Step(e); if (s != napi_ok) return s;
+  if (object->native || result) return napi_invalid_arg;
+  object->native = native; object->finalize = finalize; object->native_size = size; return s;
 }
 struct napi_type_tag { uint64_t lower; uint64_t upper; };
 inline napi_status napi_type_tag_object(napi_env e, napi_value object, const napi_type_tag *tag) {

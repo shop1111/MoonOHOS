@@ -34,6 +34,12 @@ pub fn open_counter_later(start : Int) -> Counter {
 }
 
 ///|
+/// Native size reported to the ArkTS GC when a Counter handle is created.
+pub fn counter_bytes(counter : Counter) -> Int {
+  1024 + counter.history.length() * 4
+}
+
+///|
 pub fn add(counter : Counter, value : Int) -> Int {
   counter.total += value
   counter.history.push(counter.total)

@@ -61,3 +61,53 @@ test "wrapped objects carry a type tag unique to the module" {
   )
   assert_true(tag(first) != tag(renamed))
 }
+
+///|
+fn sized_project(
+  size : String,
+) -> @moonohos.Project raise @moonohos.ConfigError {
+  @moonohos.parse_project(
+    "{\"version\":2,\"module\":\"core\",\"package\":\"a/core\",\"nativeModule\":\"demo\",\"handles\":[{\"name\":\"Index\",\"size\":\"" +
+    size +
+    "\"}],\"functions\":[{\"name\":\"bytes\",\"params\":[{\"name\":\"index\",\"type\":\"Index\"}],\"return\":\"Int\"},{\"name\":\"label\",\"params\":[{\"name\":\"index\",\"type\":\"Index\"}],\"return\":\"String\"},{\"name\":\"open\",\"params\":[],\"return\":\"Index\"},{\"name\":\"open_later\",\"params\":[],\"return\":\"Index\",\"async\":true}]}",
+  )
+}
+
+///|
+test "declared handle sizes are sampled under the gate and wrapped with napi_wrap_enhance" {
+  let native = sized_project("bytes").generate().native
+  // Sync and async producers both sample the size right after the call.
+  assert_true(
+    native.contains(
+      "handle_size = static_cast<size_t>(std::max<int32_t>(0, moonohos_bytes(handle_result)));",
+    ),
+  )
+  assert_true(
+    native.contains(
+      "task->handle_size = static_cast<size_t>(std::max<int32_t>(0, moonohos_bytes(task->handle_result)));",
+    ),
+  )
+  assert_true(native.contains("result, task.handle_size)"))
+  assert_true(native.contains("napi_wrap_enhance(env, result, wrapped.get()"))
+  assert_true(
+    sized_project("bytes").generate().declarations.contains(
+      "nativeBytes: number",
+    ),
+  )
+  // Without a declared size nothing is sampled.
+  let plain = method_project("").generate().native
+  assert_false(plain.contains("handle_size = static_cast"))
+}
+
+///|
+test "size functions must be synchronous (Handle) -> Int" {
+  for name in ["label", "open", "open_later", "missing"] {
+    let rejected = try {
+      sized_project(name).generate() |> ignore
+      false
+    } catch {
+      Invalid(message) => message.contains("handles.Index: size " + name)
+    }
+    assert_true(rejected)
+  }
+}

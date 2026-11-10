@@ -139,6 +139,61 @@ fn container_runtime() -> String {
     #|  if (length > INT32_MAX) throw RangeFault(path + ": bytes length exceeded");
     #|  budget.add(0, length, depth, path); return true;
     #|}
+    #|// Typed arrays (FixedArray[Double/Float/Int/Int64]): the element storage is
+    #|// copied as one block. Views at an offset and empty arrays are accepted; a
+    #|// view of another element type, a Sendable or detached buffer is not.
+    #|static bool PrepareTyped(napi_env env, napi_value value, napi_typedarray_type wanted, size_t width, const char *name, Budget &budget, size_t depth, const std::string &path) {
+    #|  bool typed, ordinary, sendable, detached;
+    #|  if (!Check(env, napi_is_typedarray(env, value, &typed))) return false;
+    #|  if (!typed) throw TypeFault(path + ": " + name + " required");
+    #|  if (!Check(env, napi_is_sendable(env, value, &sendable))) return false;
+    #|  if (sendable) throw TypeFault(path + ": Sendable view unsupported");
+    #|  napi_typedarray_type type; size_t length, offset; void *data; napi_value buffer;
+    #|  if (!Check(env, napi_get_typedarray_info(env, value, &type, &length, &data, &buffer, &offset))) return false;
+    #|  if (type != wanted) throw TypeFault(path + ": " + name + " required");
+    #|  if (!Check(env, napi_is_arraybuffer(env, buffer, &ordinary))) return false;
+    #|  if (!ordinary) throw TypeFault(path + ": ordinary " + name + " required");
+    #|  if (!Check(env, napi_is_sendable(env, buffer, &sendable))) return false;
+    #|  if (sendable) throw TypeFault(path + ": shared buffer unsupported");
+    #|  if (!Check(env, napi_is_detached_arraybuffer(env, buffer, &detached))) return false;
+    #|  if (detached) throw TypeFault(path + ": detached buffer");
+    #|  if (length > INT32_MAX / width) throw RangeFault(path + ": typed array length exceeded");
+    #|  budget.add(0, length * width, depth, path); return true;
+    #|}
+    #|static bool ReadTyped(napi_env env, napi_value value, size_t width, std::vector<uint8_t> &out, const std::string &path) {
+    #|  napi_typedarray_type type; size_t length, offset; void *data; napi_value buffer;
+    #|  if (!Check(env, napi_get_typedarray_info(env, value, &type, &length, &data, &buffer, &offset))) return false;
+    #|  if (length && !data) throw TypeFault(path + ": invalid typed array storage");
+    #|  MOONOHOS_BUFFER_ALLOCATE();
+    #|  out.resize(length * width);
+    #|  // Node-API's data pointer already includes the view offset.
+    #|  if (length) std::memcpy(out.data(), data, length * width);
+    #|  return true;
+    #|}
+    #|template <class T> static T *MakeTyped(const std::vector<uint8_t> &bytes, T *(*make)(int32_t)) {
+    #|  size_t count = bytes.size() / sizeof(T);
+    #|  T *result = make(static_cast<int32_t>(count));
+    #|  if (count) std::memcpy(result, bytes.data(), count * sizeof(T));
+    #|  return result;
+    #|}
+    #|template <class T> static std::vector<uint8_t> CopyTyped(T *value, Budget &budget, size_t depth, const std::string &path) {
+    #|  int32_t length = Moonbit_array_length(value);
+    #|  if (length < 0) throw RangeFault(path + ": invalid array length");
+    #|  size_t size = static_cast<size_t>(length) * sizeof(T);
+    #|  budget.add(0, size, depth, path);
+    #|  MOONOHOS_BUFFER_ALLOCATE();
+    #|  std::vector<uint8_t> result(size);
+    #|  if (size) std::memcpy(result.data(), value, size);
+    #|  return result;
+    #|}
+    #|static napi_status CreateTyped(napi_env env, const std::vector<uint8_t> &value, napi_typedarray_type type, size_t width, napi_value *result) {
+    #|  napi_value buffer;
+    #|  void *data;
+    #|  napi_status status = napi_create_arraybuffer(env, value.size(), &data, &buffer);
+    #|  if (status != napi_ok) return status;
+    #|  if (!value.empty()) std::memcpy(data, value.data(), value.size());
+    #|  return napi_create_typedarray(env, type, value.size() / width, buffer, 0, result);
+    #|}
     #|
   )
   .replace_all(old="__DEPTH__", new=conversion_limits().depth.to_string())

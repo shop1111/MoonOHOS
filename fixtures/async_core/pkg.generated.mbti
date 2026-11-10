@@ -7,30 +7,32 @@ import {
 }
 
 // Values
-pub fn add(Counter, Int) -> Int
+pub fn add(Counter, Int32) -> Int32
 
-pub fn add_later(Counter, Int) -> Int
+pub fn add_later(Counter, Int32) -> Int32
 
-pub fn checked_div(Int, Int) -> Int raise FixtureError
+pub fn checked_div(Int32, Int32) -> Int32 raise FixtureError
 
-pub fn count_docs(@rawfile.Manager, String) -> Int raise @rawfile.RawFileError
+pub fn count_docs(@rawfile.Manager, String) -> Int32 raise @rawfile.RawFileError
+
+pub fn counter_bytes(Counter) -> Int32
 
 pub fn echo_words(Array[String]) -> Array[String]
 
-pub fn open_counter(Int) -> Counter
+pub fn open_counter(Int32) -> Counter
 
-pub fn open_counter_later(Int) -> Counter
+pub fn open_counter_later(Int32) -> Counter
 
 pub fn read_doc(@rawfile.Manager, String) -> String raise @rawfile.RawFileError
 
 pub fn reset(Counter) -> Unit raise FixtureError
 
-pub fn spin(Int) -> Int raise @task.Cancelled
+pub fn spin(Int32) -> Int32 raise @task.Cancelled
 
 // Errors
 pub(all) suberror FixtureError {
   DivisionByZero
-  Negative(Int)
+  Negative(Int32)
 }
 pub fn FixtureError::output(Self, &Logger) -> Unit
 pub fn FixtureError::to_string(Self) -> String
@@ -38,8 +40,8 @@ pub impl Show for FixtureError
 
 // Types and methods
 pub struct Counter {
-  mut total : Int
-  history : Array[Int]
+  mut total : Int32
+  history : Array[Int32]
 }
 
 // Type aliases

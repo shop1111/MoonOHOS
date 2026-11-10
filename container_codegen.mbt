@@ -97,6 +97,16 @@ fn cpp_reader(type_ : TypePlan, project : Project) -> String raise ConfigError {
     index +
     "(napi_env env, napi_value value, BridgeValue &out, Budget &budget, Ancestors &ancestors, size_t depth, const std::string &path) {\n"
   match type_.kind {
+    Scalar(kind) if kind.typed_layout() is Some(layout) =>
+      source += "  if (!LeafType(env, value, napi_object, path)) return false;\n  if (!PrepareTyped(env, value, " +
+        layout.napi_type +
+        ", " +
+        layout.width.to_string() +
+        ", \"" +
+        layout.ark +
+        "\", budget, depth, path)) return false;\n  if (!ReadTyped(env, value, " +
+        layout.width.to_string() +
+        ", out.bytes, path)) return false;\n"
     Scalar(kind) => {
       let (wanted, reader, slot, width) = match kind {
         Int32 => ("napi_number", "ReadInteger", "integer", "sizeof(int32_t)")
@@ -108,7 +118,9 @@ fn cpp_reader(type_ : TypePlan, project : Project) -> String raise ConfigError {
             "napi_string", "ReadText", "text", "out.text.size() * sizeof(char16_t)",
           )
         Binary => ("napi_object", "ReadBytes", "bytes", "out.bytes.size()")
-        Void => ("napi_undefined", "", "", "0")
+        // Typed arrays are handled by the arm above.
+        Float64Array | Float32Array | Int32Array | BigInt64Array | Void =>
+          ("napi_undefined", "", "", "0")
       }
       if kind != Void {
         source += "  if (!LeafType(env, value, " +
@@ -180,6 +192,16 @@ fn cpp_make(type_ : TypePlan, types : Array[TypePlan]) -> String {
         Float64 => "  return value.number;\n"
         Text => "  return MakeText(value.text);\n"
         Binary => "  return MakeBytes(value.bytes);\n"
+        Float64Array | Float32Array | Int32Array | BigInt64Array =>
+          match kind.typed_layout() {
+            Some(layout) =>
+              "  return MakeTyped<" +
+              layout.element +
+              ">(value.bytes, " +
+              layout.maker +
+              ");\n"
+            None => ""
+          }
         Void => ""
       }
     List(element) => source += list_maker(type_, types, element)
@@ -240,6 +262,9 @@ fn cpp_copy(
           "  budget.add(0, static_cast<size_t>(Moonbit_array_length(value)) * sizeof(char16_t), depth, path);\n  out.text = CopyText(value);\n"
         Binary =>
           "  budget.add(0, static_cast<size_t>(Moonbit_array_length(value)), depth, path);\n  out.bytes = CopyBytes(value);\n"
+        // Element storage is copied as raw bytes; CopyTyped charges the budget.
+        Float64Array | Float32Array | Int32Array | BigInt64Array =>
+          "  out.bytes = CopyTyped(value, budget, depth, path);\n"
         Void => ""
       }
     Enum(name) =>
@@ -291,6 +316,16 @@ fn cpp_create(type_ : TypePlan, project : Project) -> String raise ConfigError {
           Text =>
             "napi_create_string_utf16(env, value.text.data(), value.text.size(), &result)"
           Binary => "CreateBytes(env, value.bytes, &result)"
+          Float64Array | Float32Array | Int32Array | BigInt64Array =>
+            match kind.typed_layout() {
+              Some(layout) =>
+                "CreateTyped(env, value.bytes, " +
+                layout.napi_type +
+                ", " +
+                layout.width.to_string() +
+                ", &result)"
+              None => "napi_generic_failure"
+            }
           Void => "napi_get_undefined(env, &result)"
         }) +
         ");\n"

@@ -1,0 +1,13 @@
+{"version":2,"module":".","package":"moonohos/typed_fixture","nativeModule":"typedfix","workspace":"moon.work",
+ "types":[{"name":"Series","fields":[{"name":"name","type":"String"},{"name":"samples","type":"FixedArray[Double]"},{"name":"marks","type":"FixedArray[Int]?"}]}],
+ "functions":[
+  {"name":"scale","params":[{"name":"values","type":"FixedArray[Double]"},{"name":"factor","type":"Double"}],"return":"FixedArray[Double]"},
+  {"name":"narrow","params":[{"name":"values","type":"FixedArray[Double]"}],"return":"FixedArray[Float]"},
+  {"name":"sum_float","params":[{"name":"values","type":"FixedArray[Float]"}],"return":"Double"},
+  {"name":"histogram","params":[{"name":"values","type":"FixedArray[Int]"},{"name":"buckets","type":"Int"}],"return":"FixedArray[Int]"},
+  {"name":"prefix","params":[{"name":"values","type":"FixedArray[Int64]"}],"return":"FixedArray[Int64]"},
+  {"name":"normalize","params":[{"name":"series","type":"Series"}],"return":"Series"},
+  {"name":"chunk","params":[{"name":"values","type":"FixedArray[Double]"},{"name":"size","type":"Int"}],"return":"Array[FixedArray[Double]]"},
+  {"name":"peak","params":[{"name":"values","type":"FixedArray[Float]?"}],"return":"Double?"},
+  {"name":"mean_later","params":[{"name":"values","type":"FixedArray[Double]"},{"name":"on_window","type":"(FixedArray[Double]) -> Unit"}],"return":"Double","async":true,"raises":true}
+ ]}

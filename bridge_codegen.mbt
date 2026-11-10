@@ -5,8 +5,25 @@ priv struct CallSlots {
   adapter : (Int32) -> String
   value : String
   handle : String
+  /// Native size of a returned handle, sampled while the gate is held.
+  size : String
   /// The call's EventChannel (an lvalue expression).
   events : String
+}
+
+///|
+/// Symbol of the size function declared for a handle kind, if any.
+fn size_symbol(plan : GenerationPlan, handle : String) -> String? {
+  for size in plan.project.sizes {
+    if size.handle == handle {
+      for call in plan.calls {
+        if call.function.name == size.function {
+          return Some(call.symbol)
+        }
+      }
+    }
+  }
+  None
 }
 
 ///|
@@ -155,7 +172,19 @@ fn locked_body(
       if !call.function.raises {
         source += "    " + expression + ";\n"
       }
-    Handle(_) => source += "    " + slots.handle + " = " + expression + ";\n"
+    Handle(name) => {
+      source += "    " + slots.handle + " = " + expression + ";\n"
+      if size_symbol(plan, name) is Some(symbol) {
+        // Reported once to the ArkTS GC through napi_wrap_enhance.
+        source += "    " +
+          slots.size +
+          " = static_cast<size_t>(std::max<int32_t>(0, " +
+          symbol +
+          "(" +
+          slots.handle +
+          ")));\n"
+      }
+    }
     _ if result.is_reference() =>
       source += "    MoonOwner<" +
         result.c_name() +
@@ -197,6 +226,7 @@ fn result_creation(
   plan : GenerationPlan,
   value : String,
   handle : String,
+  size : String,
   state : String,
 ) -> String {
   match call.function.result {
@@ -207,7 +237,9 @@ fn result_creation(
       handle +
       ", nullptr), " +
       handle_kind(plan.project, name) +
-      ", result)"
+      ", result, " +
+      size +
+      ")"
     _ => "Create_" + call.output.to_string() + "(env, " + value + ", result)"
   }
 }
@@ -230,6 +262,7 @@ fn sync_callback(
     },
     value: "result_value",
     handle: "handle_result",
+    size: "handle_size",
     events: "events",
   }
   let callbacks = has_callbacks(call.function)
@@ -239,7 +272,7 @@ fn sync_callback(
     bounded_text(call) +
     "}, output_budget{" +
     bounded_text(call) +
-    "};\n  Ancestors ancestors{env, {}};\n  BridgeValue result_value;\n  void *handle_result = nullptr;\n  std::vector<AdapterSlot> adapters;\n"
+    "};\n  Ancestors ancestors{env, {}};\n  BridgeValue result_value;\n  void *handle_result = nullptr;\n  [[maybe_unused]] size_t handle_size = 0;\n  std::vector<AdapterSlot> adapters;\n"
   if count > 0 {
     source += "  if (argc < " +
       count.to_string() +
@@ -265,7 +298,9 @@ fn sync_callback(
     "  }\n"
   }
   source += "  napi_value result;\n  if (!" +
-    result_creation(call, plan, "result_value", "handle_result", "state") +
+    result_creation(
+      call, plan, "result_value", "handle_result", "handle_size", "state",
+    ) +
     ") return nullptr;\n  return result;\n } catch (...) { ThrowCurrent(env); return nullptr; }\n}\n" +
     entry_points(name, count)
   source
@@ -314,6 +349,7 @@ fn async_callback(
     },
     value: "task->result_value",
     handle: "task->handle_result",
+    size: "task->handle_size",
     events: "(*task->events)",
   }
   let mut source = "static void Execute_" +
@@ -327,7 +363,8 @@ fn async_callback(
     name +
     "(napi_env env, AsyncTask &task, napi_value &result) {\n  return " +
     result_creation(
-      call, plan, "task.result_value", "task.handle_result", "task.state.get()",
+      call, plan, "task.result_value", "task.handle_result", "task.handle_size",
+      "task.state.get()",
     ) +
     ";\n}\nstatic void Complete_" +
     name +
@@ -450,7 +487,7 @@ fn adapter_declarations(project : Project) -> String {
 
 ///|
 fn init_source(plan : GenerationPlan) -> String {
-  let mut source = "static napi_value Init(napi_env env, napi_value exports) {\n  std::shared_ptr<EnvState> *holder = nullptr;\n  try { holder = new std::shared_ptr<EnvState>(std::make_shared<EnvState>()); }\n  catch (...) { Check(env, napi_throw_error(env, nullptr, \"native allocation failed\")); return nullptr; }\n  if (!Check(env, napi_add_env_cleanup_hook(env, CleanupEnv, holder))) { delete holder; return nullptr; }\n  EnvState *state = holder->get();\n  napi_property_descriptor properties[] = {\n"
+  let mut source = "static napi_value Init(napi_env env, napi_value exports) {\n  std::shared_ptr<EnvState> *holder = nullptr;\n  try { holder = new std::shared_ptr<EnvState>(std::make_shared<EnvState>()); }\n  catch (...) { Check(env, napi_throw_error(env, nullptr, \"native allocation failed\")); return nullptr; }\n  if (!Check(env, napi_add_env_cleanup_hook(env, CleanupEnv, holder))) { delete holder; return nullptr; }\n  // One EnvState per ArkTS environment (UI thread, each Worker and TaskPool\n  // thread): it is bound to every export as callback data, never to a\n  // process global, and released by that environment's cleanup hook.\n  live_envs.fetch_add(1);\n  EnvState *state = holder->get();\n  napi_property_descriptor properties[] = {\n"
   let names = plan.calls.map(c => c.function.name)
   names.push("createCancelToken")
   names.push("moonohos_diagnostics")
@@ -526,7 +563,7 @@ fn bridge_declarations(project : Project) -> String raise ConfigError {
     }
     source += "}\n"
   }
-  source += "export interface CancelToken {\n  cancel(): void;\n  isCancelled(): boolean;\n}\nexport interface MoonOHOSDiagnostics {\n  liveHandles: number;\n  releasedHandles: number;\n  pendingTasks: number;\n  completedTasks: number;\n  cancelledTasks: number;\n  envCleanups: number;\n}\n"
+  source += "export interface CancelToken {\n  cancel(): void;\n  isCancelled(): boolean;\n}\nexport interface MoonOHOSDiagnostics {\n  liveHandles: number;\n  releasedHandles: number;\n  pendingTasks: number;\n  completedTasks: number;\n  cancelledTasks: number;\n  envCleanups: number;\n  /** Environments (UI, Worker, TaskPool threads) that loaded this module and are alive. */\n  liveEnvs: number;\n  /** Bytes reported to the ArkTS GC for live handles with a declared size. */\n  nativeBytes: number;\n}\n"
   for function in project.functions {
     let params = function.params.map(p => {
       p.name + ": " + ark_type(project, p.kind)

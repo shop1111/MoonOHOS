@@ -175,6 +175,12 @@ fn InterfaceCursor::primary(
       )
     }
     Callback(args)
+  } else if name == "FixedArray" {
+    // Numeric fixed arrays (typed arrays); other elements are rejected here.
+    self.expect("[")
+    let element = self.take()
+    self.expect("]")
+    parse_type_expr("FixedArray[" + element + "]", result=false)
   } else if name == "Array" || name == "Option" {
     self.expect("[")
     let element = self.kind(depth + 1)

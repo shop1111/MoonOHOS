@@ -180,6 +180,27 @@ pub fn Project::validate(self : Project) -> Unit raise ConfigError {
         )
     }
   }
+  for size in self.sizes {
+    let context = "handles." + size.handle + ": size " + size.function
+    match self.functions.search_by(f => f.name == size.function) {
+      Some(i) => {
+        let f = self.functions[i]
+        if f.params.length() != 1 ||
+          f.params[0].kind != Handle(size.handle) ||
+          f.result != Scalar(Int32) ||
+          f.is_async ||
+          f.raises {
+          raise Invalid(
+            context +
+            " must be a synchronous (" +
+            size.handle +
+            ") -> Int without raise",
+          )
+        }
+      }
+      None => raise Invalid(context + " is not a declared function")
+    }
+  }
   for function in self.functions {
     if ["createCancelToken", "moonohos_diagnostics"].contains(function.name) {
       raise Invalid("type: reserved export name " + function.name)

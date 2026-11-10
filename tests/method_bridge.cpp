@@ -71,6 +71,28 @@ int main() {
     m.On(&handle, "close"); m.On(bad, "close");
     assert(m.Diag("liveHandles") == 0);
   }
+  // Declared handle sizes (0.7): sampled once under the gate on the sync and
+  // async paths, reported through napi_wrap_enhance and released on close.
+  {
+    Module m;
+    Value five = Number(5), two = Number(2);
+    assert(m.Diag("nativeBytes") == 0);
+    napi_value counter = m.Call("open_counter", {&five});
+    assert(counter->native_size == 1028 && m.Diag("nativeBytes") == 1028);
+    m.On(counter, "add", {&two}); // later growth is not re-reported
+    assert(m.Diag("nativeBytes") == 1028);
+    napi_value opened = m.Call("open_counter_later", {&five});
+    m.env.RunWorks();
+    Value &handle = Resolved(opened);
+    assert(handle.native_size == 1028 && m.Diag("nativeBytes") == 2056);
+    assert(m.Call("counter_bytes", {counter})->number == 1032); // still callable from ArkTS
+    napi_value token = m.Call("createCancelToken", {});
+    assert(token->native && token->native_size == 0); // tokens use plain napi_wrap
+    m.On(counter, "close");
+    assert(m.Diag("nativeBytes") == 1028);
+    m.On(&handle, "close");
+    assert(m.Diag("nativeBytes") == 0 && m.Diag("liveHandles") == 0);
+  }
   // An object wrapped by another native module (here: same methods, foreign
   // pointer, no MoonOHOS type tag) is rejected before its pointer is read.
   {
@@ -117,5 +139,5 @@ int main() {
     }
     assert(m.Diag("liveHandles") == 0 && moonohos_live_allocations() == baseline);
   }
-  std::cout << "HOST_METHOD_PASS sync/async/raises/closed/errors/status/repeat=10000 live_handles=0\n";
+  std::cout << "HOST_METHOD_PASS sync/async/raises/closed/errors/sizes/typetag/status/repeat=10000 live_handles=0\n";
 }

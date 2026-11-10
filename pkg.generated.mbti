@@ -468,6 +468,7 @@ pub struct Project {
   records : Array[RecordDef]
   handles : Array[String]
   methods : Array[MethodDef]
+  sizes : Array[MethodDef]
   enums : Array[EnumDef]
   functions : Array[Callable]
   adapters : Array[AdapterDef]
@@ -526,6 +527,14 @@ pub fn TypeExpr::not_equal(Self, Self) -> Bool
 pub fn TypeExpr::to_repr(Self) -> @debug.Repr
 pub fn TypeExpr::wrapper_name(Self) -> String
 
+pub struct TypedLayout {
+  napi_type : String
+  element : String
+  width : Int32
+  maker : String
+  ark : String
+}
+
 #derive(Eq, @debug.Debug)
 pub(all) enum ValueType {
   Int32
@@ -534,6 +543,10 @@ pub(all) enum ValueType {
   Boolean
   Text
   Binary
+  Float64Array
+  Float32Array
+  Int32Array
+  BigInt64Array
   Void
 }
 pub fn ValueType::ark_name(Self) -> String
@@ -545,6 +558,7 @@ pub fn ValueType::moon_name(Self) -> String
 pub fn ValueType::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn ValueType::to_repr(Self) -> @debug.Repr
+pub fn ValueType::typed_layout(Self) -> TypedLayout?
 
 // Type aliases
 

@@ -197,7 +197,8 @@ pub fn native_source(config : Config) -> String {
         Boolean => "ReadBool"
         Text => "ReadText"
         Binary => "ReadBytes"
-        Void => ""
+        // Version 1 configs only accept the scalar types above.
+        Float64Array | Float32Array | Int32Array | BigInt64Array | Void => ""
       }
       text += "  " +
         (match p.kind {
@@ -280,6 +281,8 @@ pub fn native_source(config : Config) -> String {
       Text =>
         "napi_create_string_utf16(env, value.data(), value.size(), &result)"
       Binary => "CreateBytes(env, value, &result)"
+      Float64Array | Float32Array | Int32Array | BigInt64Array =>
+        abort("typed arrays require a version 2 project")
     }
     if fn_.result == Float64 {
       text += "  if (!std::isfinite(value)) { Check(env, napi_throw_range_error(env, nullptr, \"non-finite result\")); return nullptr; }\n"

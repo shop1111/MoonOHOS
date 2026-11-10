@@ -64,6 +64,9 @@ pub struct Project {
   records : Array[RecordDef]
   handles : Array[String]
   methods : Array[MethodDef]
+  /// Handle kinds whose native size is reported to the ArkTS GC (0.7):
+  /// `function` is a declared `(Handle) -> Int` returning bytes.
+  sizes : Array[MethodDef]
   enums : Array[EnumDef]
   functions : Array[Callable]
   adapters : Array[AdapterDef]
@@ -128,6 +131,24 @@ fn TypeCursor::expression(
     raise Invalid("type: maximum nesting depth is 32")
   }
   let primary = match self.take() {
+    // Numeric fixed arrays cross as ArkTS typed arrays (0.7).
+    "FixedArray" => {
+      if self.take() != "[" {
+        raise Invalid("type: FixedArray requires one type argument")
+      }
+      let element = self.take()
+      let closed = self.take() == "]"
+      match (element, closed) {
+        ("Double", true) => Scalar(Float64Array)
+        ("Float", true) => Scalar(Float32Array)
+        ("Int" | "Int32", true) => Scalar(Int32Array)
+        ("Int64", true) => Scalar(BigInt64Array)
+        _ =>
+          raise Invalid(
+            "type: FixedArray supports Double, Float, Int and Int64 elements (use Array[T] for other types, Bytes for bytes)",
+          )
+      }
+    }
     "Array" | "Option" as head => {
       if self.take() != "[" {
         raise Invalid("type: " + head + " requires one type argument")
@@ -287,7 +308,17 @@ fn TypeExpr::bind_handles(
 ///|
 pub fn TypeExpr::is_reference(self : TypeExpr) -> Bool {
   match self {
-    Scalar(Text | Binary) | List(_) | Optional(_) | Record(_) => true
+    Scalar(
+      Text
+      | Binary
+      | Float64Array
+      | Float32Array
+      | Int32Array
+      | BigInt64Array
+    )
+    | List(_)
+    | Optional(_)
+    | Record(_) => true
     _ => false
   }
 }
@@ -374,11 +405,12 @@ pub fn parse_project(text : String) -> Project raise ConfigError {
   }
   let reserved = [
     "Int", "Int32", "Int64", "Option", "Double", "Bool", "String", "Bytes", "Unit",
-    "Array",
+    "Array", "FixedArray", "Float",
   ]
   let names : Map[String, Bool] = Map([])
   let handles : Array[String] = []
   let methods : Array[MethodDef] = []
+  let sizes : Array[MethodDef] = []
   match field(json, "handles") {
     None => ()
     Some(_) if version < 2 => raise Invalid("config: handles require version 2")
@@ -404,6 +436,13 @@ pub fn parse_project(text : String) -> Project raise ConfigError {
               }
             }
           _ => raise Invalid("handles." + name + ": methods must be an array")
+        }
+        match field(entry, "size") {
+          None => ()
+          Some(String(function)) if identifier(function) =>
+            sizes.push({ handle: name, function, })
+          _ =>
+            raise Invalid("handles." + name + ": size must be a function name")
         }
       }
     _ => raise Invalid("config: handles must be an array")
@@ -497,6 +536,7 @@ pub fn parse_project(text : String) -> Project raise ConfigError {
     records,
     handles,
     methods,
+    sizes,
     enums,
     functions,
     adapters: [],
@@ -514,6 +554,7 @@ pub fn Config::to_project(self : Config) -> Project {
     records: [],
     handles: [],
     methods: [],
+    sizes: [],
     enums: [],
     functions: self.functions.map(f => {
       name: f.name,

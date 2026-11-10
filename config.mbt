@@ -8,7 +8,66 @@ pub(all) enum ValueType {
   Boolean
   Text
   Binary
+  /// `FixedArray[Double]` ↔ `Float64Array` (0.7). The four typed arrays copy
+  /// element storage in one block; elements are not range- or finiteness-checked.
+  Float64Array
+  /// `FixedArray[Float]` ↔ `Float32Array`.
+  Float32Array
+  /// `FixedArray[Int]` ↔ `Int32Array`.
+  Int32Array
+  /// `FixedArray[Int64]` ↔ `BigInt64Array`.
+  BigInt64Array
   Void
+}
+
+///|
+/// Element layout of a typed-array value type: Node-API array type, C element
+/// type, element width in bytes and the MoonBit runtime constructor.
+pub struct TypedLayout {
+  napi_type : String
+  element : String
+  width : Int32
+  maker : String
+  ark : String
+}
+
+///|
+pub fn ValueType::typed_layout(self : ValueType) -> TypedLayout? {
+  match self {
+    Float64Array =>
+      Some({
+        napi_type: "napi_float64_array",
+        element: "double",
+        width: 8,
+        maker: "moonbit_make_double_array_raw",
+        ark: "Float64Array",
+      })
+    Float32Array =>
+      Some({
+        napi_type: "napi_float32_array",
+        element: "float",
+        width: 4,
+        maker: "moonbit_make_float_array_raw",
+        ark: "Float32Array",
+      })
+    Int32Array =>
+      Some({
+        napi_type: "napi_int32_array",
+        element: "int32_t",
+        width: 4,
+        maker: "moonbit_make_int32_array_raw",
+        ark: "Int32Array",
+      })
+    BigInt64Array =>
+      Some({
+        napi_type: "napi_bigint64_array",
+        element: "int64_t",
+        width: 8,
+        maker: "moonbit_make_int64_array_raw",
+        ark: "BigInt64Array",
+      })
+    _ => None
+  }
 }
 
 ///|
@@ -153,6 +212,10 @@ pub fn ValueType::moon_name(self : ValueType) -> String {
     Boolean => "Bool"
     Text => "String"
     Binary => "Bytes"
+    Float64Array => "FixedArray[Double]"
+    Float32Array => "FixedArray[Float]"
+    Int32Array => "FixedArray[Int]"
+    BigInt64Array => "FixedArray[Int64]"
     Void => "Unit"
   }
 }
@@ -165,6 +228,10 @@ pub fn ValueType::c_name(self : ValueType) -> String {
     Float64 => "double"
     Text => "moonbit_string_t"
     Binary => "moonbit_bytes_t"
+    Float64Array => "double *"
+    Float32Array => "float *"
+    Int32Array => "int32_t *"
+    BigInt64Array => "int64_t *"
     Void => "void"
   }
 }
@@ -177,6 +244,10 @@ pub fn ValueType::ark_name(self : ValueType) -> String {
     Boolean => "boolean"
     Text => "string"
     Binary => "Uint8Array"
+    Float64Array => "Float64Array"
+    Float32Array => "Float32Array"
+    Int32Array => "Int32Array"
+    BigInt64Array => "BigInt64Array"
     Void => "void"
   }
 }

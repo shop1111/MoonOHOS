@@ -12,6 +12,10 @@ fn lifecycle_core() -> String {
     #|#include <utility>
     #|static std::atomic<int32_t> live_handles{0}, released_handles{0}, pending_tasks{0};
     #|static std::atomic<int32_t> completed_tasks{0}, cancelled_tasks{0}, env_cleanups{0};
+    #|// Bytes reported to the ArkTS GC for live handles (declared `size` functions).
+    #|static std::atomic<int64_t> native_bytes{0};
+    #|// Environments that loaded this module and have not been torn down.
+    #|static std::atomic<int32_t> live_envs{0};
     #|class Gate {
     #| public:
     #|  // Re-entrant on the owning thread: an ArkTS callback invoked during a sync
@@ -38,14 +42,19 @@ fn lifecycle_core() -> String {
     #|    { std::lock_guard<std::mutex> guard(queue_); values.swap(deferred_); }
     #|    for (void *value : values) moonbit_decref(value);
     #|  }
+    #|  // Every gate holder re-checks the queue after unlocking, so a value queued
+    #|  // while the gate was held is drained by that holder; without the loop a
+    #|  // release queued during Drain() stayed until the next MoonBit call.
     #|  void Retry() noexcept {
-    #|    { std::lock_guard<std::mutex> guard(queue_); if (deferred_.empty()) return; }
-    #|    if (!m_.try_lock()) return;
-    #|    owner_.store(std::this_thread::get_id());
-    #|    std::call_once(initialized, moonohos_initialize);
-    #|    Drain();
-    #|    owner_.store(std::thread::id());
-    #|    m_.unlock();
+    #|    while (true) {
+    #|      { std::lock_guard<std::mutex> guard(queue_); if (deferred_.empty()) return; }
+    #|      if (!m_.try_lock()) return; // the current holder drains on its way out
+    #|      owner_.store(std::this_thread::get_id());
+    #|      std::call_once(initialized, moonohos_initialize);
+    #|      Drain();
+    #|      owner_.store(std::thread::id());
+    #|      m_.unlock();
+    #|    }
     #|  }
     #|  std::mutex m_, queue_;
     #|  int32_t depth_ = 0; // owner only
@@ -84,6 +93,7 @@ fn lifecycle_core() -> String {
     #|struct HandleState {
     #|  void *ptr;
     #|  uint32_t kind;
+    #|  size_t bytes = 0; // reported to the GC when wrapped
     #|  HandleState(void *value, uint32_t tag) : ptr(value), kind(tag) { live_handles.fetch_add(1); }
     #|  ~HandleState() { Close(); }
     #|  HandleState(const HandleState &) = delete;
@@ -101,7 +111,7 @@ fn lifecycle_core() -> String {
     #|    released_ = true;
     #|    return true;
     #|  }
-    #|  void Release() { void *value = ptr; ptr = nullptr; gate.release(value); live_handles.fetch_sub(1); released_handles.fetch_add(1); }
+    #|  void Release() { void *value = ptr; ptr = nullptr; gate.release(value); native_bytes.fetch_sub(static_cast<int64_t>(bytes)); live_handles.fetch_sub(1); released_handles.fetch_add(1); }
     #|  std::mutex m_;
     #|  int32_t pins_ = 0;
     #|  bool closed_ = false, released_ = false;
@@ -288,27 +298,33 @@ fn lifecycle_napi() -> String {
     #|  napi_value result;
     #|  return Check(env, napi_get_boolean(env, wrapped->cancel->cancelled.load(), &result)) ? result : nullptr;
     #|}
-    #|static bool CreateWrapped(napi_env env, std::unique_ptr<Wrapped> wrapped, napi_callback first, const char *first_name, napi_callback second, const char *second_name, napi_value &result) {
+    #|static bool CreateWrapped(napi_env env, std::unique_ptr<Wrapped> wrapped, napi_callback first, const char *first_name, napi_callback second, const char *second_name, napi_value &result, size_t size = 0) {
     #|  if (!Check(env, napi_create_object(env, &result))) return false;
     #|  napi_property_descriptor methods[] = {
     #|    {first_name, nullptr, first, nullptr, nullptr, nullptr, napi_default, nullptr},
     #|    {second_name, nullptr, second, nullptr, nullptr, nullptr, napi_default, nullptr},
     #|  };
     #|  if (!Check(env, napi_define_properties(env, result, 2, methods))) return false;
-    #|  if (!Check(env, napi_wrap(env, result, wrapped.get(), FinalizeWrapped, nullptr, nullptr))) return false;
+    #|  // A declared size makes the ArkTS GC account for the MoonBit object (HarmonyOS
+    #|  // does not export napi_adjust_external_memory; napi_wrap_enhance is API 18+).
+    #|  napi_status wrapped_status = size
+    #|    ? napi_wrap_enhance(env, result, wrapped.get(), FinalizeWrapped, false, nullptr, size, nullptr)
+    #|    : napi_wrap(env, result, wrapped.get(), FinalizeWrapped, nullptr, nullptr);
+    #|  if (!Check(env, wrapped_status)) return false;
     #|  wrapped.release();
     #|  return Check(env, napi_type_tag_object(env, result, &ModuleTag()));
     #|}
     #|// Generated per module: defines the methods declared for a handle kind.
     #|static bool AttachMethods(napi_env env, uint32_t kind, napi_value object, EnvState *state);
     #|// Takes ownership of one MoonBit reference; failures release it.
-    #|static bool CreateHandle(napi_env env, EnvState *state, void *value, uint32_t kind, napi_value &result) {
+    #|static bool CreateHandle(napi_env env, EnvState *state, void *value, uint32_t kind, napi_value &result, size_t size) {
     #|  std::shared_ptr<HandleState> handle;
     #|  try { handle = std::make_shared<HandleState>(value, kind); } catch (...) { gate.release(value); throw; }
+    #|  handle->bytes = size; native_bytes.fetch_add(static_cast<int64_t>(size));
     #|  if (!state) throw std::runtime_error("module state unavailable");
     #|  state->TrackHandle(handle);
     #|  std::unique_ptr<Wrapped> wrapped(new Wrapped{kind, handle, nullptr});
-    #|  if (!CreateWrapped(env, std::move(wrapped), HandleClose, "close", HandleIsClosed, "isClosed", result)) return false;
+    #|  if (!CreateWrapped(env, std::move(wrapped), HandleClose, "close", HandleIsClosed, "isClosed", result, size)) return false;
     #|  return AttachMethods(env, kind, result, state);
     #|}
     #|static napi_value Call_createCancelToken(napi_env env, napi_callback_info) {
@@ -325,12 +341,16 @@ fn lifecycle_napi() -> String {
     #|    {"liveHandles", live_handles.load()}, {"releasedHandles", released_handles.load()},
     #|    {"pendingTasks", pending_tasks.load()}, {"completedTasks", completed_tasks.load()},
     #|    {"cancelledTasks", cancelled_tasks.load()}, {"envCleanups", env_cleanups.load()},
+    #|    {"liveEnvs", live_envs.load()},
     #|  };
     #|  for (const auto &entry : values) {
     #|    napi_value value;
     #|    if (!Check(env, napi_create_int32(env, entry.second, &value))) return nullptr;
     #|    if (!Check(env, napi_set_named_property(env, result, entry.first, value))) return nullptr;
     #|  }
+    #|  napi_value bytes;
+    #|  if (!Check(env, napi_create_double(env, static_cast<double>(native_bytes.load()), &bytes))) return nullptr;
+    #|  if (!Check(env, napi_set_named_property(env, result, "nativeBytes", bytes))) return nullptr;
     #|  return result;
     #|}
     #|struct EventChannel;
@@ -344,6 +364,7 @@ fn lifecycle_napi() -> String {
     #|  std::vector<AdapterSlot> adapters;
     #|  BridgeValue result_value;
     #|  void *handle_result = nullptr;
+    #|  size_t handle_size = 0;
     #|  Outcome outcome = Outcome::Native;
     #|  std::string message;
     #|  std::u16string business;
@@ -564,6 +585,7 @@ fn lifecycle_napi() -> String {
     #|  for (auto &token : tokens) token->cancelled.store(true);
     #|  for (auto &handle : handles) handle->Close();
     #|  env_cleanups.fetch_add(1);
+    #|  live_envs.fetch_sub(1);
     #|  delete holder;
     #|}
     #|
