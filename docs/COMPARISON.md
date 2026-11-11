@@ -51,7 +51,7 @@
 | | 后台执行 | 见上节 | 工作线程 `Task`、tokio | 后台线程执行 MoonBit，`CancelToken` 取消 |
 | | 回调 | 闭包、线程安全函数 | ThreadsafeFunction | 同步直接调用；异步经线程安全函数按序投递，全部送达后 Promise 才完成 |
 | | 资源生命周期 | 类 `dispose()`、GC 兜底、环境清理 | `napi_wrap` + Drop、环境清理 | 句柄 `close()`、终结器兜底、环境清理、诊断计数 |
-| 系统能力 | 鸿蒙 API | 无 | 40 个绑定包（另有 43 个底层 sys 包），包括 arkui、camera、drawing、sensor、xcomponent 等 | 6 个手写平台包，加上 0.8 由 `moonohos bindgen` 从 SDK 头文件生成的 13 个 `sys/*` 包（117 个函数；回调与句柄尚未生成） |
+| 系统能力 | 鸿蒙 API | 无 | 40 个绑定包（另有 43 个底层 sys 包），包括 arkui、camera、drawing、sensor、xcomponent 等 | 6 个手写平台包，加上 0.8 由 `moonohos bindgen` 从 SDK 头文件生成的 14 个 `sys/*` 包（160 个函数，含句柄与回调） |
 | | 依赖 C 的 MoonBit 库 | 支持（本机编译器） | 不适用 | `moonohos.native.json` 描述源码、库和 ABI，校验后交叉编译 |
 | 图形 | XComponent / 绘图 | 无 | xcomponent、drawing、native_window 等 | 无（计划中） |
 | 工程集成 | 初始化 | `init` 生成 npm 风格 addon | `ohrs init --package` 生成 Cargo 工程与 HAR 模板 | `moonohos init` 生成 MoonBit 模块、清单、HAR 工程和演示应用 |

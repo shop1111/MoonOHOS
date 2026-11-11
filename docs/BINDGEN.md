@@ -61,26 +61,50 @@ moonohos bindgen --spec ohos/sys/display/moonohos.bindgen.json --sdk "<DevEco St
 
 多个输出组成元组：`get_display_position(display_id) -> (Int, Int) raise SysError`。
 
+## 句柄（0.8 第二阶段）
+
+以下结构体会生成成句柄：以 `T **` 输出的、以 `T *` 返回的、作为回调参数的，以及没有平铺定义却通过指针使用的（不透明或含嵌套）。MoonBit 侧是 `pub type T`，底层是 MoonBit 外部对象，里面保存 SDK 指针。
+
+- **所有权**：头文件里有一个只接收 `T *` 的 Destroy/Release/Free/Delete 函数时，由 Create/Acquire/Open/New 函数产生的句柄归 MoonBit 所有。可以显式调用销毁函数，比如 `destroy_display(d)`；仍未销毁就被垃圾回收时，终结器会调用同一个函数。其余句柄由 SDK 持有。
+- **使用检查**：`T::is_live()` 可以查询句柄是否有效。以句柄为参数的函数会先检查，已销毁就抛 `SysError::Closed`，不会把已释放的指针交给 SDK。销毁函数成功后会把句柄置为失效。
+- **字段读取**：结构体有完整定义时，为标量、枚举、`char[N]`、`uint8_t[N]` 字段生成读取方法，例如 `display.width()`、`display.name()`。
+- **数组输出**：`E **data, <int> *length`（如传感器的 `GetData`）复制成 `FixedArray[E]`。
+- **可空返回**：返回 `T *` 且没有错误码的函数，返回 `T?`；SDK 返回 NULL 时得到 `None`。
+
+## 回调（0.8 第二阶段）
+
+函数指针参数变为 MoonBit 闭包，例如 `register_display_change_listener(callback : (UInt64) -> Unit)`、`sensor_subscriber_set_callback(subscriber, callback : (Sensor_Event) -> Unit)`。
+
+- **跳板函数**：鸿蒙的这类回调大多没有用户数据参数，所以每个回调位置生成 8 个 C 跳板函数，用跳板本身区分是哪一次注册。8 个都占用时，注册会抛 `SysError`。
+- **闭包的生命周期**：闭包由 C 侧持有一份引用，下面两种情况会释放：
+  - `RegisterX` 有对应的 `UnregisterX`：以返回的监听索引为键，注销成功后释放。
+  - 回调设置在某个句柄上，比如传感器订阅者：句柄销毁或被回收时释放；重复设置会替换旧闭包。
+  - 两种都不满足的回调不生成，因为没人能释放闭包。
+- **线程**：回调可能在 SDK 线程上触发。跳板函数先进入 MoonOHOS 的进程门（桥接导出的 `moonohos_gate_enter/leave`），再调用 MoonBit。
+- **回调参数**：
+  - 标量和枚举照常转换。
+  - `const char *` 复制成 `String`。
+  - 结构体指针变成句柄，回调返回后自动失效，因为对象归 SDK 所有。
+- **注意**：如果某个 SDK 的注销函数会等待正在执行的回调结束，在 MoonBit 里调用这个注销函数可能死锁，因为调用方持有进程门、回调线程在等进程门。模拟器上的显示和传感器接口没有出现这种情况。
+
 ## 不生成的形态（记入 BINDINGS.md）
 
-- 回调（函数指针）、可变参数函数。
-- 指向指针的参数、返回指针的函数，以及不透明结构体（`Create`/`Destroy` 这类句柄）。
-- Destroy/Release/Free/Delete 函数的结构体指针参数：指针来自 SDK，传入副本会释放不属于 C 的内存。
+- 可变参数函数；返回值不是 `void` 的回调；带嵌套函数指针的回调。
+- 没有对应 Unregister、也不挂在句柄上的回调（闭包没人释放）。
+- 指针数组（`T **` 后跟数量，如 `OH_Sensor_GetInfos`）、元素不是数值的输出数组。
 - 非 const 的 8 位整数指针，以及后面紧跟长度参数的标量指针：它们是数组缓冲区，按单个值写入会越界。
-- 来源不明的 `char *` 返回值（不知道由谁释放）。
-
-前三类计划作为句柄和回调支持（与 0.6 的 ArkTS 回调、0.4 的句柄机制对接），后两类需要清单里补充语义说明。
+- 来源不明的 `char *` 返回值，以及非句柄类型的指针返回值（不知道由谁释放）。
 
 ## 校验
 
-- `scripts/verify_bindings.py <sdk>`：对每个 `ohos/sys/*` 包、两个 ABI，用 SDK 的 clang 对着真实头文件以 `-Wall -Wextra -Werror` 编译桩函数，再以 `-Wl,--no-undefined` 链接声明的系统库。
+- `scripts/verify_bindings.py <sdk>`：对每个 `ohos/sys/*` 包、两个 ABI，用 SDK 的 clang 对着真实头文件以 `-Wall -Wextra -Werror` 编译桩函数，再和按 `moonohos build` 方式编译的 MoonBit 运行时一起，以 `-Wl,--no-undefined` 链接声明的系统库。
 - `scripts/generate_bindings.py <sdk>`：重新生成所有包并汇总绑定数量。
 - `ohos` 模块的 `moon check --deny-warn` 和宿主测试（CI 中运行）。
-- 检索示例的 `platform_report()` 在模拟器上调用各包（见 [VALIDATION-0.8.md](VALIDATION-0.8.md)）。
+- 检索示例的 `platform_report()`、`platform_handles()`、`platform_listen_start/stop()` 在模拟器上调用各包、句柄和回调（见 [VALIDATION-0.8.md](VALIDATION-0.8.md)）。
 
 系统库必须在 `system_library_allowlist()` 中，`moonohos build` 才会链接。`bindgen --json` 的 `notAllowlisted` 字段列出不在白名单里的库。
 
-## 首批模块
+## 模块
 
 | 包 | 头文件 | 绑定 / 跳过 |
 |---|---|---|
@@ -88,13 +112,16 @@ moonohos bindgen --spec ohos/sys/display/moonohos.bindgen.json --sdk "<DevEco St
 | `sys/battery` | `BasicServicesKit/ohbattery_info.h` | 2 / 0 |
 | `sys/bluetooth` | `ConnectivityKit/bluetooth/oh_bluetooth.h` | 1 / 0 |
 | `sys/deviceinfo` | `deviceinfo.h` | 27 / 0 |
-| `sys/display` | `window_manager/oh_display_manager.h` | 21 / 14 |
-| `sys/hidebug` | `hidebug/hidebug.h` | 18 / 13 |
-| `sys/hitrace` | `hitrace/trace.h` | 31 / 3 |
+| `sys/display` | `window_manager/oh_display_manager.h` | 35 / 0 |
+| `sys/hidebug` | `hidebug/hidebug.h` | 23 / 8 |
+| `sys/hitrace` | `hitrace/trace.h` | 32 / 2 |
 | `sys/osaccount` | `BasicServicesKit/os_account.h` | 2 / 0 |
 | `sys/qos` | `qos/qos.h` | 6 / 1 |
+| `sys/sensor` | `sensors/oh_sensor.h`、`sensors/oh_sensor_type.h` | 23 / 4 |
 | `sys/syscap` | `syscap_ndk.h` | 1 / 0 |
 | `sys/timeservice` | `BasicServicesKit/time_service.h` | 1 / 0 |
 | `sys/vibrator` | `sensors/vibrator.h` | 3 / 0 |
 | `sys/wifi` | `ConnectivityKit/wifi/oh_wifi.h` | 3 / 0 |
-| 合计 13 个包 | | 117 / 31 |
+| 合计 14 个包 | | 160 / 15 |
+
+第一阶段（不含句柄和回调）是 13 个包、117 / 31。

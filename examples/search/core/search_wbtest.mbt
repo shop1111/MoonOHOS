@@ -104,3 +104,15 @@ test "platform report runs every generated binding on the host" {
   assert_true(report.any(line => line.has_prefix("display.size!")))
   assert_true(report.contains("syscap.fake=false"))
 }
+
+///|
+test "handle and callback probes fail cleanly on the host" {
+  let handles = platform_handles()
+  assert_true(handles[0].has_prefix("handle.primary!"))
+  assert_eq(handles[1], "handle.subscriber=created_and_dropped=0")
+  let started = platform_listen_start()
+  assert_true(started[0].has_prefix("listen.display!"))
+  assert_eq(started[1], "listen.light=no id")
+  let stopped = platform_listen_stop()
+  assert_true(stopped.contains("events.display=0"))
+}

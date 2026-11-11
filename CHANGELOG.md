@@ -24,6 +24,26 @@ All notable changes to MoonOHOS are recorded here. The format follows
   `--no-undefined` for both ABIs.
 - Search example: `platform_report()` calls 19 generated functions; the
   emulator scenario checks the results (docs/VALIDATION-0.8.md).
+- bindgen handles: structs passed as `T **`, returned as `T *`, given to
+  callbacks or used opaquely become MoonBit external objects. Handles from
+  Create functions with a paired Destroy are owned (explicit destroy or
+  finalizer); use after destroy raises `SysError::Closed`; complete structs
+  get field getters; `E **data, <int> *length` outputs become `FixedArray[E]`.
+- bindgen callbacks: function-pointer parameters take MoonBit closures,
+  dispatched through eight C trampolines per site and released by the
+  matching Unregister or with the handle they were set on. SDK threads enter
+  the MoonOHOS gate (`moonohos_gate_enter/leave`, now exported by the bridge).
+- `sys/sensor` (23 functions, `libohsensor.so` allowlisted); the 14 packages
+  now bind 160 functions (15 skipped). Display handles, the display listener
+  and an ambient-light subscription ran on the emulator.
+
+### Fixed
+- `moonohos build` dropped moonc's `-all-pkgs` table when replaying the
+  dry-run plan, so MoonBit code calling methods of prelude aliases such as
+  `Float` failed with "package moonbitlang/core/float is not imported" while
+  `moon check` passed. The CLI (and the host-test emit tool) now writes the
+  table Moon would have written. The 0.7 advice to import
+  `moonbitlang/core/float` for `FixedArray[Float]` is no longer needed.
 
 ## [0.7.0] - 2026-11-11
 

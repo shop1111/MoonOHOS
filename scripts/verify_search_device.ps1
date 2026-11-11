@@ -2,7 +2,9 @@ param(
   [string]$DevEco = $(if ($env:DEVECO_STUDIO) { $env:DEVECO_STUDIO } elseif (Test-Path 'C:\Program Files\Huawei\DevEco Studio') { 'C:\Program Files\Huawei\DevEco Studio' } else { 'D:\apps\DevEco Studio' }),
   [string]$Target = '127.0.0.1:5555',
   [string]$Evidence = (Join-Path (Split-Path -Parent $PSScriptRoot) '_build\search-v0.4'),
-  [int]$Runs = 2
+  [int]$Runs = 2,
+  # Emulator instance whose ambient light is changed during the sensor step.
+  [string]$Emulator = 'Pura 90 Pro'
 )
 # Installs the independent search app and runs its scripted scenario on a
 # connected emulator/device: small index + async/sync search, cancel a large
@@ -39,6 +41,7 @@ $required = @(
   'MOONSEARCH_WORKER pass',
   'MOONSEARCH_TASKPOOL pass',
   'MOONSEARCH_PLATFORM pass',
+  'MOONSEARCH_CALLBACKS pass',
   'MOONSEARCH_INDEX_CANCELLED',
   'MOONSEARCH_CANCELLED round=1 error=AbortError',
   'MOONSEARCH_PROGRESS dir=docs_large',
@@ -57,7 +60,7 @@ for ($run = 1; $run -le $Runs; $run++) {
   Device @('shell', 'aa', 'force-stop', $bundle) | Out-Null
   Device @('shell', 'hilog', '-r') | Out-Null
   Device @('shell', 'aa', 'start', '-a', 'EntryAbility', '-b', $bundle, '--ps', 'scenario', 'auto') | Out-Null
-  $log = ''; $shot = $false
+  $log = ''; $shot = $false; $lit = $false
   for ($i = 0; $i -lt 120; $i++) {
     Start-Sleep -Seconds 1
     $log = (Device @('shell', 'hilog', '-x')) -split "`n" | Where-Object { $_ -match 'MoonSearch' }
@@ -66,6 +69,16 @@ for ($run = 1; $run -le $Runs; $run++) {
       Device @('shell', 'snapshot_display', '-f', '/data/local/tmp/moonsearch.jpeg') | Out-Null
       Device @('file', 'recv', '/data/local/tmp/moonsearch.jpeg', (Join-Path $Evidence 'search-page.jpeg')) | Out-Null
       $shot = $true
+    }
+    if (-not $lit -and $joined -match 'MOONSEARCH_SENSOR_WAIT') {
+      # Changes the simulated ambient light so the subscribed sensor reports.
+      $emulatorExe = Join-Path $DevEco 'tools\emulator\Emulator.exe'
+      if (Test-Path $emulatorExe) {
+        & $emulatorExe -instance $Emulator -sensor -light 320 2>&1 | Out-Null
+        Start-Sleep -Milliseconds 700
+        & $emulatorExe -instance $Emulator -sensor -light 40 2>&1 | Out-Null
+      }
+      $lit = $true
     }
     if ($joined -match 'MOONSEARCH_PASS|MOONSEARCH_FAIL') { break }
   }

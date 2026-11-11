@@ -1,8 +1,9 @@
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { systemDateTime } from '@kit.BasicServicesKit';
 import { resourceManager } from '@kit.LocalizationKit';
+import { window } from '@kit.ArkUI';
 import native, { Hit, IndexStats, SearchSession } from '@moonohos/search';
-import { memoryProbe, platformProbe, typeTagProbe, typedArrayProbe } from './BridgeProbes';
+import { callbacksVerdict, memoryProbe, platformProbe, typeTagProbe, typedArrayProbe } from './BridgeProbes';
 import { runTaskPool, runWorker } from './Concurrency';
 
 const TAG: string = 'MoonSearchApp';
@@ -53,6 +54,32 @@ struct SearchPage {
     // Cancels a running build and releases the MoonBit index.
     this.session.close();
     log(`MOONSEARCH_PAGE_CLOSED round=${this.round}`);
+  }
+
+  // Handles and callbacks of generated system bindings (0.8): rotating the
+  // window fires the display-change listener; the device script changes the
+  // emulator's ambient light while MOONSEARCH_SENSOR_WAIT is shown.
+  async handlesAndCallbacks(): Promise<string> {
+    const handles: string[] = native.platform_handles();
+    const started: string[] = native.platform_listen_start();
+    for (const line of handles.concat(started)) {
+      log(`MOONSEARCH_SYS ${line}`);
+    }
+    const context = this.getUIContext().getHostContext();
+    if (context !== undefined) {
+      const win: window.Window = await window.getLastWindow(context);
+      await win.setPreferredOrientation(window.Orientation.LANDSCAPE);
+      await sleep(1500);
+      await win.setPreferredOrientation(window.Orientation.PORTRAIT);
+      await sleep(1500);
+    }
+    log('MOONSEARCH_SENSOR_WAIT');
+    await sleep(3000);
+    const stopped: string[] = native.platform_listen_stop();
+    for (const line of stopped) {
+      log(`MOONSEARCH_SYS ${line}`);
+    }
+    return callbacksVerdict(handles, started, stopped);
   }
 
   resources(): resourceManager.ResourceManager {
@@ -108,6 +135,7 @@ struct SearchPage {
       log(`MOONSEARCH_WORKER ${await runWorker()}`);
       log(`MOONSEARCH_TASKPOOL ${await runTaskPool()}`);
       log(`MOONSEARCH_PLATFORM ${platformProbe(native, log)}`);
+      log(`MOONSEARCH_CALLBACKS ${await this.handlesAndCallbacks()}`);
     }
 
     const cancelStarted: number = now();

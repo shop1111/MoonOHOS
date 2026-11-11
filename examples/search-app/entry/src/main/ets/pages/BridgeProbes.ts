@@ -94,3 +94,27 @@ export function platformProbe(native: any, log: (line: string) => void): string 
   const failed = checks.filter((c: [string, boolean]) => !c[1]).map((c: [string, boolean]) => c[0]);
   return `${failed.length === 0 ? 'pass' : 'fail'} calls=${lines.length} checks=${checks.length}${failed.length ? ' failed=' + failed.join(',') : ''}`;
 }
+
+// Handles and callbacks (0.8). The display listener must have fired and the
+// destroyed display handle must refuse use; the light sensor result is
+// recorded either way (the emulator may not provide one), but if it was
+// subscribed it must also unsubscribe and destroy cleanly.
+export function callbacksVerdict(handles: string[], started: string[], stopped: string[]): string {
+  const value = (lines: string[], key: string): string => {
+    const line = lines.find((l: string) => l.startsWith(key + '='));
+    return line === undefined ? '' : line.substring(key.length + 1);
+  };
+  const displayEvents = Number(value(stopped, 'events.display'));
+  const light = started.find((l: string) => l.startsWith('listen.light')) ?? '';
+  const subscribed = light.includes('subscribed=true');
+  const checks: [string, boolean][] = [
+    ['primary', /^id=\d+,name=.*,size=\d+x\d+,alive=true,after_destroy=closed,live=false$/.test(value(handles, 'handle.primary'))],
+    ['finalized', value(handles, 'handle.subscriber') === 'created_and_dropped=50'],
+    ['listener', /^index=\d+$/.test(value(started, 'listen.display'))],
+    ['display_events', displayEvents >= 1],
+    ['unregister', value(stopped, 'unlisten.display') === 'ok'],
+    ['light_cleanup', !subscribed || value(stopped, 'unlisten.light') === 'destroyed=0'],
+  ];
+  const failed = checks.filter((c: [string, boolean]) => !c[1]).map((c: [string, boolean]) => c[0]);
+  return `${failed.length === 0 ? 'pass' : 'fail'} display_events=${displayEvents} light_events=${value(stopped, 'events.light')} light_subscribed=${subscribed}${failed.length ? ' failed=' + failed.join(',') : ''}`;
+}

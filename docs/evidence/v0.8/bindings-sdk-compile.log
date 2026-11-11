@@ -1,1 +1,1 @@
-BINDINGS_PASS packages=13 abis=arm64-v8a,x86_64 werror=1 no_undefined=1 [accesstoken, battery, bluetooth, deviceinfo, display, hidebug, hitrace, osaccount, qos, syscap, timeservice, vibrator, wifi]
+BINDINGS_PASS packages=14 abis=arm64-v8a,x86_64 werror=1 no_undefined=1 [accesstoken, battery, bluetooth, deviceinfo, display, hidebug, hitrace, osaccount, qos, sensor, syscap, timeservice, vibrator, wifi]
