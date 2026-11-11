@@ -1,6 +1,6 @@
-# MoonOHOS 0.8（开发中）验证记录：系统能力绑定
+# MoonOHOS 0.8 验证记录：系统能力绑定
 
-记录日期：2026-11-11。工具链：moonc `v0.10.20+65efd5b93`、HarmonyOS SDK API 26。设计和用法见 [BINDGEN.md](BINDGEN.md)，0.7 的记录见 [VALIDATION-0.7.md](VALIDATION-0.7.md)。
+记录日期：2026-11-11。工具链：moonc `v0.10.20+65efd5b93`、HarmonyOS SDK API 26。设计和用法见 [BINDGEN.md](BINDGEN.md)，0.7 的记录见 [VALIDATION-0.7.md](VALIDATION-0.7.md)。0.8.0 于 2026-11-12 发布。
 
 ## 生成
 

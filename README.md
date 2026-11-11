@@ -31,7 +31,7 @@
 | 层次 | 作用 | 状态 |
 |---|---|---|
 | 鸿蒙运行时 | ArkTS ↔ MoonBit：类型转换、d.ts 生成、后台线程任务、取消、ArkTS 回调、句柄生命周期 | **已实现**。宿主 ASan 覆盖全部能力。**x86_64 模拟器上已运行**（moonc 0.10.20 构建，2026-11-11）：后台线程异步任务、取消、ArkTS 进度回调、句柄方法、句柄类型标记、句柄生命周期，以及 0.7 的 `Float64Array`、外部内存上报、在 Worker 和 TaskPool 中加载模块。**设备上尚未运行**：Int64、Option、枚举、其他三种 TypedArray |
-| 系统能力 | MoonBit 直接调用鸿蒙 NDK | **已实现（0.8 开发中）**：`moonohos bindgen` 由 SDK 自带的 clang 解析头文件，生成 MoonBit 包、C 桩函数和描述文件。14 个 `sys/*` 包（显示、传感器、电池、设备信息、HiTrace、HiDebug、QoS、时区、系统账号、权限自查、syscap、Wi-Fi、蓝牙、振动），共绑定 160 个函数，包括 SDK 句柄（销毁或回收时释放）和回调（MoonBit 闭包，在 SDK 线程上经进程门调用）。两个 ABI 都对着真实 SDK 以 `-Werror` 编译并链接通过；模拟器上运行过显示器句柄、显示变化监听和环境光传感器订阅。另有 6 个手写平台包（`hilog`、`rawfile`、`task` 等），以及第三方 C 依赖的接入机制。见 [BINDGEN.md](docs/BINDGEN.md) |
+| 系统能力 | MoonBit 直接调用鸿蒙 NDK | **已实现（0.8）**：`moonohos bindgen` 由 SDK 自带的 clang 解析头文件，生成 MoonBit 包、C 桩函数和描述文件。14 个 `sys/*` 包（显示、传感器、电池、设备信息、HiTrace、HiDebug、QoS、时区、系统账号、权限自查、syscap、Wi-Fi、蓝牙、振动），共绑定 160 个函数，包括 SDK 句柄（销毁或回收时释放）和回调（MoonBit 闭包，在 SDK 线程上经进程门调用）。两个 ABI 都对着真实 SDK 以 `-Werror` 编译并链接通过；模拟器上运行过显示器句柄、显示变化监听和环境光传感器订阅。另有 6 个手写平台包（`hilog`、`rawfile`、`task` 等），以及第三方 C 依赖的接入机制。见 [BINDGEN.md](docs/BINDGEN.md) |
 | 图形 | MoonBit 通过 XComponent 渲染画面、处理触摸 | **计划中** |
 | 工程集成 | 初始化、交叉编译、HAR 打包、产物校验 | **已实现** CLI（`init`、`build`、`har`、`verify`）。**计划**：Hvigor 插件，在 DevEco 中直接构建；发布到 ohpm |
 
@@ -103,7 +103,7 @@ const words: number = await textkit.count_words(longText, token);  // 工作线�
 token.cancel();                                                     // 页面退出时取消
 ```
 
-生成的 `core/moon.mod` 从 Mooncakes 依赖 `shop1111/moonohos_ohos@0.7.0`。修改平台模块时可加 `--ohos <MoonOHOS/ohos>`，让工作区引用本地目录；构建时工作区全部成员被复制到隔离目录，原始文件不被修改。
+生成的 `core/moon.mod` 从 Mooncakes 依赖 `shop1111/moonohos_ohos@0.8.0`。修改平台模块时可加 `--ohos <MoonOHOS/ohos>`，让工作区引用本地目录；构建时工作区全部成员被复制到隔离目录，原始文件不被修改。
 
 ### 与手工接入的对比
 

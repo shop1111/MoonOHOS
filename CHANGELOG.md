@@ -6,6 +6,8 @@ All notable changes to MoonOHOS are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-12
+
 ### Added
 - `moonohos bindgen --spec <moonohos.bindgen.json> --sdk <SDK>`: generates a
   MoonBit package, C stub, native descriptor and coverage report from
@@ -13,12 +15,12 @@ All notable changes to MoonOHOS are recorded here. The format follows
   each function is matched to the system library that exports it on both
   ABIs. Values, enums (with `Other(Int)`), flat structs, `const char *`,
   byte inputs, scalar and string outputs and error-code results (`SysError`)
-  are generated; callbacks, handles, variadic functions and buffers of unknown
-  length are skipped with a reason. See docs/BINDGEN.md.
-- 13 generated packages under `shop1111/moonohos_ohos/sys/`: accesstoken,
+  are generated, plus handles and callbacks (below); variadic functions and
+  buffers of unknown length are skipped with a reason. See docs/BINDGEN.md.
+- 14 generated packages under `shop1111/moonohos_ohos/sys/`: accesstoken,
   battery, bluetooth, deviceinfo, display, hidebug, hitrace, osaccount, qos,
-  syscap, timeservice, vibrator, wifi (117 functions). Their libraries join
-  the system library allowlist.
+  sensor, syscap, timeservice, vibrator, wifi (160 functions, 15 skipped).
+  Their libraries join the system library allowlist.
 - `scripts/generate_bindings.py` regenerates them; `scripts/verify_bindings.py`
   compiles every stub with `-Werror` against the SDK headers and links it with
   `--no-undefined` for both ABIs.
@@ -33,9 +35,8 @@ All notable changes to MoonOHOS are recorded here. The format follows
   dispatched through eight C trampolines per site and released by the
   matching Unregister or with the handle they were set on. SDK threads enter
   the MoonOHOS gate (`moonohos_gate_enter/leave`, now exported by the bridge).
-- `sys/sensor` (23 functions, `libohsensor.so` allowlisted); the 14 packages
-  now bind 160 functions (15 skipped). Display handles, the display listener
-  and an ambient-light subscription ran on the emulator.
+- Display handles, the display listener and an ambient-light sensor
+  subscription ran on the emulator (docs/VALIDATION-0.8.md).
 
 ### Fixed
 - `moonohos build` dropped moonc's `-all-pkgs` table when replaying the
@@ -231,7 +232,8 @@ Breaking: `build` and `doctor` require moonc >= 0.10.20, and the public
 - First public release: synchronous scalar, `String` and `Bytes` bridge,
   `.d.ts` generation and dual-ABI (`arm64-v8a`, `x86_64`) builds.
 
-[Unreleased]: https://github.com/shop1111/MoonOHOS/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/shop1111/MoonOHOS/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/shop1111/MoonOHOS/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/shop1111/MoonOHOS/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/shop1111/MoonOHOS/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/shop1111/MoonOHOS/compare/v0.4.1...v0.5.0
