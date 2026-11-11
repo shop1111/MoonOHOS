@@ -1,6 +1,6 @@
 """Compile and link generated system bindings against the real HarmonyOS SDK.
 
-For every package directory (default: ohos/sys/*) and both ABIs, the generated
+For every package directory (default: ohos/sys/* and ohos/surface) and both ABIs, the generated
 `*_stub.c` is compiled with the SDK's clang against the SDK headers with
 -Wall -Wextra -Werror, then linked into a shared object against the declared
 system libraries with --no-undefined, so a wrong type, cast or library fails.
@@ -19,7 +19,11 @@ sdk = Path(sys.argv[1])
 native = next(p for p in [sdk / "default/openharmony/native", sdk / "openharmony/native", sdk / "native", sdk] if (p / "llvm").exists())
 clang = native / "llvm/bin" / ("clang.exe" if os.name == "nt" else "clang")
 sysroot = native / "sysroot"
-packages = [Path(p) for p in sys.argv[2:]] or sorted(p for p in (root / "ohos/sys").iterdir() if (p / "moonohos.native.json").exists())
+# Hand-written packages that call SDK headers directly are checked the same way.
+HAND_WRITTEN = ["ohos/surface"]
+packages = [Path(p) for p in sys.argv[2:]] or (
+    sorted(p for p in (root / "ohos/sys").iterdir() if (p / "moonohos.native.json").exists())
+    + [root / p for p in HAND_WRITTEN])
 targets = {"arm64-v8a": "aarch64-linux-ohos", "x86_64": "x86_64-linux-ohos"}
 # Generated stubs include moonbit.h (handles and callbacks use the runtime).
 moon_include = Path(os.environ.get("MOON_HOME", Path.home() / ".moon")) / "include"

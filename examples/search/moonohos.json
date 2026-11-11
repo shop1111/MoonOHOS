@@ -31,6 +31,11 @@
     {"name": "platform_handles", "params": [], "return": "Array[String]"},
     {"name": "platform_listen_start", "params": [], "return": "Array[String]"},
     {"name": "platform_listen_stop", "params": [], "return": "Array[String]"},
+    {"name": "surface_attach", "params": [{"name": "surface_id", "type": "String"}, {"name": "width", "type": "Int"}, {"name": "height", "type": "Int"}], "return": "String"},
+    {"name": "surface_resize", "params": [{"name": "width", "type": "Int"}, {"name": "height", "type": "Int"}], "return": "String"},
+    {"name": "surface_touch", "params": [{"name": "x", "type": "Double"}, {"name": "y", "type": "Double"}], "return": "Int"},
+    {"name": "surface_report", "params": [], "return": "String"},
+    {"name": "surface_detach", "params": [], "return": "String"},
     {"name": "term_idf", "params": [{"name": "index", "type": "SearchIndex"}, {"name": "query", "type": "String"}], "return": "FixedArray[Double]"}
   ]
 }

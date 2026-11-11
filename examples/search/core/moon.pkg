@@ -16,4 +16,5 @@ import {
   "shop1111/moonohos_ohos/sys/bluetooth",
   "shop1111/moonohos_ohos/sys/osaccount",
   "shop1111/moonohos_ohos/sys/sensor",
+  "shop1111/moonohos_ohos/surface",
 }

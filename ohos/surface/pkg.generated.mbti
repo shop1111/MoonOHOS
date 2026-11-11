@@ -1,0 +1,70 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/surface"
+
+// Values
+pub fn blit(FixedArray[UInt32], Int32, Int32, Int32, FixedArray[UInt32], Int32, Int32) -> Unit
+
+pub fn components(UInt32) -> (Int32, Int32, Int32, Int32)
+
+pub fn delivered_frames() -> Int64
+
+pub fn parse_surface_id(String) -> UInt64 raise SurfaceError
+
+pub fn rgba(Int32, Int32, Int32, a? : Int32) -> UInt32
+
+// Errors
+pub(all) suberror SurfaceError {
+  Failed(String, Int32)
+  Closed(String)
+  BadSurfaceId(String)
+}
+pub fn SurfaceError::output(Self, &Logger) -> Unit
+pub fn SurfaceError::to_string(Self) -> String
+pub impl Show for SurfaceError
+
+// Types and methods
+pub struct Canvas {
+  width : Int32
+  height : Int32
+  pixels : FixedArray[UInt32]
+}
+pub fn Canvas::clear(Self, UInt32) -> Unit
+pub fn Canvas::fill_circle(Self, Int32, Int32, Int32, UInt32) -> Unit
+pub fn Canvas::fill_rect(Self, Int32, Int32, Int32, Int32, UInt32) -> Unit
+pub fn Canvas::get(Self, Int32, Int32) -> UInt32?
+pub fn Canvas::height(Self) -> Int32
+pub fn Canvas::new(Int32, Int32) -> Self
+pub fn Canvas::pixels(Self) -> FixedArray[UInt32]
+pub fn Canvas::set(Self, Int32, Int32, UInt32) -> Unit
+pub fn Canvas::width(Self) -> Int32
+
+#derive(Eq)
+pub(all) struct Presented {
+  width : Int32
+  height : Int32
+  stride : Int32
+}
+pub fn Presented::equal(Self, Self) -> Bool
+pub fn Presented::not_equal(Self, Self) -> Bool
+
+pub type Surface
+pub fn Surface::close(Self) -> Unit
+pub fn Surface::frames(Self) -> Int64
+pub fn Surface::is_open(Self) -> Bool
+pub fn Surface::open(String, width? : Int32, height? : Int32) -> Self raise SurfaceError
+pub fn Surface::present(Self, FixedArray[UInt32], Int32, Int32) -> Presented raise SurfaceError
+pub fn Surface::present_canvas(Self, Canvas) -> Presented raise SurfaceError
+pub fn Surface::resize(Self, Int32, Int32) -> Unit raise SurfaceError
+pub fn Surface::size(Self) -> (Int32, Int32) raise SurfaceError
+
+pub type VSync
+pub fn VSync::close(Self) -> Unit
+pub fn VSync::is_open(Self) -> Bool
+pub fn VSync::open(String) -> Self raise SurfaceError
+pub fn VSync::period(Self) -> Int64 raise SurfaceError
+pub fn VSync::request_frame(Self, (Int64) -> Unit) -> Unit raise SurfaceError
+pub fn VSync::requested(Self) -> Int64
+
+// Type aliases
+
+// Traits

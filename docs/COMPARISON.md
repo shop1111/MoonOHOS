@@ -53,7 +53,7 @@
 | | 资源生命周期 | 类 `dispose()`、GC 兜底、环境清理 | `napi_wrap` + Drop、环境清理 | 句柄 `close()`、终结器兜底、环境清理、诊断计数 |
 | 系统能力 | 鸿蒙 API | 无 | 40 个绑定包（另有 43 个底层 sys 包），包括 arkui、camera、drawing、sensor、xcomponent 等 | 6 个手写平台包，加上 0.8 由 `moonohos bindgen` 从 SDK 头文件生成的 14 个 `sys/*` 包（160 个函数，含句柄与回调） |
 | | 依赖 C 的 MoonBit 库 | 支持（本机编译器） | 不适用 | `moonohos.native.json` 描述源码、库和 ABI，校验后交叉编译 |
-| 图形 | XComponent / 绘图 | 无 | xcomponent、drawing、native_window 等 | 无（计划中） |
+| 图形 | XComponent / 绘图 | 无 | xcomponent、drawing、native_window 等 | `surface` 包（0.9）：NativeWindow、VSync、CPU 绘制；Native Drawing 与 GLES 待做 |
 | 工程集成 | 初始化 | `init` 生成 npm 风格 addon | `ohrs init --package` 生成 Cargo 工程与 HAR 模板 | `moonohos init` 生成 MoonBit 模块、清单、HAR 工程和演示应用 |
 | | 分发 | npm 平台包 | `ohrs artifact` 打包 HAR | `moonohos har` 调用 hvigor `assembleHar` |
 | | 产物校验 | 构建记录与摘要、ELF 依赖检查 | 未见 | SHA256 清单、ELF 架构/段/依赖检查 |

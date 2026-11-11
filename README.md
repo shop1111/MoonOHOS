@@ -32,7 +32,7 @@
 |---|---|---|
 | 鸿蒙运行时 | ArkTS ↔ MoonBit：类型转换、d.ts 生成、后台线程任务、取消、ArkTS 回调、句柄生命周期 | **已实现**。宿主 ASan 覆盖全部能力。**x86_64 模拟器上已运行**（moonc 0.10.20 构建，2026-11-11）：后台线程异步任务、取消、ArkTS 进度回调、句柄方法、句柄类型标记、句柄生命周期，以及 0.7 的 `Float64Array`、外部内存上报、在 Worker 和 TaskPool 中加载模块。**设备上尚未运行**：Int64、Option、枚举、其他三种 TypedArray |
 | 系统能力 | MoonBit 直接调用鸿蒙 NDK | **已实现（0.8）**：`moonohos bindgen` 由 SDK 自带的 clang 解析头文件，生成 MoonBit 包、C 桩函数和描述文件。14 个 `sys/*` 包（显示、传感器、电池、设备信息、HiTrace、HiDebug、QoS、时区、系统账号、权限自查、syscap、Wi-Fi、蓝牙、振动），共绑定 160 个函数，包括 SDK 句柄（销毁或回收时释放）和回调（MoonBit 闭包，在 SDK 线程上经进程门调用）。两个 ABI 都对着真实 SDK 以 `-Werror` 编译并链接通过；模拟器上运行过显示器句柄、显示变化监听和环境光传感器订阅。另有 6 个手写平台包（`hilog`、`rawfile`、`task` 等），以及第三方 C 依赖的接入机制。见 [BINDGEN.md](docs/BINDGEN.md) |
-| 图形 | MoonBit 通过 XComponent 渲染画面、处理触摸 | **计划中** |
+| 图形 | MoonBit 通过 XComponent 渲染画面、处理触摸 | **进行中（0.9）**：`surface` 包从 XComponent 的 surface id 打开 NativeWindow，MoonBit 在 CPU 上绘制，每个 VSync 提交一帧，触摸由 ArkTS 转发。模拟器上检索示例的动画约 40–45 帧/秒，点击、旋转和页面进出都正常。Native Drawing 和 OpenGL ES 尚未接入，见 [XCOMPONENT.md](docs/XCOMPONENT.md) |
 | 工程集成 | 初始化、交叉编译、HAR 打包、产物校验 | **已实现** CLI（`init`、`build`、`har`、`verify`）。**计划**：Hvigor 插件，在 DevEco 中直接构建；发布到 ohpm |
 
 | 文档 | 内容 |
@@ -42,6 +42,7 @@
 | [COMPARISON.md](docs/COMPARISON.md) | 与 napi-mbt、ohos-rs 的逐项对照 |
 | [BINDGEN.md](docs/BINDGEN.md) | 系统能力绑定生成：清单格式、类型对应、校验方法、首批模块 |
 | [VALIDATION-0.8.md](docs/VALIDATION-0.8.md) | 生成绑定的 SDK 编译链接与模拟器运行记录 |
+| [XCOMPONENT.md](docs/XCOMPONENT.md)、[VALIDATION-0.9.md](docs/VALIDATION-0.9.md) | XComponent 图形的设计与模拟器验证（0.9 开发中） |
 | [VALIDATION-0.7.md](docs/VALIDATION-0.7.md) | moonc 0.10.20 构建的模拟器运行记录：异步、取消、回调、类型标记、TypedArray、外部内存、Worker/TaskPool |
 | [VALIDATION-0.5.md](docs/VALIDATION-0.5.md) | 各项能力的验证范围（0.4 见 [VALIDATION-0.4.md](docs/VALIDATION-0.4.md)） |
 
@@ -239,7 +240,7 @@ SDK、HAP 与模拟器检查在本机执行。各层证明范围见 [VALIDATION-
 
 1. **鸿蒙运行时**：在模拟器上验证 Int64、Option、枚举和平台包。借鉴 napi-mbt 设计的四项补强（句柄类型标记、外部内存上报、每个环境独立的状态、TypedArray）已完成，并在模拟器上运行（0.7）。不追求通用绑定的完整度。
 2. **系统能力**：绑定生成器、句柄、回调和 14 个模块已完成（0.8）。下一步扩大模块覆盖（文件、加解密、多媒体等），并在 ARM64 真机上验证。
-3. **图形**：XComponent 与 Native Drawing，MoonBit 绘制 2D 画面、处理触摸事件，附示例应用。
+3. **图形**：XComponent 的 surface、VSync 和 CPU 绘制已完成（0.9 第一阶段）。下一步用绑定生成器接入 Native Drawing，再接 EGL/OpenGL ES。
 4. **工程集成**：Hvigor 插件，在 DevEco 中直接构建 MoonBit 模块；发布 HAR 到 ohpm；纯 MoonBit 的 Mooncakes 包一键转为 HAR。
 5. **其他**：ARM64 真机验证、中英文档站。
 

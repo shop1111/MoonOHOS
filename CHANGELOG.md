@@ -6,6 +6,27 @@ All notable changes to MoonOHOS are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+- `shop1111/moonohos_ohos/surface` (0.9 phase 1, docs/XCOMPONENT.md): opens
+  the NativeWindow of an ArkUI XComponent from the surface id ArkTS receives
+  in `onSurfaceCreated`, sets CPU usage and RGBA 8888, and presents MoonBit
+  pixel arrays (`present`, `present_canvas`; rows copied by stride, fence
+  awaited, requested buffer size re-applied after ArkUI resets it on surface
+  changes). `VSync::request_frame` runs a MoonBit closure on the VSync
+  thread through the MoonOHOS gate. `Canvas` (clear, rect, circle) and
+  `rgba` are pure MoonBit. `libnative_window.so` and `libnative_vsync.so`
+  join the allowlist; `verify_bindings.py` now also checks `ohos/surface`.
+- Search example: an XComponent animated from MoonBit (bouncing ball, touch
+  markers, frame bar) that follows rotation; the emulator scenario taps it
+  and checks frame rate, buffer size, touch delivery and release
+  (docs/VALIDATION-0.9.md).
+
+### Known issues
+- Exported functions become C symbols `moonohos_<name>`, which can collide
+  with hand-written platform stubs (`moonohos_rawfile_read`, ...). The new
+  surface package uses `moonohos_ohos_*`; the bridge does not detect
+  collisions yet.
+
 ## [0.8.0] - 2026-11-12
 
 ### Added

@@ -45,7 +45,7 @@ It is not a good fit for:
 |---|---|---|
 | HarmonyOS runtime | ArkTS ↔ MoonBit: conversions, `.d.ts` generation, background-thread tasks, cancellation, ArkTS callbacks, handle lifecycle | **Done.** Host ASan covers everything. **Run on the x86_64 emulator** (built with moonc 0.10.20, 2026-11-11): background-thread tasks, cancellation, ArkTS progress callbacks, handle methods, handle type tags, handle lifecycle, and the 0.7 additions `Float64Array`, native size reporting and loading the module in a Worker and in TaskPool. **Not yet run on a device**: Int64, Option, enums, the other three typed arrays |
 | System APIs | MoonBit calls the HarmonyOS NDK directly | **Done (0.8)**: `moonohos bindgen` reads SDK headers through the SDK's own clang and emits a MoonBit package, C stub and descriptor. 14 `sys/*` packages (display, sensors, battery, device info, HiTrace, HiDebug, QoS, time zone, OS account, permission check, syscap, Wi-Fi, Bluetooth, vibrator) bind 160 functions, including SDK handles (released on destroy or garbage collection) and callbacks (MoonBit closures called through the gate from SDK threads). They compile with `-Werror` and link against the real SDK for both ABIs; display handles, the display listener and an ambient-light subscription ran on the emulator. Plus six hand-written packages (`hilog`, `rawfile`, `task`, ...) and third-party C dependencies; see [BINDGEN.md](docs/BINDGEN.md) (Chinese) |
-| Graphics | MoonBit renders through XComponent and handles touch | **Planned** |
+| Graphics | MoonBit renders through XComponent and handles touch | **In progress (0.9)**: the `surface` package opens the NativeWindow of an XComponent from its surface id; MoonBit draws on the CPU and presents one frame per VSync, with touch forwarded from ArkTS. The search example's animation runs at about 40-45 fps on the emulator, through taps, rotation and page changes. Native Drawing and OpenGL ES are not wired up yet; see [XCOMPONENT.md](docs/XCOMPONENT.md) (Chinese) |
 | Project integration | Init, cross-compilation, HAR packaging, artifact verification | **Done**: the CLI (`init`, `build`, `har`, `verify`). **Planned**: a Hvigor plugin to build from DevEco; publishing to ohpm |
 
 | Document | Contents |
@@ -55,6 +55,7 @@ It is not a good fit for:
 | [COMPARISON.md](docs/COMPARISON.md) (Chinese) | Point-by-point comparison with napi-mbt and ohos-rs |
 | [BINDGEN.md](docs/BINDGEN.md) (Chinese) | System API binding generation: spec format, type mapping, checks, first modules |
 | [VALIDATION-0.8.md](docs/VALIDATION-0.8.md) (Chinese) | SDK compile/link and emulator runs of the generated bindings |
+| [XCOMPONENT.md](docs/XCOMPONENT.md), [VALIDATION-0.9.md](docs/VALIDATION-0.9.md) (Chinese) | XComponent graphics: design and emulator runs (0.9, in progress) |
 | [VALIDATION-0.7.md](docs/VALIDATION-0.7.md) (Chinese) | Emulator runs with moonc 0.10.20: async, cancellation, callbacks, type tags, typed arrays, native size, Worker/TaskPool |
 | [VALIDATION-0.5.md](docs/VALIDATION-0.5.md) (Chinese) | What each test level proves |
 
@@ -225,7 +226,7 @@ Next, layer by layer (priorities are open for discussion in issues):
 
 1. **HarmonyOS runtime**: run Int64, Option, enums and the platform packages on the emulator. The four additions borrowed from napi-mbt's designs (handle type tags, native size reporting, per-environment state, typed arrays) are done and ran on the emulator (0.7). Full general-purpose binding coverage is not a goal.
 2. **System APIs**: the binding generator, handles, callbacks and 14 modules are done (0.8). Next: more modules (files, cryptography, media) and ARM64 hardware runs.
-3. **Graphics**: XComponent and Native Drawing, so MoonBit draws 2D content and handles touch events, with an example app.
+3. **Graphics**: XComponent surfaces, VSync and CPU drawing are done (0.9 phase 1). Next: Native Drawing through the binding generator, then EGL/OpenGL ES.
 4. **Project integration**: a Hvigor plugin that builds MoonBit modules from DevEco; publishing HARs to ohpm; turning pure-MoonBit Mooncakes packages into HARs in one step.
 5. **Other**: ARM64 hardware validation and a bilingual docs site.
 

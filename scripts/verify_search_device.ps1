@@ -42,11 +42,14 @@ $required = @(
   'MOONSEARCH_TASKPOOL pass',
   'MOONSEARCH_PLATFORM pass',
   'MOONSEARCH_CALLBACKS pass',
+  'MOONSEARCH_SURFACE_TOUCH count=',
+  'MOONSEARCH_SURFACE pass',
   'MOONSEARCH_INDEX_CANCELLED',
   'MOONSEARCH_CANCELLED round=1 error=AbortError',
   'MOONSEARCH_PROGRESS dir=docs_large',
   'MOONSEARCH_LARGE round=1',
   'MOONSEARCH_LARGE_QUERY hits=10',
+  'MOONSEARCH_SURFACE_CLOSED released=true',
   'MOONSEARCH_PAGE_CLOSED round=1',
   'MOONSEARCH_EXIT_CANCELLED round=1 error=AbortError',
   'MOONSEARCH_RETURNED round=1',
@@ -60,7 +63,7 @@ for ($run = 1; $run -le $Runs; $run++) {
   Device @('shell', 'aa', 'force-stop', $bundle) | Out-Null
   Device @('shell', 'hilog', '-r') | Out-Null
   Device @('shell', 'aa', 'start', '-a', 'EntryAbility', '-b', $bundle, '--ps', 'scenario', 'auto') | Out-Null
-  $log = ''; $shot = $false; $lit = $false
+  $log = ''; $shot = $false; $lit = $false; $tapped = $false
   for ($i = 0; $i -lt 120; $i++) {
     Start-Sleep -Seconds 1
     $log = (Device @('shell', 'hilog', '-x')) -split "`n" | Where-Object { $_ -match 'MoonSearch' }
@@ -79,6 +82,16 @@ for ($run = 1; $run -le $Runs; $run++) {
         & $emulatorExe -instance $Emulator -sensor -light 40 2>&1 | Out-Null
       }
       $lit = $true
+    }
+    if (-not $tapped -and $joined -match 'MOONSEARCH_SURFACE_WAIT x=(\d+) y=(\d+)') {
+      # Taps the XComponent; MoonBit draws a marker where the touch landed.
+      Device @('shell', 'uinput', '-T', '-c', $Matches[1], $Matches[2]) | Out-Null
+      Start-Sleep -Milliseconds 800
+      if ($run -eq 1) {
+        Device @('shell', 'snapshot_display', '-f', '/data/local/tmp/moonsurface.jpeg') | Out-Null
+        Device @('file', 'recv', '/data/local/tmp/moonsurface.jpeg', (Join-Path $Evidence 'surface-page.jpeg')) | Out-Null
+      }
+      $tapped = $true
     }
     if ($joined -match 'MOONSEARCH_PASS|MOONSEARCH_FAIL') { break }
   }

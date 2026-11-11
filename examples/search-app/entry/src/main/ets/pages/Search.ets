@@ -5,6 +5,7 @@ import { window } from '@kit.ArkUI';
 import native, { Hit, IndexStats, SearchSession } from '@moonohos/search';
 import { callbacksVerdict, memoryProbe, platformProbe, typeTagProbe, typedArrayProbe } from './BridgeProbes';
 import { runTaskPool, runWorker } from './Concurrency';
+import { MoonSurfaceController, surfaceVerdict } from './SurfacePanel';
 
 const TAG: string = 'MoonSearchApp';
 
@@ -37,6 +38,10 @@ struct SearchPage {
   private session: SearchSession = new SearchSession();
   private timer: number = -1;
   private round: number = 0;
+  private surfaceController: MoonSurfaceController = new MoonSurfaceController(log);
+  // Center of the XComponent in screen pixels, for the device script's tap.
+  private surfaceCenter: string = '';
+  private surfaceSize: number[] = [1, 1];
 
   aboutToAppear(): void {
     this.timer = setInterval(() => {
@@ -53,6 +58,9 @@ struct SearchPage {
     clearInterval(this.timer);
     // Cancels a running build and releases the MoonBit index.
     this.session.close();
+    // onSurfaceDestroyed detaches too; the second call reports attached=false.
+    const detached: string = native.surface_detach();
+    log(`MOONSEARCH_SURFACE_CLOSED released=${detached.endsWith('closed=true')} ${detached}`);
     log(`MOONSEARCH_PAGE_CLOSED round=${this.round}`);
   }
 
@@ -80,6 +88,17 @@ struct SearchPage {
       log(`MOONSEARCH_SYS ${line}`);
     }
     return callbacksVerdict(handles, started, stopped);
+  }
+
+  // XComponent drawing (0.9): MoonBit animates the surface from VSync
+  // callbacks; the device script taps it while MOONSEARCH_SURFACE_WAIT is shown.
+  async surfaceProbe(): Promise<string> {
+    const before: string = native.surface_report();
+    log(`MOONSEARCH_SURFACE_WAIT ${this.surfaceCenter}`);
+    await sleep(3000);
+    const after: string = native.surface_report();
+    log(`MOONSEARCH_SURFACE_REPORT ${after}`);
+    return surfaceVerdict(before, after, 3, this.surfaceController.bufferSize);
   }
 
   resources(): resourceManager.ResourceManager {
@@ -136,6 +155,7 @@ struct SearchPage {
       log(`MOONSEARCH_TASKPOOL ${await runTaskPool()}`);
       log(`MOONSEARCH_PLATFORM ${platformProbe(native, log)}`);
       log(`MOONSEARCH_CALLBACKS ${await this.handlesAndCallbacks()}`);
+      log(`MOONSEARCH_SURFACE ${await this.surfaceProbe()}`);
     }
 
     const cancelStarted: number = now();
@@ -171,6 +191,23 @@ struct SearchPage {
       Text('离线文档检索').fontSize(24).fontWeight(FontWeight.Bold)
       Text(this.status).fontSize(14).fontColor('#444444')
       Text(`界面计时 ${this.ticks}`).fontSize(12).fontColor('#888888')
+      XComponent({ type: XComponentType.SURFACE, controller: this.surfaceController })
+        .width('100%')
+        .height(120)
+        .onAreaChange((oldValue: Area, newValue: Area) => {
+          const ui = this.getUIContext();
+          const x = Number(newValue.globalPosition.x) + Number(newValue.width) / 2;
+          const y = Number(newValue.globalPosition.y) + Number(newValue.height) / 2;
+          this.surfaceCenter = `x=${Math.round(ui.vp2px(x))} y=${Math.round(ui.vp2px(y))}`;
+          this.surfaceSize = [Number(newValue.width), Number(newValue.height)];
+        })
+        .onTouch((event: TouchEvent) => {
+          if (event.type === TouchType.Down && event.touches.length > 0) {
+            const touch = event.touches[0];
+            const count = native.surface_touch(touch.x / this.surfaceSize[0], touch.y / this.surfaceSize[1]);
+            log(`MOONSEARCH_SURFACE_TOUCH count=${count}`);
+          }
+        })
       Row({ space: 8 }) {
         Button('小型文档集').enabled(!this.building).onClick(() => {
           this.buildIndex('docs').catch((error: Error) => log(`build failed ${errorName(error)}`));

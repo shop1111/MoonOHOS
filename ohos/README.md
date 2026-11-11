@@ -10,6 +10,7 @@ HarmonyOS platform packages for [MoonOHOS](https://github.com/shop1111/MoonOHOS)
 | `shop1111/moonohos_ohos/deviceinfo` | `get(field)`, `snapshot()`, `sdk_api_version()`: device type, brand, model, OS name and version (`deviceinfo.h`) | `libdeviceinfo_ndk.z.so` |
 | `shop1111/moonohos_ohos/netconn` | `has_default_network()`, `is_metered()`; needs `ohos.permission.GET_NETWORK_INFO` | `libnet_connection.so` |
 | `shop1111/moonohos_ohos/vibrator` | `vibrate(ms, usage=Touch)`, `cancel()`; needs `ohos.permission.VIBRATE` | `libohvibrator.z.so` |
+| `shop1111/moonohos_ohos/surface` | `Surface::open(surface_id)` for an ArkUI XComponent, `present`/`present_canvas` of RGBA 8888 pixels, `VSync::request_frame(callback)` on the VSync thread (through the MoonOHOS gate), and a host-testable `Canvas` (0.9, docs/XCOMPONENT.md) | `libnative_window.so`, `libnative_vsync.so` |
 
 ## Generated system bindings (`sys/*`, 0.8)
 
@@ -21,7 +22,7 @@ let zone = @timeservice.get_time_zone()
 let listener = @display.register_display_change_listener(id => println(id))
 ```
 
-Each package carries a `moonohos.native.json` descriptor, so the MoonOHOS CLI cross-compiles its C stub for `arm64-v8a` and `x86_64` and records it in the package manifest. Without the bridge (`moon test` on Windows/Linux/macOS) the stubs use host fallbacks: HiLog prints to stderr, `rawfile.host_manager(dir)` reads a directory, `task.host_set_cancelled` simulates cancellation, `deviceinfo` reports placeholders (`is_device()` is false), `netconn.set_host_state` sets what is reported, and `vibrator.host_observations` records calls.
+Each package carries a `moonohos.native.json` descriptor, so the MoonOHOS CLI cross-compiles its C stub for `arm64-v8a` and `x86_64` and records it in the package manifest. Without the bridge (`moon test` on Windows/Linux/macOS) the stubs use host fallbacks: HiLog prints to stderr, `rawfile.host_manager(dir)` reads a directory, `task.host_set_cancelled` simulates cancellation, `deviceinfo` reports placeholders (`is_device()` is false), `netconn.set_host_state` sets what is reported, and `vibrator.host_observations` records calls, and `surface` fails to open with 801 while `Canvas` works.
 
 Errors carry the NDK error code; code 201 (permission denied) names the missing permission.
 

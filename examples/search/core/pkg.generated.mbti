@@ -29,6 +29,16 @@ pub fn search_now(SearchIndex, String, Int32) -> Array[Hit]
 
 pub fn stats(SearchIndex) -> IndexStats
 
+pub fn surface_attach(String, Int32, Int32) -> String
+
+pub fn surface_detach() -> String
+
+pub fn surface_report() -> String
+
+pub fn surface_resize(Int32, Int32) -> String
+
+pub fn surface_touch(Double, Double) -> Int32
+
 pub fn term_idf(SearchIndex, String) -> FixedArray[Double]
 
 // Errors

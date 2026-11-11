@@ -116,3 +116,14 @@ test "handle and callback probes fail cleanly on the host" {
   let stopped = platform_listen_stop()
   assert_true(stopped.contains("events.display=0"))
 }
+
+///|
+test "surface demo fails cleanly on the host" {
+  let attached = surface_attach("42", 360, 200)
+  assert_true(attached.has_prefix("attach!"), msg=attached)
+  assert_true(attached.contains("801"), msg=attached)
+  assert_eq(surface_touch(0.5, 0.5), 0)
+  assert_eq(surface_report(), "attached=false")
+  assert_eq(surface_detach(), "attached=false")
+  assert_true(surface_attach("not-a-number", 1, 1).contains("not a surface id"))
+}
