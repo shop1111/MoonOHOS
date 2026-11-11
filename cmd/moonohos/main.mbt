@@ -171,6 +171,7 @@ async fn build(
   )
   // Do not persist dry-run environment dumps from unrelated host compiler steps.
   let commands = @lib.compiler_commands(plan, moon_home)
+  write_all_pkgs(commands, moon_home, staged.root)
   let mut c_output = ""
   let compiler_log : Array[Json] = []
   for args in commands {
@@ -422,5 +423,53 @@ async fn main {
     } else {
       result.stringify(indent=2)
     },
+  )
+}
+
+///|
+/// Collects the core bundle's `.mi` files under `dir` as package entries.
+async fn core_packages(dir : String, rel : String, out : Array[Json]) -> Unit {
+  for name in @fs.readdir(dir, include_hidden=false, sort=true) {
+    let path = dir + "/" + name
+    if @fs.kind(path) == Directory {
+      core_packages(path, if rel == "" { name } else { rel + "/" + name }, out)
+    } else if rel != "" && name.has_suffix(".mi") {
+      out.push(
+        @lib.all_pkgs_entry("moonbitlang/core", "moonbitlang/core/" + rel, path),
+      )
+    }
+  }
+}
+
+///|
+/// Writes the `all_pkgs.json` table Moon creates during a real build, so the
+/// moonc steps of a dry-run plan resolve packages behind prelude aliases.
+async fn write_all_pkgs(
+  commands : Array[Array[String]],
+  moon_home : String,
+  root : String,
+) -> Unit {
+  guard @lib.all_pkgs_path(commands) is Some(path) else { return }
+  let entries : Array[Json] = []
+  let bundle = moon_home + "/lib/core/_build/native/release/bundle"
+  if @fs.exists(bundle) {
+    core_packages(bundle, "", entries)
+  }
+  let modules : Map[String, String] = Map([])
+  for planned in @lib.planned_packages(commands) {
+    let (pkg, workspace, artifact) = planned
+    let module_name = match modules.get(workspace) {
+      Some(name) => name
+      None => {
+        let (name, _) = module_metadata(resolve(root, workspace))
+        modules[workspace] = name
+        name
+      }
+    }
+    entries.push(@lib.all_pkgs_entry(module_name, pkg, resolve(root, artifact)))
+  }
+  write(
+    resolve(root, path),
+    ({ "packages": Json(entries) } : Json).stringify(indent=2),
   )
 }

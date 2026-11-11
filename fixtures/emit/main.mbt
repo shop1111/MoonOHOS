@@ -102,7 +102,9 @@ async fn main {
     .unwrap_or(@env.get_env_var("USERPROFILE").unwrap() + "/.moon")
     .replace_all(old="\\", new="/")
   let mut c_output = ""
-  for command in @lib.compiler_commands(output.text(), home) {
+  let commands = @lib.compiler_commands(output.text(), home)
+  write_all_pkgs(commands, home, module_dir)
+  for command in commands {
     let (code, output, errors) = @process.collect_output(
       "moonc",
       command,
@@ -126,4 +128,59 @@ async fn main {
     "includeDirs": Json(f.1.include_dirs),
   })
   @fs.write_file(native + "/deps.json", Json(deps).stringify(indent=2))
+}
+
+///|
+async fn core_packages(dir : String, rel : String, out : Array[Json]) -> Unit {
+  for name in @fs.readdir(dir, include_hidden=false, sort=true) {
+    let path = dir + "/" + name
+    if @fs.kind(path) == Directory {
+      core_packages(path, if rel == "" { name } else { rel + "/" + name }, out)
+    } else if rel != "" && name.has_suffix(".mi") {
+      out.push(
+        @lib.all_pkgs_entry("moonbitlang/core", "moonbitlang/core/" + rel, path),
+      )
+    }
+  }
+}
+
+///|
+/// Same table the CLI writes before running the moonc steps of a plan.
+async fn write_all_pkgs(
+  commands : Array[Array[String]],
+  home : String,
+  root : String,
+) -> Unit {
+  guard @lib.all_pkgs_path(commands) is Some(path) else { return }
+  let entries : Array[Json] = []
+  let bundle = home + "/lib/core/_build/native/release/bundle"
+  if @fs.exists(bundle) {
+    core_packages(bundle, "", entries)
+  }
+  for planned in @lib.planned_packages(commands) {
+    let (pkg, workspace, artifact) = planned
+    let module_text = @fs.read_file(under(root, workspace) + "/moon.mod").text()
+    let mut module_name = ""
+    for line in module_text.split("\n") {
+      let tokens = @lib.tokenize(line.trim().to_owned())
+      if tokens.length() == 3 && tokens[0] == "name" {
+        module_name = tokens[2]
+      }
+    }
+    entries.push(@lib.all_pkgs_entry(module_name, pkg, under(root, artifact)))
+  }
+  let target = under(root, path)
+  let parts = target.replace_all(old="\\", new="/").split("/").to_array()
+  @fs.mkdir(parts[:parts.length() - 1].to_owned().join("/"), recursive=true)
+  @fs.write_file(target, ({ "packages": Json(entries) } : Json).stringify())
+}
+
+///|
+/// `path` relative to `root` unless it is already absolute.
+fn under(root : String, path : String) -> String {
+  if path.has_prefix("/") || path.contains(":") {
+    path
+  } else {
+    root + "/" + path
+  }
 }

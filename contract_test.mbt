@@ -129,13 +129,16 @@ test "dry-run tokenizer preserves spaces Chinese paths and literal metacharacter
 }
 
 ///|
-test "adapter selects only Moon compiler stages and removes absent IDE metadata" {
+test "adapter selects only Moon compiler stages and keeps the package table" {
   let commands = @moonohos.compiler_commands(
     "moonc build-package x.mbt -all-pkgs missing.json -o x.core\ncl.exe /c host.c\n  env:\n    PATH=host\nmoonc link-core '$MOON_HOME/lib/core.core' -o x.c",
     "C:/Moon Home",
   )
   assert_eq(commands.length(), 2)
-  assert_eq(commands[0], ["build-package", "x.mbt", "-o", "x.core"])
+  assert_eq(commands[0], [
+    "build-package", "x.mbt", "-all-pkgs", "missing.json", "-o", "x.core",
+  ])
+  assert_eq(@moonohos.all_pkgs_path(commands), Some("missing.json"))
   assert_eq(commands[1][1], "C:/Moon Home/lib/core.core")
 }
 
@@ -184,5 +187,27 @@ test "reference types generate UTF16 Uint8Array and scoped ownership" {
   assert_true(source.contains("napi_is_detached_arraybuffer"))
   @moonohos.verify_interface(
     config, "pub fn mixed(String, Bytes, Int) -> Bytes\npub fn text() -> String\n",
+  )
+}
+
+///|
+test "the package table is rebuilt from the plan" {
+  let commands = [
+    [
+      "build-package", "./m1/sys/display/display.mbt", "-o", "./_build/x/sys/display/display.core",
+      "-pkg", "a/ohos/sys/display", "-workspace-path", "./m1",
+    ],
+    ["link-core", "x.core", "-o", "x.c"],
+  ]
+  assert_eq(@moonohos.planned_packages(commands), [
+    ("a/ohos/sys/display", "./m1", "./_build/x/sys/display/display.mi"),
+  ])
+  assert_eq(
+    @moonohos.all_pkgs_entry("a/ohos", "a/ohos/sys/display", "d.mi").stringify(),
+    "{\"root\":\"a/ohos\",\"rel\":\"sys/display\",\"artifact\":\"d.mi\"}",
+  )
+  assert_eq(
+    @moonohos.all_pkgs_entry("a/search", "a/search", "s.mi").stringify(),
+    "{\"root\":\"a/search\",\"rel\":\"\",\"artifact\":\"s.mi\"}",
   )
 }

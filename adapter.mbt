@@ -58,16 +58,12 @@ pub fn compiler_commands(
       }
       let args : Array[String] = []
       let mut index = 1
+      // `-all-pkgs` is kept: moonc resolves packages behind prelude aliases
+      // (e.g. methods of `Float`) through it. Moon writes that file during a
+      // real build only, so `all_pkgs_table` rebuilds it from the plan.
       while index < original.length() {
-        // Optional IDE metadata is absent when Moon only prints a dry-run plan.
-        if original[index] == "-all-pkgs" {
-          index += 2
-        } else {
-          args.push(
-            original[index].replace_all(old="$MOON_HOME", new=moon_home),
-          )
-          index += 1
-        }
+        args.push(original[index].replace_all(old="$MOON_HOME", new=moon_home))
+        index += 1
       }
       commands.push(args)
     }
@@ -129,4 +125,71 @@ pub fn verify_interface(
       raise Invalid("signature unsupported or mismatched; expected " + expected)
     }
   }
+}
+
+///|
+/// Value of `flag` in a compiler command, if present.
+fn command_flag(args : Array[String], flag : String) -> String? {
+  for i, arg in args {
+    if arg == flag && i + 1 < args.length() {
+      return Some(args[i + 1])
+    }
+  }
+  None
+}
+
+///|
+/// The `-all-pkgs` path the plan names, if any.
+pub fn all_pkgs_path(commands : Array[Array[String]]) -> String? {
+  for args in commands {
+    match command_flag(args, "-all-pkgs") {
+      Some(path) => return Some(path)
+      None => ()
+    }
+  }
+  None
+}
+
+///|
+/// Workspace packages of the plan: (package, workspace path, `.mi` artifact),
+/// for the `all_pkgs.json` table Moon would have written.
+pub fn planned_packages(
+  commands : Array[Array[String]],
+) -> Array[(String, String, String)] {
+  let packages : Array[(String, String, String)] = []
+  for args in commands {
+    if args.get(0) != Some("build-package") {
+      continue
+    }
+    match
+      (
+        command_flag(args, "-pkg"),
+        command_flag(args, "-workspace-path"),
+        command_flag(args, "-o"),
+      ) {
+      (Some(pkg), Some(workspace), Some(output)) if output.has_suffix(".core") =>
+        packages.push(
+          (pkg, workspace, output[:output.length() - 5].to_owned() + ".mi"),
+        )
+      _ => ()
+    }
+  }
+  packages
+}
+
+///|
+/// One `all_pkgs.json` entry: module root, path inside it, `.mi` artifact.
+pub fn all_pkgs_entry(
+  module_name : String,
+  pkg : String,
+  artifact : String,
+) -> Json {
+  let rel = if pkg == module_name {
+    ""
+  } else if pkg.has_prefix(module_name + "/") {
+    pkg[module_name.length() + 1:].to_owned()
+  } else {
+    pkg
+  }
+  { "root": module_name, "rel": rel, "artifact": artifact }
 }
