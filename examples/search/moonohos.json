@@ -27,6 +27,7 @@
     {"name": "stats", "params": [{"name": "index", "type": "SearchIndex"}], "return": "IndexStats"},
     {"name": "index_texts", "params": [{"name": "paths", "type": "Array[String]"}, {"name": "texts", "type": "Array[String]"}], "return": "SearchIndex", "async": true, "raises": true},
     {"name": "index_bytes", "params": [{"name": "index", "type": "SearchIndex"}], "return": "Int"},
+    {"name": "platform_report", "params": [], "return": "Array[String]"},
     {"name": "term_idf", "params": [{"name": "index", "type": "SearchIndex"}, {"name": "query", "type": "String"}], "return": "FixedArray[Double]"}
   ]
 }

@@ -1,0 +1,14 @@
+{
+  "schema": "moonohos-native-v1",
+  "package": "shop1111/moonohos_ohos/sys/timeservice",
+  "sources": [
+    "timeservice_stub.c"
+  ],
+  "systemLibraries": [
+    "libtime_service_ndk.so"
+  ],
+  "abis": [
+    "arm64-v8a",
+    "x86_64"
+  ]
+}

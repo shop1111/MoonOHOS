@@ -1,0 +1,158 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/sys/display"
+
+// Values
+pub fn get_default_display_density_dpi() -> Int32 raise SysError
+
+pub fn get_default_display_density_pixels() -> Float raise SysError
+
+pub fn get_default_display_density_xdpi() -> Float raise SysError
+
+pub fn get_default_display_density_ydpi() -> Float raise SysError
+
+pub fn get_default_display_height() -> Int32 raise SysError
+
+pub fn get_default_display_id() -> UInt64 raise SysError
+
+pub fn get_default_display_orientation() -> NativeDisplayManager_Orientation raise SysError
+
+pub fn get_default_display_refresh_rate() -> UInt32 raise SysError
+
+pub fn get_default_display_rotation() -> NativeDisplayManager_Rotation raise SysError
+
+pub fn get_default_display_scaled_density() -> Float raise SysError
+
+pub fn get_default_display_virtual_pixel_ratio() -> Float raise SysError
+
+pub fn get_default_display_width() -> Int32 raise SysError
+
+pub fn get_display_position(UInt64) -> (Int32, Int32) raise SysError
+
+pub fn get_display_source_mode(UInt64) -> NativeDisplayManager_SourceMode raise SysError
+
+pub fn get_fold_display_mode() -> NativeDisplayManager_FoldDisplayMode raise SysError
+
+pub fn is_foldable() -> Bool
+
+pub fn unregister_available_area_change_listener(UInt32) -> Unit raise SysError
+
+pub fn unregister_display_add_listener(UInt32) -> Unit raise SysError
+
+pub fn unregister_display_change_listener(UInt32) -> Unit raise SysError
+
+pub fn unregister_display_remove_listener(UInt32) -> Unit raise SysError
+
+pub fn unregister_fold_display_mode_change_listener(UInt32) -> Unit raise SysError
+
+// Errors
+pub(all) suberror SysError {
+  Failed(String, String, Int32)
+}
+pub fn SysError::output(Self, &Logger) -> Unit
+pub fn SysError::to_string(Self) -> String
+pub impl Show for SysError
+
+// Types and methods
+pub(all) enum NativeDisplayManager_ErrorCode {
+  DisplayManagerOk
+  DisplayManagerErrorNoPermission
+  DisplayManagerErrorNotSystemApp
+  DisplayManagerErrorInvalidParam
+  DisplayManagerErrorDeviceNotSupported
+  DisplayManagerErrorInvalidScreen
+  DisplayManagerErrorInvalidCall
+  DisplayManagerErrorSystemAbnormal
+  DisplayManagerErrorIllegalParam
+  Other(Int32)
+}
+pub fn NativeDisplayManager_ErrorCode::c_name(Self) -> String
+pub fn NativeDisplayManager_ErrorCode::equal(Self, Self) -> Bool
+pub fn NativeDisplayManager_ErrorCode::from_raw(Int32) -> Self
+pub fn NativeDisplayManager_ErrorCode::not_equal(Self, Self) -> Bool
+pub fn NativeDisplayManager_ErrorCode::output(Self, &Logger) -> Unit
+pub fn NativeDisplayManager_ErrorCode::to_raw(Self) -> Int32
+pub fn NativeDisplayManager_ErrorCode::to_string(Self) -> String
+pub impl Eq for NativeDisplayManager_ErrorCode
+pub impl Show for NativeDisplayManager_ErrorCode
+
+pub(all) enum NativeDisplayManager_FoldDisplayMode {
+  DisplayManagerFoldDisplayModeUnknown
+  DisplayManagerFoldDisplayModeFull
+  DisplayManagerFoldDisplayModeMain
+  DisplayManagerFoldDisplayModeSub
+  DisplayManagerFoldDisplayModeCoordination
+  Other(Int32)
+}
+pub fn NativeDisplayManager_FoldDisplayMode::c_name(Self) -> String
+pub fn NativeDisplayManager_FoldDisplayMode::equal(Self, Self) -> Bool
+pub fn NativeDisplayManager_FoldDisplayMode::from_raw(Int32) -> Self
+pub fn NativeDisplayManager_FoldDisplayMode::not_equal(Self, Self) -> Bool
+pub fn NativeDisplayManager_FoldDisplayMode::output(Self, &Logger) -> Unit
+pub fn NativeDisplayManager_FoldDisplayMode::to_raw(Self) -> Int32
+pub fn NativeDisplayManager_FoldDisplayMode::to_string(Self) -> String
+pub impl Eq for NativeDisplayManager_FoldDisplayMode
+pub impl Show for NativeDisplayManager_FoldDisplayMode
+
+pub(all) enum NativeDisplayManager_Orientation {
+  DisplayManagerPortrait
+  DisplayManagerLandscape
+  DisplayManagerPortraitInverted
+  DisplayManagerLandscapeInverted
+  DisplayManagerUnknown
+  Other(Int32)
+}
+pub fn NativeDisplayManager_Orientation::c_name(Self) -> String
+pub fn NativeDisplayManager_Orientation::equal(Self, Self) -> Bool
+pub fn NativeDisplayManager_Orientation::from_raw(Int32) -> Self
+pub fn NativeDisplayManager_Orientation::not_equal(Self, Self) -> Bool
+pub fn NativeDisplayManager_Orientation::output(Self, &Logger) -> Unit
+pub fn NativeDisplayManager_Orientation::to_raw(Self) -> Int32
+pub fn NativeDisplayManager_Orientation::to_string(Self) -> String
+pub impl Eq for NativeDisplayManager_Orientation
+pub impl Show for NativeDisplayManager_Orientation
+
+pub(all) struct NativeDisplayManager_Rect {
+  left : Int32
+  top : Int32
+  width : UInt32
+  height : UInt32
+}
+
+pub(all) enum NativeDisplayManager_Rotation {
+  DisplayManagerRotation0
+  DisplayManagerRotation90
+  DisplayManagerRotation180
+  DisplayManagerRotation270
+  Other(Int32)
+}
+pub fn NativeDisplayManager_Rotation::c_name(Self) -> String
+pub fn NativeDisplayManager_Rotation::equal(Self, Self) -> Bool
+pub fn NativeDisplayManager_Rotation::from_raw(Int32) -> Self
+pub fn NativeDisplayManager_Rotation::not_equal(Self, Self) -> Bool
+pub fn NativeDisplayManager_Rotation::output(Self, &Logger) -> Unit
+pub fn NativeDisplayManager_Rotation::to_raw(Self) -> Int32
+pub fn NativeDisplayManager_Rotation::to_string(Self) -> String
+pub impl Eq for NativeDisplayManager_Rotation
+pub impl Show for NativeDisplayManager_Rotation
+
+pub(all) enum NativeDisplayManager_SourceMode {
+  DisplaySourceModeNone
+  DisplaySourceModeMain
+  DisplaySourceModeMirror
+  DisplaySourceModeExtend
+  DisplaySourceModeAlone
+  Other(Int32)
+}
+pub fn NativeDisplayManager_SourceMode::c_name(Self) -> String
+pub fn NativeDisplayManager_SourceMode::equal(Self, Self) -> Bool
+pub fn NativeDisplayManager_SourceMode::from_raw(Int32) -> Self
+pub fn NativeDisplayManager_SourceMode::not_equal(Self, Self) -> Bool
+pub fn NativeDisplayManager_SourceMode::output(Self, &Logger) -> Unit
+pub fn NativeDisplayManager_SourceMode::to_raw(Self) -> Int32
+pub fn NativeDisplayManager_SourceMode::to_string(Self) -> String
+pub impl Eq for NativeDisplayManager_SourceMode
+pub impl Show for NativeDisplayManager_SourceMode
+
+// Type aliases
+
+// Traits

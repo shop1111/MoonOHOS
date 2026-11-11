@@ -1,0 +1,1 @@
+{"schema":"moonohos-bindgen-v1","package":"shop1111/moonohos_ohos/sys/wifi","name":"wifi","prefixes":["OH_Wifi_"],"headers":["ConnectivityKit/wifi/oh_wifi.h"]}

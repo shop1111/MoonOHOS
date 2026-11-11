@@ -1,0 +1,164 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/sys/wifi"
+
+// Values
+pub fn get_device_mac_address() -> String raise SysError
+
+pub fn get_linked_info() -> OH_WifiLinkedInfo raise SysError
+
+pub fn is_wifi_enabled() -> Bool raise SysError
+
+// Errors
+pub(all) suberror SysError {
+  Failed(String, String, Int32)
+}
+pub fn SysError::output(Self, &Logger) -> Unit
+pub fn SysError::to_string(Self) -> String
+pub impl Show for SysError
+
+// Types and methods
+pub(all) enum OH_WifiCategory {
+  OhWifiCategoryDefault
+  OhWifiCategoryWifi6
+  OhWifiCategoryWifi6Plus
+  OhWifiCategoryWifi7
+  OhWifiCategoryWifi7Plus
+  Other(Int32)
+}
+pub fn OH_WifiCategory::c_name(Self) -> String
+pub fn OH_WifiCategory::equal(Self, Self) -> Bool
+pub fn OH_WifiCategory::from_raw(Int32) -> Self
+pub fn OH_WifiCategory::not_equal(Self, Self) -> Bool
+pub fn OH_WifiCategory::output(Self, &Logger) -> Unit
+pub fn OH_WifiCategory::to_raw(Self) -> Int32
+pub fn OH_WifiCategory::to_string(Self) -> String
+pub impl Eq for OH_WifiCategory
+pub impl Show for OH_WifiCategory
+
+pub(all) enum OH_WifiChannelWidth {
+  OhWifiWidth20mhz
+  OhWifiWidth40mhz
+  OhWifiWidth80mhz
+  OhWifiWidth160mhz
+  OhWifiWidth80mhzPlus
+  OhWifiWidthInvalid
+  Other(Int32)
+}
+pub fn OH_WifiChannelWidth::c_name(Self) -> String
+pub fn OH_WifiChannelWidth::equal(Self, Self) -> Bool
+pub fn OH_WifiChannelWidth::from_raw(Int32) -> Self
+pub fn OH_WifiChannelWidth::not_equal(Self, Self) -> Bool
+pub fn OH_WifiChannelWidth::output(Self, &Logger) -> Unit
+pub fn OH_WifiChannelWidth::to_raw(Self) -> Int32
+pub fn OH_WifiChannelWidth::to_string(Self) -> String
+pub impl Eq for OH_WifiChannelWidth
+pub impl Show for OH_WifiChannelWidth
+
+pub(all) enum OH_WifiConnState {
+  OhWifiConnScanning
+  OhWifiConnConnecting
+  OhWifiConnAuthenticating
+  OhWifiConnObtainingIpaddr
+  OhWifiConnConnected
+  OhWifiConnDisconnecting
+  OhWifiConnDisconnected
+  OhWifiConnSpecialConnect
+  OhWifiConnUnknown
+  Other(Int32)
+}
+pub fn OH_WifiConnState::c_name(Self) -> String
+pub fn OH_WifiConnState::equal(Self, Self) -> Bool
+pub fn OH_WifiConnState::from_raw(Int32) -> Self
+pub fn OH_WifiConnState::not_equal(Self, Self) -> Bool
+pub fn OH_WifiConnState::output(Self, &Logger) -> Unit
+pub fn OH_WifiConnState::to_raw(Self) -> Int32
+pub fn OH_WifiConnState::to_string(Self) -> String
+pub impl Eq for OH_WifiConnState
+pub impl Show for OH_WifiConnState
+
+pub(all) enum OH_WifiLinkType {
+  OhWifiLinkDisconnect
+  OhWifiLinkDefaultLink
+  OhWifiLinkWifi7SingleLink
+  OhWifiLinkWifi7Mlsr
+  OhWifiLinkWifi7Emlsr
+  OhWifiLinkWifi7Str
+  OhWifiLinkWifi7Legacy
+  Other(Int32)
+}
+pub fn OH_WifiLinkType::c_name(Self) -> String
+pub fn OH_WifiLinkType::equal(Self, Self) -> Bool
+pub fn OH_WifiLinkType::from_raw(Int32) -> Self
+pub fn OH_WifiLinkType::not_equal(Self, Self) -> Bool
+pub fn OH_WifiLinkType::output(Self, &Logger) -> Unit
+pub fn OH_WifiLinkType::to_raw(Self) -> Int32
+pub fn OH_WifiLinkType::to_string(Self) -> String
+pub impl Eq for OH_WifiLinkType
+pub impl Show for OH_WifiLinkType
+
+pub(all) struct OH_WifiLinkedInfo {
+  ssid : String
+  bssid : String
+  rssi : Int32
+  band : Int32
+  link_speed : Int32
+  rx_link_speed : Int32
+  max_supported_tx_link_speed : Int32
+  max_supported_rx_link_speed : Int32
+  frequency : Int32
+  is_hidden : Bool
+  is_restricted : Bool
+  mac_type : Int32
+  mac_address : String
+  ip_address : UInt32
+  conn_state : OH_WifiConnState
+  channel_width : OH_WifiChannelWidth
+  wifi_standard : OH_WifiStandard
+  supported_wifi_category : OH_WifiCategory
+  is_hi_link_network : Bool
+  wifi_link_type : OH_WifiLinkType
+}
+
+pub(all) enum OH_WifiStandard {
+  OhWifiStandardUndefined
+  OhWifiStandard11a
+  OhWifiStandard11b
+  OhWifiStandard11g
+  OhWifiStandard11n
+  OhWifiStandard11ac
+  OhWifiStandard11ax
+  OhWifiStandard11ad
+  Other(Int32)
+}
+pub fn OH_WifiStandard::c_name(Self) -> String
+pub fn OH_WifiStandard::equal(Self, Self) -> Bool
+pub fn OH_WifiStandard::from_raw(Int32) -> Self
+pub fn OH_WifiStandard::not_equal(Self, Self) -> Bool
+pub fn OH_WifiStandard::output(Self, &Logger) -> Unit
+pub fn OH_WifiStandard::to_raw(Self) -> Int32
+pub fn OH_WifiStandard::to_string(Self) -> String
+pub impl Eq for OH_WifiStandard
+pub impl Show for OH_WifiStandard
+
+pub(all) enum Wifi_ResultCode {
+  WifiSuccess
+  WifiPermissionDenied
+  WifiInvalidParam
+  WifiNotSupported
+  WifiOperationFailed
+  WifiStaDisabled
+  Other(Int32)
+}
+pub fn Wifi_ResultCode::c_name(Self) -> String
+pub fn Wifi_ResultCode::equal(Self, Self) -> Bool
+pub fn Wifi_ResultCode::from_raw(Int32) -> Self
+pub fn Wifi_ResultCode::not_equal(Self, Self) -> Bool
+pub fn Wifi_ResultCode::output(Self, &Logger) -> Unit
+pub fn Wifi_ResultCode::to_raw(Self) -> Int32
+pub fn Wifi_ResultCode::to_string(Self) -> String
+pub impl Eq for Wifi_ResultCode
+pub impl Show for Wifi_ResultCode
+
+// Type aliases
+
+// Traits

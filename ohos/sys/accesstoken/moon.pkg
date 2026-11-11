@@ -1,0 +1,7 @@
+import {
+  "moonbitlang/core/encoding/utf8",
+}
+
+options(
+  "native-stub": [ "accesstoken_stub.c" ],
+)

@@ -60,3 +60,37 @@ export async function memoryProbe(native: any, resources: object): Promise<strin
   const pass = declared > 0 && during - before === declared && after === before;
   return `${pass ? 'pass' : 'fail'} declared=${declared} delta=${during - before} after_close_delta=${after - before}`;
 }
+
+// System bindings (0.8): generated `sys/*` packages called from MoonBit.
+// Calls that need permissions this app lacks may report `!error`; they only
+// have to return instead of crashing.
+export function platformProbe(native: any, log: (line: string) => void): string {
+  const lines: string[] = native.platform_report();
+  const values = new Map<string, string>();
+  for (const line of lines) {
+    log(`MOONSEARCH_SYS ${line}`);
+    const ok = line.indexOf('=');
+    const bad = line.indexOf('!');
+    if (ok > 0 && (bad < 0 || ok < bad)) {
+      values.set(line.substring(0, ok), line.substring(ok + 1));
+    }
+  }
+  const capacity = Number(values.get('battery.capacity'));
+  const size = (values.get('display.size') ?? '0x0').split('x').map((x: string) => Number(x));
+  const checks: [string, boolean][] = [
+    ['battery', capacity >= 0 && capacity <= 100],
+    ['display', size[0] > 0 && size[1] > 0],
+    ['deviceinfo', (values.get('deviceinfo.os') ?? '') !== '' && Number(values.get('deviceinfo.api')) >= 26],
+    ['syscap', values.get('syscap.hitrace') === 'true' && values.get('syscap.fake') === 'false'],
+    ['timezone', (values.get('timeservice.zone') ?? '') !== ''],
+    // The x86_64 emulator kernel rejects thread QoS for every process
+    // (system services log "apply qos failed"); then all three calls return -1.
+    ['qos', /^set=0,get=0:QOS_USER_INITIATED,reset=0$/.test(values.get('qos.roundtrip') ?? '') ||
+      /^set=-1,get=-1:.*,reset=-1$/.test(values.get('qos.roundtrip') ?? '')],
+    ['hitrace', (values.get('hitrace.chain') ?? '').includes('valid=true')],
+    ['hidebug', /total_kb=[1-9]/.test(values.get('hidebug.memory') ?? '')],
+    ['all_returned', lines.length === 19],
+  ];
+  const failed = checks.filter((c: [string, boolean]) => !c[1]).map((c: [string, boolean]) => c[0]);
+  return `${failed.length === 0 ? 'pass' : 'fail'} calls=${lines.length} checks=${checks.length}${failed.length ? ' failed=' + failed.join(',') : ''}`;
+}

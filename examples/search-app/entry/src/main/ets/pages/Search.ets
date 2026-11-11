@@ -2,7 +2,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { systemDateTime } from '@kit.BasicServicesKit';
 import { resourceManager } from '@kit.LocalizationKit';
 import native, { Hit, IndexStats, SearchSession } from '@moonohos/search';
-import { memoryProbe, typeTagProbe, typedArrayProbe } from './BridgeProbes';
+import { memoryProbe, platformProbe, typeTagProbe, typedArrayProbe } from './BridgeProbes';
 import { runTaskPool, runWorker } from './Concurrency';
 
 const TAG: string = 'MoonSearchApp';
@@ -107,6 +107,7 @@ struct SearchPage {
       log(`MOONSEARCH_MEMORY ${await memoryProbe(native, this.resources())}`);
       log(`MOONSEARCH_WORKER ${await runWorker()}`);
       log(`MOONSEARCH_TASKPOOL ${await runTaskPool()}`);
+      log(`MOONSEARCH_PLATFORM ${platformProbe(native, log)}`);
     }
 
     const cancelStarted: number = now();

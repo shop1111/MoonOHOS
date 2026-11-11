@@ -1,0 +1,1 @@
+{"schema":"moonohos-bindgen-v1","package":"shop1111/moonohos_ohos/sys/bluetooth","name":"bluetooth","prefixes":["OH_Bluetooth_"],"headers":["ConnectivityKit/bluetooth/oh_bluetooth.h"]}

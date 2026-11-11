@@ -1,0 +1,50 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/sys/vibrator"
+
+// Values
+pub fn cancel() -> Int32
+
+pub fn play_vibration(Int32, Vibrator_Attribute) -> Int32
+
+pub fn play_vibration_custom(Vibrator_FileDescription, Vibrator_Attribute) -> Int32
+
+// Errors
+
+// Types and methods
+pub(all) struct Vibrator_Attribute {
+  vibrator_id : Int32
+  usage : Vibrator_Usage
+}
+
+pub(all) struct Vibrator_FileDescription {
+  fd : Int32
+  offset : Int64
+  length : Int64
+}
+
+pub(all) enum Vibrator_Usage {
+  VibratorUsageUnknown
+  VibratorUsageAlarm
+  VibratorUsageRing
+  VibratorUsageNotification
+  VibratorUsageCommunication
+  VibratorUsageTouch
+  VibratorUsageMedia
+  VibratorUsagePhysicalFeedback
+  VibratorUsageSimulatedReality
+  VibratorUsageMax
+  Other(Int32)
+}
+pub fn Vibrator_Usage::c_name(Self) -> String
+pub fn Vibrator_Usage::equal(Self, Self) -> Bool
+pub fn Vibrator_Usage::from_raw(Int32) -> Self
+pub fn Vibrator_Usage::not_equal(Self, Self) -> Bool
+pub fn Vibrator_Usage::output(Self, &Logger) -> Unit
+pub fn Vibrator_Usage::to_raw(Self) -> Int32
+pub fn Vibrator_Usage::to_string(Self) -> String
+pub impl Eq for Vibrator_Usage
+pub impl Show for Vibrator_Usage
+
+// Type aliases
+
+// Traits

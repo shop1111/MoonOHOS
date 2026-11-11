@@ -1,0 +1,3 @@
+options(
+  "native-stub": [ "battery_stub.c" ],
+)

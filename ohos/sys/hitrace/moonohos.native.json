@@ -1,0 +1,14 @@
+{
+  "schema": "moonohos-native-v1",
+  "package": "shop1111/moonohos_ohos/sys/hitrace",
+  "sources": [
+    "hitrace_stub.c"
+  ],
+  "systemLibraries": [
+    "libhitrace_ndk.z.so"
+  ],
+  "abis": [
+    "arm64-v8a",
+    "x86_64"
+  ]
+}

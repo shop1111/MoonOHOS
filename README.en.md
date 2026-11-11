@@ -44,7 +44,7 @@ It is not a good fit for:
 | Layer | Purpose | Status |
 |---|---|---|
 | HarmonyOS runtime | ArkTS ↔ MoonBit: conversions, `.d.ts` generation, background-thread tasks, cancellation, ArkTS callbacks, handle lifecycle | **Done.** Host ASan covers everything. **Run on the x86_64 emulator** (built with moonc 0.10.20, 2026-11-11): background-thread tasks, cancellation, ArkTS progress callbacks, handle methods, handle type tags, handle lifecycle, and the 0.7 additions `Float64Array`, native size reporting and loading the module in a Worker and in TaskPool. **Not yet run on a device**: Int64, Option, enums, the other three typed arrays |
-| System APIs | MoonBit calls the HarmonyOS NDK directly | **Partial**: six platform packages (`hilog`, `rawfile`, `task`, `deviceinfo`, `netconn`, `vibrator`) and a mechanism for third-party C dependencies. **Planned**: bindings generated from SDK headers to cover many more modules |
+| System APIs | MoonBit calls the HarmonyOS NDK directly | **Done (0.8, in progress)**: `moonohos bindgen` reads SDK headers through the SDK's own clang and emits a MoonBit package, C stub and descriptor. 13 `sys/*` packages (display, battery, device info, HiTrace, HiDebug, QoS, time zone, OS account, permission check, syscap, Wi-Fi, Bluetooth, vibrator) bind 117 functions, compile with `-Werror` and link against the real SDK for both ABIs; 19 of them were called on the emulator. Plus six hand-written packages (`hilog`, `rawfile`, `task`, ...) and third-party C dependencies. **Not yet**: callbacks and `Create/Destroy` handles; see [BINDGEN.md](docs/BINDGEN.md) (Chinese) |
 | Graphics | MoonBit renders through XComponent and handles touch | **Planned** |
 | Project integration | Init, cross-compilation, HAR packaging, artifact verification | **Done**: the CLI (`init`, `build`, `har`, `verify`). **Planned**: a Hvigor plugin to build from DevEco; publishing to ohpm |
 
@@ -53,6 +53,8 @@ It is not a good fit for:
 | [ASYNC-THREADING.md](docs/ASYNC-THREADING.md) (Chinese) | Threading, cancellation, callbacks, lifecycle |
 | [NATIVE-EXTENSIONS.md](docs/NATIVE-EXTENSIONS.md) (Chinese) | Platform packages and native dependencies |
 | [COMPARISON.md](docs/COMPARISON.md) (Chinese) | Point-by-point comparison with napi-mbt and ohos-rs |
+| [BINDGEN.md](docs/BINDGEN.md) (Chinese) | System API binding generation: spec format, type mapping, checks, first modules |
+| [VALIDATION-0.8.md](docs/VALIDATION-0.8.md) (Chinese) | SDK compile/link and emulator runs of the generated bindings |
 | [VALIDATION-0.7.md](docs/VALIDATION-0.7.md) (Chinese) | Emulator runs with moonc 0.10.20: async, cancellation, callbacks, type tags, typed arrays, native size, Worker/TaskPool |
 | [VALIDATION-0.5.md](docs/VALIDATION-0.5.md) (Chinese) | What each test level proves |
 
@@ -222,7 +224,7 @@ Done: 0.4 HarmonyOS runtime, platform packages and HAR distribution; 0.5 Int64, 
 Next, layer by layer (priorities are open for discussion in issues):
 
 1. **HarmonyOS runtime**: run Int64, Option, enums and the platform packages on the emulator. The four additions borrowed from napi-mbt's designs (handle type tags, native size reporting, per-environment state, typed arrays) are done and ran on the emulator (0.7). Full general-purpose binding coverage is not a goal.
-2. **System APIs**: a binding generator driven by SDK headers that emits MoonBit declarations and C shims, topped by hand-written safe wrappers (resource release, error codes as `raise`). The first batch targets 8–10 modules that need no special permission, such as files, cryptography, pasteboard and HiTrace.
+2. **System APIs**: the binding generator and 13 first modules are done (0.8). Next: callbacks and `Create/Destroy` handles (on top of the existing ArkTS callback and handle machinery), to reach sensors, files and cryptography, whose APIs rely on them.
 3. **Graphics**: XComponent and Native Drawing, so MoonBit draws 2D content and handles touch events, with an example app.
 4. **Project integration**: a Hvigor plugin that builds MoonBit modules from DevEco; publishing HARs to ohpm; turning pure-MoonBit Mooncakes packages into HARs in one step.
 5. **Other**: ARM64 hardware validation and a bilingual docs site.

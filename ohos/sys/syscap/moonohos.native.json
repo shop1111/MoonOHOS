@@ -1,0 +1,14 @@
+{
+  "schema": "moonohos-native-v1",
+  "package": "shop1111/moonohos_ohos/sys/syscap",
+  "sources": [
+    "syscap_stub.c"
+  ],
+  "systemLibraries": [
+    "libdeviceinfo_ndk.z.so"
+  ],
+  "abis": [
+    "arm64-v8a",
+    "x86_64"
+  ]
+}

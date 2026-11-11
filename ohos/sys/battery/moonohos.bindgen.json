@@ -1,0 +1,1 @@
+{"schema":"moonohos-bindgen-v1","package":"shop1111/moonohos_ohos/sys/battery","name":"battery","prefixes":["OH_BatteryInfo_"],"headers":["BasicServicesKit/ohbattery_info.h"]}

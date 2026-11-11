@@ -1,0 +1,13 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/sys/syscap"
+
+// Values
+pub fn can_i_use(String) -> Bool
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

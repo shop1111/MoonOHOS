@@ -4,6 +4,27 @@ All notable changes to MoonOHOS are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may break).
 
+## [Unreleased]
+
+### Added
+- `moonohos bindgen --spec <moonohos.bindgen.json> --sdk <SDK>`: generates a
+  MoonBit package, C stub, native descriptor and coverage report from
+  HarmonyOS SDK headers. Declarations come from the SDK clang's JSON AST;
+  each function is matched to the system library that exports it on both
+  ABIs. Values, enums (with `Other(Int)`), flat structs, `const char *`,
+  byte inputs, scalar and string outputs and error-code results (`SysError`)
+  are generated; callbacks, handles, variadic functions and buffers of unknown
+  length are skipped with a reason. See docs/BINDGEN.md.
+- 13 generated packages under `shop1111/moonohos_ohos/sys/`: accesstoken,
+  battery, bluetooth, deviceinfo, display, hidebug, hitrace, osaccount, qos,
+  syscap, timeservice, vibrator, wifi (117 functions). Their libraries join
+  the system library allowlist.
+- `scripts/generate_bindings.py` regenerates them; `scripts/verify_bindings.py`
+  compiles every stub with `-Werror` against the SDK headers and links it with
+  `--no-undefined` for both ABIs.
+- Search example: `platform_report()` calls 19 generated functions; the
+  emulator scenario checks the results (docs/VALIDATION-0.8.md).
+
 ## [0.7.0] - 2026-11-11
 
 Breaking: `build` and `doctor` require moonc >= 0.10.20, and the public
@@ -190,6 +211,7 @@ Breaking: `build` and `doctor` require moonc >= 0.10.20, and the public
 - First public release: synchronous scalar, `String` and `Bytes` bridge,
   `.d.ts` generation and dual-ABI (`arm64-v8a`, `x86_64`) builds.
 
+[Unreleased]: https://github.com/shop1111/MoonOHOS/compare/v0.7.0...HEAD
 [0.7.0]: https://github.com/shop1111/MoonOHOS/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/shop1111/MoonOHOS/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/shop1111/MoonOHOS/compare/v0.4.1...v0.5.0

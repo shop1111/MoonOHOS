@@ -31,7 +31,7 @@
 | 层次 | 作用 | 状态 |
 |---|---|---|
 | 鸿蒙运行时 | ArkTS ↔ MoonBit：类型转换、d.ts 生成、后台线程任务、取消、ArkTS 回调、句柄生命周期 | **已实现**。宿主 ASan 覆盖全部能力。**x86_64 模拟器上已运行**（moonc 0.10.20 构建，2026-11-11）：后台线程异步任务、取消、ArkTS 进度回调、句柄方法、句柄类型标记、句柄生命周期，以及 0.7 的 `Float64Array`、外部内存上报、在 Worker 和 TaskPool 中加载模块。**设备上尚未运行**：Int64、Option、枚举、其他三种 TypedArray |
-| 系统能力 | MoonBit 直接调用鸿蒙 NDK | **部分实现**：`hilog`、`rawfile`、`task`、`deviceinfo`、`netconn`、`vibrator` 6 个平台包，以及第三方 C 依赖的接入机制。**计划**：用 SDK 头文件生成绑定，批量覆盖更多模块 |
+| 系统能力 | MoonBit 直接调用鸿蒙 NDK | **已实现（0.8 开发中）**：`moonohos bindgen` 由 SDK 自带的 clang 解析头文件，生成 MoonBit 包、C 桩函数和描述文件。首批 13 个 `sys/*` 包（显示、电池、设备信息、HiTrace、HiDebug、QoS、时区、系统账号、权限自查、syscap、Wi-Fi、蓝牙、振动），共绑定 117 个函数。两个 ABI 都对着真实 SDK 以 `-Werror` 编译并链接通过；其中 19 个函数在模拟器上调用过。另有 6 个手写平台包（`hilog`、`rawfile`、`task` 等），以及第三方 C 依赖的接入机制。**尚未支持**：回调、`Create/Destroy` 句柄，见 [BINDGEN.md](docs/BINDGEN.md) |
 | 图形 | MoonBit 通过 XComponent 渲染画面、处理触摸 | **计划中** |
 | 工程集成 | 初始化、交叉编译、HAR 打包、产物校验 | **已实现** CLI（`init`、`build`、`har`、`verify`）。**计划**：Hvigor 插件，在 DevEco 中直接构建；发布到 ohpm |
 
@@ -40,6 +40,8 @@
 | [ASYNC-THREADING.md](docs/ASYNC-THREADING.md) | 线程模型、取消、回调、生命周期 |
 | [NATIVE-EXTENSIONS.md](docs/NATIVE-EXTENSIONS.md) | 平台包与 Native 依赖接入 |
 | [COMPARISON.md](docs/COMPARISON.md) | 与 napi-mbt、ohos-rs 的逐项对照 |
+| [BINDGEN.md](docs/BINDGEN.md) | 系统能力绑定生成：清单格式、类型对应、校验方法、首批模块 |
+| [VALIDATION-0.8.md](docs/VALIDATION-0.8.md) | 生成绑定的 SDK 编译链接与模拟器运行记录 |
 | [VALIDATION-0.7.md](docs/VALIDATION-0.7.md) | moonc 0.10.20 构建的模拟器运行记录：异步、取消、回调、类型标记、TypedArray、外部内存、Worker/TaskPool |
 | [VALIDATION-0.5.md](docs/VALIDATION-0.5.md) | 各项能力的验证范围（0.4 见 [VALIDATION-0.4.md](docs/VALIDATION-0.4.md)） |
 
@@ -236,7 +238,7 @@ SDK、HAP 与模拟器检查在本机执行。各层证明范围见 [VALIDATION-
 接下来按层推进（欢迎在 issue 中讨论优先级）：
 
 1. **鸿蒙运行时**：在模拟器上验证 Int64、Option、枚举和平台包。借鉴 napi-mbt 设计的四项补强（句柄类型标记、外部内存上报、每个环境独立的状态、TypedArray）已完成，并在模拟器上运行（0.7）。不追求通用绑定的完整度。
-2. **系统能力**：基于 SDK 头文件的绑定生成器，自动生成 MoonBit 声明和 C 中转代码，再手写安全封装（资源释放、错误码转为 `raise`）。首批覆盖 8 到 10 个不需要特殊权限的模块，如文件、加解密、剪贴板、HiTrace。
+2. **系统能力**：绑定生成器和首批 13 个模块已完成（0.8）。下一步支持回调和 `Create/Destroy` 句柄（对接已有的 ArkTS 回调和句柄机制），覆盖传感器、文件、加解密等依赖这两类接口的模块。
 3. **图形**：XComponent 与 Native Drawing，MoonBit 绘制 2D 画面、处理触摸事件，附示例应用。
 4. **工程集成**：Hvigor 插件，在 DevEco 中直接构建 MoonBit 模块；发布 HAR 到 ohpm；纯 MoonBit 的 Mooncakes 包一键转为 HAR。
 5. **其他**：ARM64 真机验证、中英文档站。

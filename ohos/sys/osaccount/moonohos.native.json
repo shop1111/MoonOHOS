@@ -1,0 +1,14 @@
+{
+  "schema": "moonohos-native-v1",
+  "package": "shop1111/moonohos_ohos/sys/osaccount",
+  "sources": [
+    "osaccount_stub.c"
+  ],
+  "systemLibraries": [
+    "libos_account_ndk.so"
+  ],
+  "abis": [
+    "arm64-v8a",
+    "x86_64"
+  ]
+}

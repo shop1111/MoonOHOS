@@ -94,3 +94,13 @@ test "term IDF and native size estimates" {
   let empty = index_texts([], [])
   assert_eq(index_bytes(empty), 0)
 }
+
+///|
+test "platform report runs every generated binding on the host" {
+  let report = platform_report()
+  assert_eq(report.length(), 19)
+  // No SDK on the host: error-code calls fail with 801, others return zeros.
+  assert_true(report.contains("battery.capacity=0"))
+  assert_true(report.any(line => line.has_prefix("display.size!")))
+  assert_true(report.contains("syscap.fake=false"))
+}

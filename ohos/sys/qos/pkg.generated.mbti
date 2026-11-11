@@ -1,0 +1,73 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/sys/qos"
+
+// Values
+pub fn get_thread_qos() -> (Int32, QoS_Level)
+
+pub fn gewu_abort_request(UInt32, UInt32) -> Unit raise SysError
+
+pub fn gewu_create_session(String) -> OH_QoS_GewuCreateSessionResult
+
+pub fn gewu_destroy_session(UInt32) -> Unit raise SysError
+
+pub fn reset_thread_qos() -> Int32
+
+pub fn set_thread_qos(QoS_Level) -> Int32
+
+// Errors
+pub(all) suberror SysError {
+  Failed(String, String, Int32)
+}
+pub fn SysError::output(Self, &Logger) -> Unit
+pub fn SysError::to_string(Self) -> String
+pub impl Show for SysError
+
+// Types and methods
+pub(all) struct OH_QoS_GewuCreateSessionResult {
+  session : UInt32
+  error : OH_QoS_GewuErrorCode
+}
+
+pub(all) enum OH_QoS_GewuErrorCode {
+  OhQosGewuOk
+  OhQosGewuNoperm
+  OhQosGewuNomem
+  OhQosGewuInval
+  OhQosGewuExist
+  OhQosGewuNoent
+  OhQosGewuNosys
+  OhQosGewuFault
+  Other(Int32)
+}
+pub fn OH_QoS_GewuErrorCode::c_name(Self) -> String
+pub fn OH_QoS_GewuErrorCode::equal(Self, Self) -> Bool
+pub fn OH_QoS_GewuErrorCode::from_raw(Int32) -> Self
+pub fn OH_QoS_GewuErrorCode::not_equal(Self, Self) -> Bool
+pub fn OH_QoS_GewuErrorCode::output(Self, &Logger) -> Unit
+pub fn OH_QoS_GewuErrorCode::to_raw(Self) -> Int32
+pub fn OH_QoS_GewuErrorCode::to_string(Self) -> String
+pub impl Eq for OH_QoS_GewuErrorCode
+pub impl Show for OH_QoS_GewuErrorCode
+
+pub(all) enum QoS_Level {
+  QosBackground
+  QosUtility
+  QosDefault
+  QosUserInitiated
+  QosDeadlineRequest
+  QosUserInteractive
+  Other(Int32)
+}
+pub fn QoS_Level::c_name(Self) -> String
+pub fn QoS_Level::equal(Self, Self) -> Bool
+pub fn QoS_Level::from_raw(Int32) -> Self
+pub fn QoS_Level::not_equal(Self, Self) -> Bool
+pub fn QoS_Level::output(Self, &Logger) -> Unit
+pub fn QoS_Level::to_raw(Self) -> Int32
+pub fn QoS_Level::to_string(Self) -> String
+pub impl Eq for QoS_Level
+pub impl Show for QoS_Level
+
+// Type aliases
+
+// Traits

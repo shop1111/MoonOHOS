@@ -1,0 +1,14 @@
+{
+  "schema": "moonohos-native-v1",
+  "package": "shop1111/moonohos_ohos/sys/wifi",
+  "sources": [
+    "wifi_stub.c"
+  ],
+  "systemLibraries": [
+    "libwifi_ndk.so"
+  ],
+  "abis": [
+    "arm64-v8a",
+    "x86_64"
+  ]
+}

@@ -1,0 +1,53 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/sys/bluetooth"
+
+// Values
+pub fn get_bluetooth_switch_state() -> Bluetooth_SwitchState raise SysError
+
+// Errors
+pub(all) suberror SysError {
+  Failed(String, String, Int32)
+}
+pub fn SysError::output(Self, &Logger) -> Unit
+pub fn SysError::to_string(Self) -> String
+pub impl Show for SysError
+
+// Types and methods
+pub(all) enum Bluetooth_ResultCode {
+  BluetoothSuccess
+  BluetoothInvalidParam
+  Other(Int32)
+}
+pub fn Bluetooth_ResultCode::c_name(Self) -> String
+pub fn Bluetooth_ResultCode::equal(Self, Self) -> Bool
+pub fn Bluetooth_ResultCode::from_raw(Int32) -> Self
+pub fn Bluetooth_ResultCode::not_equal(Self, Self) -> Bool
+pub fn Bluetooth_ResultCode::output(Self, &Logger) -> Unit
+pub fn Bluetooth_ResultCode::to_raw(Self) -> Int32
+pub fn Bluetooth_ResultCode::to_string(Self) -> String
+pub impl Eq for Bluetooth_ResultCode
+pub impl Show for Bluetooth_ResultCode
+
+pub(all) enum Bluetooth_SwitchState {
+  BluetoothStateOff
+  BluetoothStateTurningOn
+  BluetoothStateOn
+  BluetoothStateTurningOff
+  BluetoothStateBleTurningOn
+  BluetoothStateBleOn
+  BluetoothStateBleTurningOff
+  Other(Int32)
+}
+pub fn Bluetooth_SwitchState::c_name(Self) -> String
+pub fn Bluetooth_SwitchState::equal(Self, Self) -> Bool
+pub fn Bluetooth_SwitchState::from_raw(Int32) -> Self
+pub fn Bluetooth_SwitchState::not_equal(Self, Self) -> Bool
+pub fn Bluetooth_SwitchState::output(Self, &Logger) -> Unit
+pub fn Bluetooth_SwitchState::to_raw(Self) -> Int32
+pub fn Bluetooth_SwitchState::to_string(Self) -> String
+pub impl Eq for Bluetooth_SwitchState
+pub impl Show for Bluetooth_SwitchState
+
+// Type aliases
+
+// Traits

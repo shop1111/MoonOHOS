@@ -1,0 +1,34 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/sys/timeservice"
+
+// Values
+pub fn get_time_zone() -> String raise SysError
+
+// Errors
+pub(all) suberror SysError {
+  Failed(String, String, Int32)
+}
+pub fn SysError::output(Self, &Logger) -> Unit
+pub fn SysError::to_string(Self) -> String
+pub impl Show for SysError
+
+// Types and methods
+pub(all) enum TimeService_ErrCode {
+  TimeserviceErrOk
+  TimeserviceErrInternalError
+  TimeserviceErrInvalidParameter
+  Other(Int32)
+}
+pub fn TimeService_ErrCode::c_name(Self) -> String
+pub fn TimeService_ErrCode::equal(Self, Self) -> Bool
+pub fn TimeService_ErrCode::from_raw(Int32) -> Self
+pub fn TimeService_ErrCode::not_equal(Self, Self) -> Bool
+pub fn TimeService_ErrCode::output(Self, &Logger) -> Unit
+pub fn TimeService_ErrCode::to_raw(Self) -> Int32
+pub fn TimeService_ErrCode::to_string(Self) -> String
+pub impl Eq for TimeService_ErrCode
+pub impl Show for TimeService_ErrCode
+
+// Type aliases
+
+// Traits

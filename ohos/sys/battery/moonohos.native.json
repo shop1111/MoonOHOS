@@ -1,0 +1,14 @@
+{
+  "schema": "moonohos-native-v1",
+  "package": "shop1111/moonohos_ohos/sys/battery",
+  "sources": [
+    "battery_stub.c"
+  ],
+  "systemLibraries": [
+    "libohbattery_info.so"
+  ],
+  "abis": [
+    "arm64-v8a",
+    "x86_64"
+  ]
+}

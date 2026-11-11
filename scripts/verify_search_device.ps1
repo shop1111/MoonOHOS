@@ -38,6 +38,7 @@ $required = @(
   'MOONSEARCH_MEMORY pass',
   'MOONSEARCH_WORKER pass',
   'MOONSEARCH_TASKPOOL pass',
+  'MOONSEARCH_PLATFORM pass',
   'MOONSEARCH_INDEX_CANCELLED',
   'MOONSEARCH_CANCELLED round=1 error=AbortError',
   'MOONSEARCH_PROGRESS dir=docs_large',

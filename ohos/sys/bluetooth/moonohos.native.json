@@ -1,0 +1,14 @@
+{
+  "schema": "moonohos-native-v1",
+  "package": "shop1111/moonohos_ohos/sys/bluetooth",
+  "sources": [
+    "bluetooth_stub.c"
+  ],
+  "systemLibraries": [
+    "libbluetooth_ndk.so"
+  ],
+  "abis": [
+    "arm64-v8a",
+    "x86_64"
+  ]
+}

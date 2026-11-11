@@ -1,0 +1,1 @@
+{"schema":"moonohos-bindgen-v1","package":"shop1111/moonohos_ohos/sys/timeservice","name":"timeservice","prefixes":["OH_TimeService_"],"headers":["BasicServicesKit/time_service.h"]}

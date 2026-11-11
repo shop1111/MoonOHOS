@@ -1,0 +1,32 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/sys/battery"
+
+// Values
+pub fn get_capacity() -> Int32
+
+pub fn get_plugged_type() -> BatteryInfo_BatteryPluggedType
+
+// Errors
+
+// Types and methods
+pub(all) enum BatteryInfo_BatteryPluggedType {
+  PluggedTypeNone
+  PluggedTypeAc
+  PluggedTypeUsb
+  PluggedTypeWireless
+  PluggedTypeButt
+  Other(Int32)
+}
+pub fn BatteryInfo_BatteryPluggedType::c_name(Self) -> String
+pub fn BatteryInfo_BatteryPluggedType::equal(Self, Self) -> Bool
+pub fn BatteryInfo_BatteryPluggedType::from_raw(Int32) -> Self
+pub fn BatteryInfo_BatteryPluggedType::not_equal(Self, Self) -> Bool
+pub fn BatteryInfo_BatteryPluggedType::output(Self, &Logger) -> Unit
+pub fn BatteryInfo_BatteryPluggedType::to_raw(Self) -> Int32
+pub fn BatteryInfo_BatteryPluggedType::to_string(Self) -> String
+pub impl Eq for BatteryInfo_BatteryPluggedType
+pub impl Show for BatteryInfo_BatteryPluggedType
+
+// Type aliases
+
+// Traits

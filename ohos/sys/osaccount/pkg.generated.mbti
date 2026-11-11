@@ -1,0 +1,39 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/sys/osaccount"
+
+// Values
+pub fn get_name() -> String raise SysError
+
+pub fn get_name_by_local_id(Int32) -> String raise SysError
+
+// Errors
+pub(all) suberror SysError {
+  Failed(String, String, Int32)
+}
+pub fn SysError::output(Self, &Logger) -> Unit
+pub fn SysError::to_string(Self) -> String
+pub impl Show for SysError
+
+// Types and methods
+pub(all) enum OsAccount_ErrCode {
+  OsAccountErrOk
+  OsAccountErrPermissionDenied
+  OsAccountErrInternalError
+  OsAccountErrInvalidParameter
+  OsAccountErrAccountNotFound
+  OsAccountErrRestrictedAccount
+  Other(Int32)
+}
+pub fn OsAccount_ErrCode::c_name(Self) -> String
+pub fn OsAccount_ErrCode::equal(Self, Self) -> Bool
+pub fn OsAccount_ErrCode::from_raw(Int32) -> Self
+pub fn OsAccount_ErrCode::not_equal(Self, Self) -> Bool
+pub fn OsAccount_ErrCode::output(Self, &Logger) -> Unit
+pub fn OsAccount_ErrCode::to_raw(Self) -> Int32
+pub fn OsAccount_ErrCode::to_string(Self) -> String
+pub impl Eq for OsAccount_ErrCode
+pub impl Show for OsAccount_ErrCode
+
+// Type aliases
+
+// Traits

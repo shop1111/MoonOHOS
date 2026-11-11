@@ -1,0 +1,69 @@
+﻿11-11 15:20:05.954  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SCENARIO_BEGIN
+11-11 15:20:06.279  7128  7233 I A04d4f/MoonSearch: MOONSEARCH_INDEX_BEGIN dir=docs files=12
+11-11 15:20:06.281  7128  7233 I A04d4f/MoonSearch: MOONSEARCH_INDEX_END documents=12 terms=585 postings=740
+11-11 15:20:06.304  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_PROGRESS dir=docs reported=12 documents=12
+11-11 15:20:06.361  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SMALL round=1 documents=12 hits=3 top=docs/07-cjk-tokenizer.md
+11-11 15:20:06.361  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYNC_QUERY hits=1 top=docs/02-rawfile.md
+11-11 15:20:06.381  7128  7233 I A04d4f/MoonSearch: MOONSEARCH_INDEX_BEGIN dir=docs files=12
+11-11 15:20:06.400  7128  7233 I A04d4f/MoonSearch: MOONSEARCH_INDEX_END documents=12 terms=585 postings=740
+11-11 15:20:06.429  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_TYPETAG pass own=ok foreign=TypeError kind=TypeError plain=TypeError method=TypeError close=TypeError after=ok
+11-11 15:20:06.431  7128  7233 I A04d4f/MoonSearch: MOONSEARCH_INDEX_BEGIN dir=docs files=12
+11-11 15:20:06.449  7128  7233 I A04d4f/MoonSearch: MOONSEARCH_INDEX_END documents=12 terms=585 postings=740
+11-11 15:20:06.450  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_TYPEDARRAY pass type=[object Float64Array] length=3 values=2.159,1.649,0.000
+11-11 15:20:06.455  7128  7233 I A04d4f/MoonSearch: MOONSEARCH_INDEX_BEGIN dir=docs_large files=2000
+11-11 15:20:09.544  7128  7233 I A04d4f/MoonSearch: MOONSEARCH_INDEX_END documents=2000 terms=2151 postings=303803
+11-11 15:20:09.566  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_MEMORY pass declared=20395336 delta=20395336 after_close_delta=0
+11-11 15:20:09.676  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_WORKER pass ok hits=2 top=mem/a.md idf=2 envs=2 cleaned=1 envs_before=1 envs_after=1 waited_ms=100
+11-11 15:20:09.683  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_TASKPOOL pass ok hits=1 top=mem/b.md idf=2 envs=2 | ok hits=1 top=mem/b.md idf=2 envs=2 | ok hits=1 top=mem/b.md idf=2 envs=2
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS battery.capacity=100
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS battery.plugged=PLUGGED_TYPE_NONE
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS display.size=1256x2760
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS display.dpi=560
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS display.refresh=60
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS display.rotation=DISPLAY_MANAGER_ROTATION_0
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS deviceinfo.os=OpenHarmony-7.0.0.105
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS deviceinfo.model=emulator
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS deviceinfo.api=26
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS syscap.hitrace=true
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS syscap.fake=false
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS accesstoken.vibrate=false
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS timeservice.zone=Asia/Shanghai
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS qos.roundtrip=set=-1,get=-1:QOS_BACKGROUND,reset=-1
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS hitrace.chain=valid=true,chain=761859378404564443
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS hidebug.memory=total_kb=4025332,available_kb=2706548
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS wifi.enabled=true
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS bluetooth.state=BLUETOOTH_STATE_OFF
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYS osaccount.name=user
+11-11 15:20:09.699  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_PLATFORM pass calls=19 checks=9
+11-11 15:20:09.706  7128  7233 I A04d4f/MoonSearch: MOONSEARCH_INDEX_BEGIN dir=docs_large files=2000
+11-11 15:20:09.852  7128  7233 I A04d4f/MoonSearch: MOONSEARCH_INDEX_CANCELLED at=58
+11-11 15:20:09.853  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_CANCELLED round=1 error=AbortError:task cancelled ms=154
+11-11 15:20:09.860  7128  7321 I A04d4f/MoonSearch: MOONSEARCH_INDEX_BEGIN dir=docs_large files=2000
+11-11 15:20:15.213  7128  7321 I A04d4f/MoonSearch: MOONSEARCH_INDEX_END documents=2000 terms=2151 postings=303803
+11-11 15:20:15.214  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_PROGRESS dir=docs_large reported=2000 documents=2000
+11-11 15:20:15.215  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_LARGE round=1 documents=2000 terms=2151 ms=5362 ui_ticks=53
+11-11 15:20:15.223  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_LARGE_QUERY hits=10 top=docs_large/doc-0859.md
+11-11 15:20:17.247  7128  7321 I A04d4f/MoonSearch: MOONSEARCH_INDEX_BEGIN dir=docs_large files=2000
+11-11 15:20:18.083  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_PAGE_CLOSED round=1
+11-11 15:20:18.090  7128  7321 I A04d4f/MoonSearch: MOONSEARCH_INDEX_CANCELLED at=289
+11-11 15:20:18.094  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_EXIT_CANCELLED round=1 error=AbortError:task cancelled
+11-11 15:20:18.946  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_RETURNED round=1 live_handles=0 released=9 pending_tasks=0 completed=12 cancelled=2
+11-11 15:20:18.948  7128  7281 I A04d4f/MoonSearch: MOONSEARCH_INDEX_BEGIN dir=docs files=12
+11-11 15:20:18.953  7128  7281 I A04d4f/MoonSearch: MOONSEARCH_INDEX_END documents=12 terms=585 postings=740
+11-11 15:20:18.954  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_PROGRESS dir=docs reported=12 documents=12
+11-11 15:20:18.955  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SMALL round=2 documents=12 hits=3 top=docs/07-cjk-tokenizer.md
+11-11 15:20:18.955  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_SYNC_QUERY hits=1 top=docs/02-rawfile.md
+11-11 15:20:18.964  7128  7233 I A04d4f/MoonSearch: MOONSEARCH_INDEX_BEGIN dir=docs_large files=2000
+11-11 15:20:19.108  7128  7233 I A04d4f/MoonSearch: MOONSEARCH_INDEX_CANCELLED at=43
+11-11 15:20:19.109  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_CANCELLED round=2 error=AbortError:task cancelled ms=154
+11-11 15:20:19.113  7128  7281 I A04d4f/MoonSearch: MOONSEARCH_INDEX_BEGIN dir=docs_large files=2000
+11-11 15:20:24.394  7128  7281 I A04d4f/MoonSearch: MOONSEARCH_INDEX_END documents=2000 terms=2151 postings=303803
+11-11 15:20:24.394  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_PROGRESS dir=docs_large reported=2000 documents=2000
+11-11 15:20:24.394  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_LARGE round=2 documents=2000 terms=2151 ms=5285 ui_ticks=52
+11-11 15:20:24.398  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_LARGE_QUERY hits=10 top=docs_large/doc-0859.md
+11-11 15:20:26.426  7128  7321 I A04d4f/MoonSearch: MOONSEARCH_INDEX_BEGIN dir=docs_large files=2000
+11-11 15:20:27.261  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_PAGE_CLOSED round=2
+11-11 15:20:27.267  7128  7321 I A04d4f/MoonSearch: MOONSEARCH_INDEX_CANCELLED at=293
+11-11 15:20:27.272  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_EXIT_CANCELLED round=2 error=AbortError:task cancelled
+11-11 15:20:28.131  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_RETURNED round=2 live_handles=0 released=11 pending_tasks=0 completed=16 cancelled=4
+11-11 15:20:28.131  7128  7128 I A04d4f/MoonSearchApp: MOONSEARCH_PASS live_handles=0 released=11 pending_tasks=0 completed=16 cancelled=4
