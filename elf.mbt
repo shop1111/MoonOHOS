@@ -392,3 +392,35 @@ pub fn ElfInfo::to_json(self : ElfInfo) -> Json {
     "segments": Json(self.segments.map(s => s.to_json())),
   }
 }
+
+///|
+/// Defined dynamic symbols of any little-endian ELF64 shared object (SDK
+/// system libraries included); unlike `inspect_elf` it checks nothing about
+/// Node-API. Used by `bindgen` to find the library exporting each function.
+pub fn elf_dynamic_exports(bytes : Bytes) -> Array[String] raise ConfigError {
+  binary_range(bytes, 0, 64)
+  if bytes[0] != 127 || bytes[1] != 69 || bytes[2] != 76 || bytes[3] != 70 {
+    raise Invalid("elf: invalid magic")
+  }
+  if bytes[4] != 2 || bytes[5] != 1 {
+    raise Invalid("elf: requires little-endian ELF64")
+  }
+  let exports : Array[String] = []
+  for section in elf_sections(bytes) {
+    if section.kind != 11 {
+      continue
+    }
+    if section.entry_size != 24 || section.size % 24 != 0 {
+      raise Invalid("elf: malformed dynamic symbol table")
+    }
+    let strings = linked_strings(elf_sections(bytes), section)
+    for index in 0..<(section.size / 24) {
+      let offset = section.offset + index * 24
+      let name = elf_string(bytes, strings, elf_offset(bytes, offset, 4))
+      if name != "" && elf_word(bytes, offset + 6, 2) != 0UL {
+        exports.push(name)
+      }
+    }
+  }
+  exports
+}

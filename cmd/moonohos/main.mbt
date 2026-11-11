@@ -393,6 +393,7 @@ async fn main {
       Verify => verify_package(options.output)
       Init => init_project(options)
       Har => package_har(options)
+      Bindgen => bindgen(options)
     }
   } catch {
     error => {

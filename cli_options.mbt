@@ -9,6 +9,8 @@ pub(all) enum Command {
   Verify
   Init
   Har
+  /// Generate MoonBit bindings for HarmonyOS SDK headers (0.8).
+  Bindgen
   Help
   Version
 }
@@ -37,6 +39,8 @@ pub struct CliOptions {
   app : Bool
   /// `help`: the command whose help was requested, if any.
   help_topic : Command?
+  /// `bindgen`: binding spec (`moonohos.bindgen.json`).
+  spec : String?
 }
 
 ///|
@@ -78,6 +82,7 @@ pub fn command_name(command : Command) -> String {
     Verify => "verify"
     Init => "init"
     Har => "har"
+    Bindgen => "bindgen"
     Help => "help"
     Version => "version"
   }
@@ -94,6 +99,7 @@ fn parse_command(text : String) -> Command raise ConfigError {
     "verify" => Verify
     "init" => Init
     "har" => Har
+    "bindgen" => Bindgen
     "help" | "--help" | "-h" => Help
     "--version" => Version
     _ => raise Invalid("unknown command: " + text)
@@ -128,10 +134,20 @@ fn allowed_option(command : Command, option : String) -> Bool {
       command != Help &&
       command != Version &&
       command != Init &&
-      command != Har
-    "--sdk" => command == Build || command == Doctor || command == Plan
+      command != Har &&
+      command != Bindgen
+    "--sdk" =>
+      command == Build ||
+      command == Doctor ||
+      command == Plan ||
+      command == Bindgen
+    "--spec" => command == Bindgen
     "--abi" => command == Build || command == Plan
-    "--out" => command == Build || command == Verify || command == Har
+    "--out" =>
+      command == Build ||
+      command == Verify ||
+      command == Har ||
+      command == Bindgen
     "--dry-run" | "--cache" => command == Build
     "--name" | "--package" | "--ohos" => command == Init
     "--dist" | "--module" | "--deveco" | "--assemble" | "--app" =>
@@ -161,6 +177,7 @@ pub fn parse_cli(args : Array[String]) -> CliOptions raise ConfigError {
   let mut assemble = false
   let mut app = false
   let mut help_topic : Command? = None
+  let mut spec : String? = None
   let seen : Map[String, Bool] = Map([])
   let mut index = 1
   if command == Help && args.length() > 1 {
@@ -200,6 +217,7 @@ pub fn parse_cli(args : Array[String]) -> CliOptions raise ConfigError {
         deveco,
         assemble,
         app,
+        spec,
       }
     }
     if !allowed_option(command, option) {
@@ -237,6 +255,7 @@ pub fn parse_cli(args : Array[String]) -> CliOptions raise ConfigError {
           "--dist" => dist = Some(value)
           "--module" => module_dir = Some(value)
           "--deveco" => deveco = Some(value)
+          "--spec" => spec = Some(value)
           _ => raise Invalid("unknown option: " + option)
         }
       }
@@ -251,6 +270,23 @@ pub fn parse_cli(args : Array[String]) -> CliOptions raise ConfigError {
   }
   if command == Har && (dist is None || module_dir is None) {
     raise Invalid("har requires --dist <package> and --module <HAR module>")
+  }
+  if command == Bindgen {
+    match (spec, sdk) {
+      (Some(path), Some(_)) =>
+        // Generated files go next to the spec unless --out is given.
+        if !seen.contains("--out") {
+          let normal = path.replace_all(old="\\", new="/")
+          output = match normal.rev_find("/") {
+            Some(i) => normal[:i].to_owned()
+            None => "."
+          }
+        }
+      _ =>
+        raise Invalid(
+          "bindgen requires --spec <moonohos.bindgen.json> and --sdk <SDK>",
+        )
+    }
   }
   if app && !assemble {
     raise Invalid("--app requires --assemble")
@@ -277,6 +313,7 @@ pub fn parse_cli(args : Array[String]) -> CliOptions raise ConfigError {
     assemble,
     app,
     help_topic,
+    spec,
   }
 }
 
@@ -367,6 +404,15 @@ fn command_doc(command : Command) -> (String, String, Array[String]) {
         "moonohos verify --out <package> [--json]",
         [],
       )
+    Bindgen =>
+      (
+        "generate MoonBit bindings for HarmonyOS SDK headers (from clang's AST)",
+        "moonohos bindgen --spec <moonohos.bindgen.json> --sdk <SDK> [--out <dir>] [--json]",
+        [
+          "--spec      headers, package and function prefixes to bind", "--sdk       DevEco Studio sdk directory (its clang and libraries are used)",
+          "--out       package directory to write (default: the spec's directory)",
+        ],
+      )
     Help => ("show help", "moonohos help [<command>]", [])
     Version => ("print the MoonOHOS version", "moonohos --version", [])
   }
@@ -382,7 +428,8 @@ pub fn usage_text(version : String) -> String {
     "",
     "Commands:",
   ]
-  for command in [Init, Build, Har, Doctor, Check, Inspect, Plan, Verify] {
+  for
+    command in [Init, Build, Har, Bindgen, Doctor, Check, Inspect, Plan, Verify] {
     let (summary, _, _) = command_doc(command)
     let name = command_name(command)
     lines.push("  " + name + " ".repeat(10 - name.length()) + summary)

@@ -31,6 +31,8 @@ pub fn detect_host_os(String?, Bool) -> HostOs
 
 pub fn deveco_probe_paths(HostOs, String) -> Array[String]
 
+pub fn elf_dynamic_exports(Bytes) -> Array[String] raise ConfigError
+
 pub fn embed_source(Config) -> String
 
 pub fn empty_native_build() -> NativeBuild
@@ -46,6 +48,8 @@ pub fn failure_report(String, Diagnostic, parameter? : Bool) -> @json.Json
 pub fn fingerprint(String, String, Bytes) -> ContentFingerprint
 
 pub fn forbidden_build_hook(String) -> String?
+
+pub fn generate_bindings(BindgenSpec, CHeaderModel, Map[String, String], Int32) -> BindgenOutput
 
 pub fn har_facade(String, String) -> String
 
@@ -99,6 +103,8 @@ pub fn package_requirements(String, Array[String]) -> Array[String]
 
 pub fn parse_abis(String) -> Array[String] raise ConfigError
 
+pub fn parse_bindgen_spec(String) -> BindgenSpec raise ConfigError
+
 pub fn parse_cli(Array[String]) -> CliOptions raise ConfigError
 
 pub fn parse_config(String) -> Config raise ConfigError
@@ -116,6 +122,8 @@ pub fn parse_type_expr(String, result? : Bool) -> TypeExpr raise ConfigError
 pub fn parse_version(String) -> (Int32, Int32, Int32)?
 
 pub fn path_root(String) -> String
+
+pub fn read_header_model(String, Array[String]) -> CHeaderModel raise ConfigError
 
 pub fn relative_path(String, String, case_sensitive? : Bool) -> String
 
@@ -136,6 +144,8 @@ pub fn seal_manifest(@json.Json, Array[PackageFile]) -> @json.Json raise ConfigE
 pub fn sha256(Bytes) -> String
 
 pub fn signature(Function) -> String
+
+pub fn snake_name(String) -> String
 
 pub fn staged_workspace(Int32) -> String
 
@@ -204,6 +214,22 @@ pub struct AdapterSpec {
   release : String
 }
 
+pub struct BindgenOutput {
+  files : Array[(String, String)]
+  bound : Array[String]
+  skipped : Array[(String, String)]
+  libraries : Array[String]
+}
+
+pub struct BindgenSpec {
+  package_name : String
+  name : String
+  headers : Array[String]
+  prefixes : Array[String]
+  exclude : Array[String]
+  string_buffer : Int32
+}
+
 pub struct BuildStage {
   id : String
   description : String
@@ -212,6 +238,73 @@ pub struct BuildStage {
   outputs : Array[String]
 }
 pub fn BuildStage::to_json(Self) -> @json.Json
+
+#derive(Eq, @debug.Debug)
+pub(all) enum CBase {
+  CVoid
+  CBool
+  CChar
+  CInt(Int32, Bool)
+  CFloat
+  CDouble
+  CEnum(String)
+  CRecord(String)
+  CUnsupported(String)
+}
+#deprecated
+pub fn CBase::equal(Self, Self) -> Bool
+#deprecated
+pub fn CBase::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn CBase::to_repr(Self) -> @debug.Repr
+
+pub(all) struct CEnumDef {
+  name : String
+  constants : Array[(String, Int64)]
+}
+
+pub(all) struct CField {
+  name : String
+  kind : CType
+  spelling : String
+}
+
+pub(all) struct CFunction {
+  name : String
+  result : CType
+  result_spelling : String
+  params : Array[CField]
+  variadic : Bool
+  header : String
+}
+
+pub(all) struct CHeaderModel {
+  functions : Array[CFunction]
+  enums : Map[String, CEnumDef]
+  records : Map[String, CRecordDef]
+  aliases : Map[String, String]
+}
+
+pub(all) struct CRecordDef {
+  name : String
+  spelling : String
+  complete : Bool
+  fields : Array[CField]
+}
+
+#derive(Eq, @debug.Debug)
+pub(all) struct CType {
+  base : CBase
+  pointers : Int32
+  const_pointee : Bool
+  array : Int32?
+}
+#deprecated
+pub fn CType::equal(Self, Self) -> Bool
+#deprecated
+pub fn CType::not_equal(Self, Self) -> Bool
+#deprecated
+pub fn CType::to_repr(Self) -> @debug.Repr
 
 pub struct Callable {
   name : String
@@ -242,6 +335,7 @@ pub struct CliOptions {
   assemble : Bool
   app : Bool
   help_topic : Command?
+  spec : String?
 }
 
 #derive(Eq, @debug.Debug)
@@ -254,6 +348,7 @@ pub(all) enum Command {
   Verify
   Init
   Har
+  Bindgen
   Help
   Version
 }
