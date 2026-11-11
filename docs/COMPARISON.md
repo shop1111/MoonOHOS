@@ -43,7 +43,7 @@
 
 ## 能力对照
 
-| 层次 | 能力 | napi-mbt（29f6590） | ohos-rs | MoonOHOS 0.6 |
+| 层次 | 能力 | napi-mbt（29f6590） | ohos-rs | MoonOHOS 0.7 |
 |---|---|---|---|---|
 | 胶水层 | 目标宿主 | Node.js（Windows、Linux、macOS），只在本机编译 | HarmonyOS / OpenHarmony | HarmonyOS API 26，交叉编译 `arm64-v8a`/`x86_64` |
 | | 接口来源 | Tree-sitter 解析 MoonBit 源码 | Rust 宏 | `moonohos.json` 清单，并与 `.mbti` 核对 |

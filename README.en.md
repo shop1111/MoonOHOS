@@ -217,7 +217,7 @@ layer proves.
 
 ## Roadmap
 
-Done: 0.4 HarmonyOS runtime, platform packages and HAR distribution; 0.5 Int64, Option, payload-free enums, handle methods, `deviceinfo` / `netconn` / `vibrator`, the `init` demo app and the CLI on Linux/macOS; 0.6 ArkTS callbacks; 0.7 (in progress) handle type tags, typed arrays, native size reporting, Worker/TaskPool loading.
+Done: 0.4 HarmonyOS runtime, platform packages and HAR distribution; 0.5 Int64, Option, payload-free enums, handle methods, `deviceinfo` / `netconn` / `vibrator`, the `init` demo app and the CLI on Linux/macOS; 0.6 ArkTS callbacks; 0.7 handle type tags, typed arrays, native size reporting, Worker/TaskPool loading.
 
 Next, layer by layer (priorities are open for discussion in issues):
 

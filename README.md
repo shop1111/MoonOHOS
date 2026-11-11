@@ -101,7 +101,7 @@ const words: number = await textkit.count_words(longText, token);  // 工作线�
 token.cancel();                                                     // 页面退出时取消
 ```
 
-生成的 `core/moon.mod` 从 Mooncakes 依赖 `shop1111/moonohos_ohos@0.6.0`。修改平台模块时可加 `--ohos <MoonOHOS/ohos>`，让工作区引用本地目录；构建时工作区全部成员被复制到隔离目录，原始文件不被修改。
+生成的 `core/moon.mod` 从 Mooncakes 依赖 `shop1111/moonohos_ohos@0.7.0`。修改平台模块时可加 `--ohos <MoonOHOS/ohos>`，让工作区引用本地目录；构建时工作区全部成员被复制到隔离目录，原始文件不被修改。
 
 ### 与手工接入的对比
 
@@ -231,7 +231,7 @@ SDK、HAP 与模拟器检查在本机执行。各层证明范围见 [VALIDATION-
 
 ## 路线图
 
-已完成：0.4 鸿蒙运行时、平台包与 HAR 分发；0.5 Int64、Option、无载荷枚举、句柄方法、`deviceinfo`/`netconn`/`vibrator`、`init` 演示应用、Linux/macOS CLI；0.6 ArkTS 回调；0.7（进行中）句柄类型标记、TypedArray、外部内存上报、Worker/TaskPool 加载。
+已完成：0.4 鸿蒙运行时、平台包与 HAR 分发；0.5 Int64、Option、无载荷枚举、句柄方法、`deviceinfo`/`netconn`/`vibrator`、`init` 演示应用、Linux/macOS CLI；0.6 ArkTS 回调；0.7 句柄类型标记、TypedArray、外部内存上报、Worker/TaskPool 加载。
 
 接下来按层推进（欢迎在 issue 中讨论优先级）：
 

@@ -1,6 +1,6 @@
 name = "shop1111/moonohos_ohos"
 
-version = "0.6.0"
+version = "0.7.0"
 
 preferred_target = "native"
 

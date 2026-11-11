@@ -4,7 +4,10 @@ All notable changes to MoonOHOS are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may break).
 
-## [Unreleased]
+## [0.7.0] - 2026-11-11
+
+Breaking: `build` and `doctor` require moonc >= 0.10.20, and the public
+`ValueType` enum gains four typed-array cases (exhaustive matches need new arms).
 
 ### Added
 - Typed arrays: `FixedArray[Double]`, `FixedArray[Float]`, `FixedArray[Int]`
@@ -187,6 +190,7 @@ All notable changes to MoonOHOS are recorded here. The format follows
 - First public release: synchronous scalar, `String` and `Bytes` bridge,
   `.d.ts` generation and dual-ABI (`arm64-v8a`, `x86_64`) builds.
 
+[0.7.0]: https://github.com/shop1111/MoonOHOS/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/shop1111/MoonOHOS/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/shop1111/MoonOHOS/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/shop1111/MoonOHOS/compare/v0.4.0...v0.4.1
