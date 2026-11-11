@@ -1,0 +1,140 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/sys/sensor"
+
+// Values
+pub fn create_subscriber() -> Sensor_Subscriber?
+
+pub fn create_subscription_attribute() -> Sensor_SubscriptionAttribute?
+
+pub fn create_subscription_id() -> Sensor_SubscriptionId?
+
+pub fn destroy_subscriber(Sensor_Subscriber) -> Int32 raise SysError
+
+pub fn destroy_subscription_attribute(Sensor_SubscriptionAttribute) -> Int32 raise SysError
+
+pub fn destroy_subscription_id(Sensor_SubscriptionId) -> Int32 raise SysError
+
+pub fn sensor_event_get_accuracy(Sensor_Event) -> (Int32, Sensor_Accuracy) raise SysError
+
+pub fn sensor_event_get_data(Sensor_Event) -> (Int32, FixedArray[Float]) raise SysError
+
+pub fn sensor_event_get_timestamp(Sensor_Event) -> (Int32, Int64) raise SysError
+
+pub fn sensor_event_get_type(Sensor_Event) -> (Int32, Sensor_Type) raise SysError
+
+pub fn sensor_info_get_max_sampling_interval(Sensor_Info) -> (Int32, Int64) raise SysError
+
+pub fn sensor_info_get_min_sampling_interval(Sensor_Info) -> (Int32, Int64) raise SysError
+
+pub fn sensor_info_get_name(Sensor_Info) -> (Int32, String) raise SysError
+
+pub fn sensor_info_get_resolution(Sensor_Info) -> (Int32, Float) raise SysError
+
+pub fn sensor_info_get_type(Sensor_Info) -> (Int32, Sensor_Type) raise SysError
+
+pub fn sensor_info_get_vendor_name(Sensor_Info) -> (Int32, String) raise SysError
+
+pub fn sensor_subscriber_set_callback(Sensor_Subscriber, (Sensor_Event) -> Unit) -> Int32 raise SysError
+
+pub fn sensor_subscription_attribute_get_sampling_interval(Sensor_SubscriptionAttribute) -> (Int32, Int64) raise SysError
+
+pub fn sensor_subscription_attribute_set_sampling_interval(Sensor_SubscriptionAttribute, Int64) -> Int32 raise SysError
+
+pub fn sensor_subscription_id_get_type(Sensor_SubscriptionId) -> (Int32, Sensor_Type) raise SysError
+
+pub fn sensor_subscription_id_set_type(Sensor_SubscriptionId, Sensor_Type) -> Int32 raise SysError
+
+pub fn subscribe(Sensor_SubscriptionId, Sensor_SubscriptionAttribute, Sensor_Subscriber) -> Unit raise SysError
+
+pub fn unsubscribe(Sensor_SubscriptionId, Sensor_Subscriber) -> Unit raise SysError
+
+// Errors
+pub(all) suberror SysError {
+  Failed(String, String, Int32)
+  Closed(String)
+}
+pub fn SysError::output(Self, &Logger) -> Unit
+pub fn SysError::to_string(Self) -> String
+pub impl Show for SysError
+
+// Types and methods
+pub(all) enum Sensor_Accuracy {
+  SensorAccuracyUnreliable
+  SensorAccuracyLow
+  SensorAccuracyMedium
+  SensorAccuracyHigh
+  Other(Int32)
+}
+pub fn Sensor_Accuracy::c_name(Self) -> String
+pub fn Sensor_Accuracy::equal(Self, Self) -> Bool
+pub fn Sensor_Accuracy::from_raw(Int32) -> Self
+pub fn Sensor_Accuracy::not_equal(Self, Self) -> Bool
+pub fn Sensor_Accuracy::output(Self, &Logger) -> Unit
+pub fn Sensor_Accuracy::to_raw(Self) -> Int32
+pub fn Sensor_Accuracy::to_string(Self) -> String
+pub impl Eq for Sensor_Accuracy
+pub impl Show for Sensor_Accuracy
+
+pub type Sensor_Event
+pub fn Sensor_Event::is_live(Self) -> Bool
+
+pub type Sensor_Info
+pub fn Sensor_Info::is_live(Self) -> Bool
+
+pub(all) enum Sensor_Result {
+  SensorSuccess
+  SensorPermissionDenied
+  SensorParameterError
+  SensorServiceException
+  Other(Int32)
+}
+pub fn Sensor_Result::c_name(Self) -> String
+pub fn Sensor_Result::equal(Self, Self) -> Bool
+pub fn Sensor_Result::from_raw(Int32) -> Self
+pub fn Sensor_Result::not_equal(Self, Self) -> Bool
+pub fn Sensor_Result::output(Self, &Logger) -> Unit
+pub fn Sensor_Result::to_raw(Self) -> Int32
+pub fn Sensor_Result::to_string(Self) -> String
+pub impl Eq for Sensor_Result
+pub impl Show for Sensor_Result
+
+pub type Sensor_Subscriber
+pub fn Sensor_Subscriber::is_live(Self) -> Bool
+
+pub type Sensor_SubscriptionAttribute
+pub fn Sensor_SubscriptionAttribute::is_live(Self) -> Bool
+
+pub type Sensor_SubscriptionId
+pub fn Sensor_SubscriptionId::is_live(Self) -> Bool
+
+pub(all) enum Sensor_Type {
+  SensorTypeAccelerometer
+  SensorTypeGyroscope
+  SensorTypeAmbientLight
+  SensorTypeMagneticField
+  SensorTypeBarometer
+  SensorTypeHall
+  SensorTypeProximity
+  SensorTypeOrientation
+  SensorTypeGravity
+  SensorTypeLinearAcceleration
+  SensorTypeRotationVector
+  SensorTypeGameRotationVector
+  SensorTypePedometerDetection
+  SensorTypePedometer
+  SensorTypeHeartRate
+  Other(Int32)
+}
+pub fn Sensor_Type::c_name(Self) -> String
+pub fn Sensor_Type::equal(Self, Self) -> Bool
+pub fn Sensor_Type::from_raw(Int32) -> Self
+pub fn Sensor_Type::not_equal(Self, Self) -> Bool
+pub fn Sensor_Type::output(Self, &Logger) -> Unit
+pub fn Sensor_Type::to_raw(Self) -> Int32
+pub fn Sensor_Type::to_string(Self) -> String
+pub impl Eq for Sensor_Type
+pub impl Show for Sensor_Type
+
+// Type aliases
+
+// Traits

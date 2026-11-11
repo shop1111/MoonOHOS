@@ -9,6 +9,10 @@ import {
 // Values
 pub fn abi_triple(String) -> String
 
+pub fn all_pkgs_entry(String, String, String) -> @json.Json
+
+pub fn all_pkgs_path(Array[Array[String]]) -> String?
+
 pub fn build_stages(Project, Array[String]) -> Array[BuildStage] raise ConfigError
 
 pub fn c_header(Config) -> String
@@ -122,6 +126,8 @@ pub fn parse_type_expr(String, result? : Bool) -> TypeExpr raise ConfigError
 pub fn parse_version(String) -> (Int32, Int32, Int32)?
 
 pub fn path_root(String) -> String
+
+pub fn planned_packages(Array[Array[String]]) -> Array[(String, String, String)]
 
 pub fn read_header_model(String, Array[String]) -> CHeaderModel raise ConfigError
 
@@ -250,6 +256,7 @@ pub(all) enum CBase {
   CEnum(String)
   CRecord(String)
   CUnsupported(String)
+  CCallback(CType, Array[CType], Array[String])
 }
 #deprecated
 pub fn CBase::equal(Self, Self) -> Bool

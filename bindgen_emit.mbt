@@ -98,6 +98,33 @@ priv enum ParamPlan {
   InOutStruct(String, String)
   /// Non-const struct pointer of a getter: filled by C, not read.
   OutStruct(String, String)
+  /// Pointer to a handle type: name, record, destroyed by this call, C spelling.
+  InHandle(String, String, Bool, String)
+  /// `T **` producing a handle: name, record, pointee spelling (`T *`).
+  OutHandle(String, String, String)
+  /// `E **data, <int> *length`: name, element, element spelling, length spelling.
+  OutArray(String, Scalar, String, String)
+  /// Function pointer: name, callback site, argument plans, C spelling.
+  InCallback(String, String, Array[CbArg], String)
+}
+
+///|
+/// One argument of a C callback.
+priv enum CbArg {
+  CbScalar(Scalar, String) // kind, C spelling
+  CbHandle(String, String) // record, C spelling; valid during the callback only
+  CbText(String) // const char *
+}
+
+///|
+/// What identifies a stored closure so it can be released later.
+priv enum CallbackKey {
+  /// Out parameter written by Register (listener index).
+  KeyOut(String)
+  /// Integer result of Register.
+  KeyResult
+  /// The handle the callback was set on; released with the handle.
+  KeyHandle(String, String) // parameter, record
 }
 
 ///|
@@ -107,6 +134,8 @@ priv enum ResultPlan {
   RCheck(String) // error-code enum
   RStruct(String)
   RCString
+  /// `T *` result: record, owned (released by the paired Destroy function).
+  RHandle(String, Bool)
 }
 
 ///|
@@ -116,6 +145,10 @@ priv struct Binding {
   params : Array[ParamPlan]
   result : ResultPlan
   library : String
+  /// Set when the function stores a callback.
+  key : CallbackKey?
+  /// Unregister: callback site and the parameter holding the key.
+  release : (String, String)?
 }
 
 ///|
@@ -124,6 +157,14 @@ priv struct Generator {
   model : CHeaderModel
   enums_used : Map[String, Bool]
   records_used : Map[String, Bool]
+  /// Handle types: record -> Destroy function, if the header pairs one.
+  handles : Map[String, String?]
+  /// Callback sites of bound functions: site -> argument plans.
+  sites : Map[String, Array[CbArg]]
+  /// Handle record -> callback sites keyed by handles of that type.
+  handle_sites : Map[String, Array[String]]
+  /// Handle records used by bound functions.
+  handles_used : Map[String, Bool]
 }
 
 ///|
@@ -307,12 +348,81 @@ fn pointee_spelling(spelling : String) -> String {
 }
 
 ///|
+priv struct Planned {
+  params : Array[ParamPlan]
+  result : ResultPlan
+  key : CallbackKey?
+  release : (String, String)?
+}
+
+///|
+/// Finds the handle types of the header: structs passed as `T **`, returned
+/// as `T *`, given to callbacks, or used through pointers without a flat
+/// definition; and pairs each with a one-argument Destroy/Release function.
+fn Generator::find_handles(self : Generator) -> Unit {
+  let mark = fn(record : String) {
+    if !self.handles.contains(record) {
+      self.handles[record] = None
+    }
+  }
+  for function in self.model.functions {
+    for i, param in function.params {
+      let kind = param.kind
+      let next = function.params.get(i + 1)
+      match (kind.pointers, kind.base) {
+        (2, CRecord(record)) if !(next is Some(n) && length_name(n.name)) =>
+          mark(record)
+        (1, CRecord(record)) if self.fields(record) is None => mark(record)
+        (0, CCallback(_, args, _)) =>
+          for arg in args {
+            if arg.pointers == 1 && arg.base is CRecord(record) {
+              mark(record)
+            }
+          }
+        _ => ()
+      }
+    }
+    if function.result.pointers == 1 && function.result.base is CRecord(record) {
+      mark(record)
+    }
+  }
+  for function in self.model.functions {
+    if releasing_name(function.name) &&
+      function.params.length() == 1 &&
+      function.params[0].kind.pointers == 1 &&
+      function.params[0].kind.base is CRecord(record) &&
+      self.handles.get(record) is Some(None) {
+      self.handles[record] = Some(function.name)
+    }
+  }
+}
+
+///|
+fn Generator::model_function(self : Generator, name : String) -> CFunction? {
+  match self.model.functions.search_by(f => f.name == name) {
+    Some(index) => Some(self.model.functions[index])
+    None => None
+  }
+}
+
+///|
+/// The callback site of `function`: its name and function-pointer index.
+fn callback_site(function : CFunction) -> String? {
+  for i, param in function.params {
+    if param.kind.base is CCallback(_, _, _) {
+      return Some(function.name + "_" + i.to_string())
+    }
+  }
+  None
+}
+
+///|
 fn Generator::plan(
   self : Generator,
   function : CFunction,
   spellings : Array[String],
   result_spelling : String,
-) -> Result[(Array[ParamPlan], ResultPlan), String] {
+) -> Result[Planned, String] {
   if function.variadic {
     return Err("variadic function")
   }
@@ -335,6 +445,44 @@ fn Generator::plan(
     match (kind.pointers, kind.base) {
       (_, CUnsupported(what)) =>
         return Err("parameter " + param.name + ": unsupported type " + what)
+      (0, CCallback(result, args, arg_spellings)) => {
+        if result.pointers != 0 || !(result.base is CVoid) {
+          return Err("parameter " + param.name + ": callback must return void")
+        }
+        let plans : Array[CbArg] = []
+        for j, arg in args {
+          match (arg.pointers, arg.base) {
+            (1, CRecord(record)) if self.handles.contains(record) =>
+              plans.push(CbHandle(record, arg_spellings[j]))
+            (1, CChar) if arg.const_pointee =>
+              plans.push(CbText(arg_spellings[j]))
+            _ =>
+              match self.scalar(arg) {
+                Some(scalar) => plans.push(CbScalar(scalar, arg_spellings[j]))
+                None =>
+                  return Err(
+                    "parameter " +
+                    param.name +
+                    ": callback argument " +
+                    (j + 1).to_string() +
+                    " is not a value, string or handle",
+                  )
+              }
+          }
+        }
+        params.push(
+          InCallback(
+            fresh(param.name),
+            function.name + "_" + i.to_string(),
+            plans,
+            spelling.replace_all(old="(*const)", new="(*)"),
+          ),
+        )
+      }
+      (0, CRecord(record)) if self.handles.contains(record) =>
+        return Err(
+          "parameter " + param.name + ": handle " + record + " passed by value",
+        )
       (0, CRecord(record)) =>
         match self.fields(record) {
           Some(_) => {
@@ -348,14 +496,19 @@ fn Generator::plan(
         }
       (0, _) =>
         match self.scalar(kind) {
-          Some(scalar) => {
+          Some(scalar) =>
             params.push(InValue(fresh(param.name), scalar, spelling))
-            if scalar is SEnum(name) {
-              self.enums_used[name] = true
-            }
-          }
           None => return Err("parameter " + param.name + ": unsupported value")
         }
+      (1, CRecord(record)) if self.handles.contains(record) =>
+        params.push(
+          InHandle(
+            fresh(param.name),
+            record,
+            self.handles.get(record) == Some(Some(function.name)),
+            spelling,
+          ),
+        )
       (1, CChar) if kind.const_pointee =>
         params.push(InString(fresh(param.name)))
       (1, CChar) =>
@@ -395,16 +548,14 @@ fn Generator::plan(
       (1, CRecord(record)) =>
         match self.fields(record) {
           Some(_) => {
-            self.records_used[record] = true
             if releasing_name(function.name) {
-              // e.g. DestroyAvailableArea: the pointer came from the SDK;
-              // passing a copy would free memory C never allocated.
               return Err(
                 "parameter " +
                 param.name +
-                ": released by the SDK (handles are not generated yet)",
+                ": released by the SDK but not created as a handle",
               )
             }
+            self.records_used[record] = true
             if kind.const_pointee {
               params.push(InStruct(fresh(param.name), record, true))
             } else if output_name(function.name) {
@@ -419,7 +570,7 @@ fn Generator::plan(
               param.name +
               ": " +
               record +
-              " is an opaque or nested struct (handles are not generated yet)",
+              " is not a handle or flat struct",
             )
         }
       (1, CVoid) => return Err("parameter " + param.name + ": untyped pointer")
@@ -445,14 +596,10 @@ fn Generator::plan(
       (1, _) if !kind.const_pointee => {
         let inner = { ..kind, pointers: 0, const_pointee: false, }
         match self.scalar(inner) {
-          Some(scalar) => {
+          Some(scalar) =>
             params.push(
               OutValue(fresh(param.name), scalar, pointee_spelling(spelling)),
             )
-            if scalar is SEnum(name) {
-              self.enums_used[name] = true
-            }
-          }
           None =>
             return Err("parameter " + param.name + ": unsupported pointer")
         }
@@ -463,11 +610,41 @@ fn Generator::plan(
           param.name +
           ": pointer to const value (array length unknown)",
         )
+      (2, CRecord(record)) if !kind.const_pointee &&
+        self.handles.contains(record) &&
+        !(next is Some(n) && length_name(n.name)) =>
+        params.push(
+          OutHandle(fresh(param.name), record, pointee_spelling(spelling)),
+        )
+      (2, _) if !kind.const_pointee &&
+        next is Some(len) &&
+        len.kind.pointers == 1 &&
+        len.kind.base is CInt(_, _) &&
+        length_name(len.name) => {
+        let element = { ..kind, pointers: 0, const_pointee: false, }
+        match self.scalar(element) {
+          Some(SFloat | SDouble | SInt | SUInt | SInt64 | SUInt64 as scalar) => {
+            params.push(
+              OutArray(
+                fresh(param.name),
+                scalar,
+                pointee_spelling(pointee_spelling(spelling)),
+                pointee_spelling(spellings[i + 1]),
+              ),
+            )
+            i += 1
+          }
+          _ =>
+            return Err(
+              "parameter " + param.name + ": array of unsupported elements",
+            )
+        }
+      }
       _ =>
         return Err(
           "parameter " +
           param.name +
-          ": pointer to pointer (handles are not generated yet)",
+          ": pointer to pointer (array or unknown ownership)",
         )
     }
     i += 1
@@ -484,25 +661,102 @@ fn Generator::plan(
         None => return Err("result: struct " + record + " is not flat")
       }
     (0, CEnum(name)) if self.model.enums.get(name) is Some(def) &&
-      error_enum(def) => {
-      self.enums_used[name] = true
-      RCheck(name)
-    }
+      error_enum(def) => RCheck(name)
     (0, _) =>
       match self.scalar(result) {
-        Some(scalar) => {
-          if scalar is SEnum(name) {
-            self.enums_used[name] = true
-          }
-          RValue(scalar, result_spelling)
-        }
+        Some(scalar) => RValue(scalar, result_spelling)
         None => return Err("result: unsupported type")
       }
     (1, CChar) if result.const_pointee => RCString
     (1, CChar) => return Err("result: char * of unknown ownership")
-    _ => return Err("result: pointer (handles are not generated yet)")
+    (1, CRecord(record)) if self.handles.contains(record) =>
+      RHandle(
+        record,
+        self.handles.get(record) is Some(Some(_)) &&
+        creating_name(function.name),
+      )
+    _ => return Err("result: pointer of unknown ownership")
   }
-  Ok((params, plan))
+  let objects = params
+    .filter(p => p is OutHandle(_, _, _) || p is OutArray(_, _, _, _))
+    .length() +
+    (if plan is RHandle(_, _) { 1 } else { 0 })
+  if objects > 1 {
+    return Err("more than one handle or array output")
+  }
+  // A stored callback needs an owner that releases it later.
+  let callbacks = params.filter(p => p is InCallback(_, _, _, _)).length()
+  let mut key : CallbackKey? = None
+  if callbacks > 1 {
+    return Err("more than one callback parameter")
+  }
+  if callbacks == 1 {
+    let unregister = function.name.replace(old="Register", new="Unregister")
+    if function.name.contains("Register") &&
+      !function.name.contains("Unregister") &&
+      self.model_function(unregister) is Some(_) {
+      let index = params.search_by(p => {
+        match p {
+          OutValue(name, SInt | SUInt | SInt64 | SUInt64, _) =>
+            name.contains("index") || name.has_suffix("id")
+          _ => false
+        }
+      })
+      key = match (index, plan) {
+        (Some(position), _) =>
+          match params[position] {
+            OutValue(name, _, _) => Some(KeyOut(name))
+            _ => None
+          }
+        (None, RValue(SInt | SUInt | SInt64 | SUInt64, _)) => Some(KeyResult)
+        _ =>
+          return Err(
+            "callback: Register returns no listener index to unregister with",
+          )
+      }
+    } else {
+      match params.get(0) {
+        Some(InHandle(name, record, false, _)) =>
+          key = Some(KeyHandle(name, record))
+        _ =>
+          return Err(
+            "callback: no Unregister function and no owning handle releases it",
+          )
+      }
+    }
+  }
+  let mut release : (String, String)? = None
+  if function.name.contains("Unregister") {
+    let register = function.name.replace(old="Unregister", new="Register")
+    match (self.model_function(register), params.get(0)) {
+      (Some(source), Some(InValue(name, SInt | SUInt | SInt64 | SUInt64, _))) =>
+        match callback_site(source) {
+          Some(site) => release = Some((site, name))
+          None => ()
+        }
+      _ => ()
+    }
+  }
+  // Types are recorded only for functions that are actually bound.
+  for param in params {
+    match param {
+      InValue(_, SEnum(name), _) | OutValue(_, SEnum(name), _) =>
+        self.enums_used[name] = true
+      InCallback(_, _, args, _) =>
+        for arg in args {
+          match arg {
+            CbScalar(SEnum(name), _) => self.enums_used[name] = true
+            _ => ()
+          }
+        }
+      _ => ()
+    }
+  }
+  match plan {
+    RCheck(name) | RValue(SEnum(name), _) => self.enums_used[name] = true
+    _ => ()
+  }
+  Ok({ params, result: plan, key, release, })
 }
 
 ///|
@@ -599,6 +853,18 @@ pub fn generate_bindings(
     model,
     enums_used: Map([]),
     records_used: Map([]),
+    handles: Map([]),
+    sites: Map([]),
+    handle_sites: Map([]),
+    handles_used: Map([]),
+  }
+  gen.find_handles()
+  // A Destroy function nobody exports cannot back finalizers.
+  let unexported = gen.handles
+    .to_array()
+    .filter(entry => entry.1 is Some(d) && !libraries.contains(d))
+  for entry in unexported {
+    gen.handles[entry.0] = None
   }
   let bindings : Array[Binding] = []
   let skipped : Array[(String, String)] = []
@@ -618,7 +884,8 @@ pub fn generate_bindings(
     let spellings = function.params.map(p => p.spelling)
     match gen.plan(function, spellings, function.result_spelling) {
       Err(reason) => skipped.push((function.name, reason))
-      Ok((params, result)) => {
+      Ok(planned) => {
+        let { params, result, key, release, } = planned
         let stem = match prefix {
           Some(i) => function.name[spec.prefixes[i].length():].to_owned()
           None => function.name
@@ -628,8 +895,25 @@ pub fn generate_bindings(
           moon_name = moon_name + "_"
         }
         moon_names[moon_name] = true
-        bindings.push({ function, moon_name, params, result, library, })
+        bindings.push({
+          function,
+          moon_name,
+          params,
+          result,
+          library,
+          key,
+          release,
+        })
+        gen.note_binding(params, result, key)
       }
+    }
+  }
+  // An Unregister whose Register was not bound has no slots to release.
+  for i, binding in bindings {
+    match binding.release {
+      Some((site, _)) if !gen.sites.contains(site) =>
+        bindings[i] = { ..binding, release: None, }
+      _ => ()
     }
   }
   let libs : Array[String] = []
@@ -816,18 +1100,6 @@ fn Generator::record_source(self : Generator, record : String) -> String {
 }
 
 ///|
-/// Boundary arguments, extern parameters, C parameters, setup and teardown
-/// MoonBit statements for one plan.
-priv struct Lowered {
-  extern_params : Array[String]
-  borrowed : Array[String]
-  c_params : Array[String]
-  args : Array[String]
-  setup : Array[String]
-  outputs : Array[(String, String)] // MoonBit type, expression
-}
-
-///|
 fn Generator::lower_struct_in(
   self : Generator,
   name : String,
@@ -936,6 +1208,60 @@ fn Generator::lower_struct_out(
 }
 
 ///|
+/// Boundary arguments, extern parameters, C parameters, setup and teardown
+/// MoonBit statements for one plan.
+priv struct Lowered {
+  extern_params : Array[String]
+  borrowed : Array[String]
+  c_params : Array[String]
+  args : Array[String]
+  setup : Array[String]
+  outputs : Array[(String, String)] // MoonBit type, expression
+  /// Set when a check in `setup` raises SysError.
+  mut raises : Bool
+}
+
+///|
+/// MoonBit type of the object the C stub returns (a handle or a copied
+/// array), if the function produces one.
+fn Generator::object_type(self : Generator, binding : Binding) -> String? {
+  for param in binding.params {
+    match param {
+      OutHandle(_, record, _) => return Some(type_name(self.model, record))
+      OutArray(_, element, _, _) =>
+        return Some("FixedArray[" + boundary_scalar(element) + "]")
+      _ => ()
+    }
+  }
+  match binding.result {
+    RHandle(record, _) => Some(type_name(self.model, record))
+    _ => None
+  }
+}
+
+///|
+fn Generator::callback_types(
+  self : Generator,
+  args : Array[CbArg],
+) -> (String, Array[String]) {
+  let api = args.map(arg => {
+    match arg {
+      CbScalar(kind, _) => moon_scalar(self.model, kind)
+      CbHandle(record, _) => type_name(self.model, record)
+      CbText(_) => "String"
+    }
+  })
+  let boundary = args.map(arg => {
+    match arg {
+      CbScalar(kind, _) => boundary_scalar(kind)
+      CbHandle(record, _) => type_name(self.model, record)
+      CbText(_) => "Bytes"
+    }
+  })
+  ("(" + api.join(", ") + ") -> Unit", boundary)
+}
+
+///|
 fn Generator::lower(self : Generator, binding : Binding) -> Lowered {
   let out : Lowered = {
     extern_params: [],
@@ -944,8 +1270,31 @@ fn Generator::lower(self : Generator, binding : Binding) -> Lowered {
     args: [],
     setup: [],
     outputs: [],
+    raises: false,
   }
   let buffer = self.spec.string_buffer.to_string()
+  let function = binding.function.name
+  // With an object to return, the C result travels through a slot.
+  if self.object_type(binding) is Some(_) {
+    let slot = match binding.result {
+      RValue(kind, _) =>
+        Some((boundary_scalar(kind), c_scalar(kind), zero_of(kind)))
+      RCheck(_) => Some(("Int", "int32_t", "0"))
+      _ => None
+    }
+    match slot {
+      Some((moon, c, zero)) => {
+        out.setup.push(
+          "let result_slot : FixedArray[" + moon + "] = [" + zero + "]",
+        )
+        out.extern_params.push("result_slot : FixedArray[" + moon + "]")
+        out.borrowed.push("result_slot")
+        out.c_params.push(c + " *result_slot")
+        out.args.push("result_slot")
+      }
+      None => ()
+    }
+  }
   match binding.result {
     RStruct(record) => self.lower_struct_out("result", record, None, out)
     RCString => {
@@ -959,6 +1308,13 @@ fn Generator::lower(self : Generator, binding : Binding) -> Lowered {
       out.args.push(buffer)
       out.outputs.push(("String", "c_text(result_text)"))
     }
+    RHandle(record, _) =>
+      out.outputs.push(
+        (
+          type_name(self.model, record) + "?",
+          "if object.is_live() { Some(object) } else { None }",
+        ),
+      )
     _ => ()
   }
   for param in binding.params {
@@ -1023,6 +1379,75 @@ fn Generator::lower(self : Generator, binding : Binding) -> Lowered {
       InOutStruct(name, record) =>
         self.lower_struct_out(name, record, Some(name), out)
       OutStruct(name, record) => self.lower_struct_out(name, record, None, out)
+      InHandle(name, record, _, _) => {
+        out.extern_params.push(name + " : " + type_name(self.model, record))
+        out.borrowed.push(name)
+        out.c_params.push("void *" + name)
+        out.args.push(name)
+        out.setup.push(
+          "if !" +
+          name +
+          ".is_live() {\n    raise Closed(\"" +
+          function +
+          ": " +
+          name +
+          " was destroyed\")\n  }",
+        )
+        out.raises = true
+      }
+      OutHandle(_, record, _) =>
+        out.outputs.push((type_name(self.model, record), "object"))
+      OutArray(_, element, _, _) =>
+        out.outputs.push(
+          ("FixedArray[" + boundary_scalar(element) + "]", "object"),
+        )
+      InCallback(name, site, args, _) => {
+        let (api, boundary) = self.callback_types(args)
+        let tramp_args = [api]
+        for item in boundary {
+          tramp_args.push(item)
+        }
+        out.extern_params.push(
+          name + "_tramp : FuncRef[(" + tramp_args.join(", ") + ") -> Unit]",
+        )
+        out.extern_params.push(name + " : " + api)
+        out.borrowed.push(name)
+        out.extern_params.push(name + "_slot : Int")
+        out.c_params.push("moonohos_tramp_" + site + " " + name + "_tramp")
+        out.c_params.push("void *" + name)
+        out.c_params.push("int32_t " + name + "_slot")
+        let lambda_params = ["moonohos_cb"]
+        let lifted : Array[String] = []
+        for j, arg in args {
+          let value = "moonohos_a" + j.to_string()
+          lambda_params.push(value)
+          lifted.push(
+            match arg {
+              CbScalar(kind, _) => lift_scalar(self.model, kind, value)
+              CbHandle(_, _) => value
+              CbText(_) => "c_text(" + value + ")"
+            },
+          )
+        }
+        out.args.push(
+          "fn(" +
+          lambda_params.join(", ") +
+          ") { moonohos_cb(" +
+          lifted.join(", ") +
+          ") }",
+        )
+        out.args.push(name)
+        out.args.push(name + "_slot")
+        out.setup.push("let " + name + "_slot = raw_slot_" + site + "()")
+        out.setup.push(
+          "if " +
+          name +
+          "_slot < 0 {\n    raise Failed(\"" +
+          function +
+          "\", \"all 8 callback slots are in use\", -1)\n  }",
+        )
+        out.raises = true
+      }
     }
   }
   out
@@ -1038,7 +1463,15 @@ fn Generator::api_params(self : Generator, binding : Binding) -> Array[String] {
       InBytes(name, _, _) => Some(name + " : Bytes")
       InStruct(name, record, _) | InOutStruct(name, record) =>
         Some(name + " : " + type_name(self.model, record))
-      OutValue(_, _, _) | OutString(_, _, _) | OutStruct(_, _) => None
+      InHandle(name, record, _, _) =>
+        Some(name + " : " + type_name(self.model, record))
+      InCallback(name, _, args, _) =>
+        Some(name + " : " + self.callback_types(args).0)
+      OutValue(_, _, _)
+      | OutString(_, _, _)
+      | OutStruct(_, _)
+      | OutHandle(_, _, _)
+      | OutArray(_, _, _, _) => None
     }
   })
 }
@@ -1047,10 +1480,15 @@ fn Generator::api_params(self : Generator, binding : Binding) -> Array[String] {
 fn Generator::moon_function(self : Generator, binding : Binding) -> String {
   let lowered = self.lower(binding)
   let raw = "raw_" + binding.function.name
-  let raw_result = match binding.result {
-    RValue(kind, _) => boundary_scalar(kind)
-    RCheck(_) => "Int"
-    _ => "Unit"
+  let object = self.object_type(binding)
+  let raw_result = match object {
+    Some(kind) => kind
+    None =>
+      match binding.result {
+        RValue(kind, _) => boundary_scalar(kind)
+        RCheck(_) => "Int"
+        _ => "Unit"
+      }
   }
   let lines : Array[String] = ["///|"]
   if !lowered.borrowed.is_empty() {
@@ -1082,7 +1520,7 @@ fn Generator::moon_function(self : Generator, binding : Binding) -> String {
     1 => outputs[0].0
     _ => "(" + outputs.map(o => o.0).join(", ") + ")"
   }
-  let raises = binding.result is RCheck(_)
+  let raises = binding.result is RCheck(_) || lowered.raises
   lines.push("///|")
   lines.push(
     "/// `" +
@@ -1093,9 +1531,14 @@ fn Generator::moon_function(self : Generator, binding : Binding) -> String {
     binding.library +
     "`).",
   )
-  if raises {
+  if binding.result is RCheck(_) {
     lines.push(
       "/// Raises `SysError` when the call returns a non-zero error code.",
+    )
+  }
+  if binding.key is Some(_) {
+    lines.push(
+      "/// The callback may run on an SDK thread; MoonOHOS enters the MoonBit gate first.",
     )
   }
   lines.push(
@@ -1112,10 +1555,22 @@ fn Generator::moon_function(self : Generator, binding : Binding) -> String {
     lines.push("  " + statement)
   }
   let call = raw + "(" + lowered.args.join(", ") + ")"
+  match (object, binding.result) {
+    (Some(_), RValue(_, _)) => {
+      lines.push("  let object = " + call)
+      lines.push("  let value = result_slot[0]")
+    }
+    (Some(_), RCheck(_)) => {
+      lines.push("  let object = " + call)
+      lines.push("  let code = result_slot[0]")
+    }
+    (Some(_), _) => lines.push("  let object = " + call)
+    (None, RValue(_, _)) => lines.push("  let value = " + call)
+    (None, RCheck(_)) => lines.push("  let code = " + call)
+    (None, _) => lines.push("  " + call)
+  }
   match binding.result {
-    RValue(_, _) => lines.push("  let value = " + call)
     RCheck(name) => {
-      lines.push("  let code = " + call)
       lines.push("  if code != 0 {")
       lines.push(
         "    raise Failed(\"" +
@@ -1126,7 +1581,7 @@ fn Generator::moon_function(self : Generator, binding : Binding) -> String {
       )
       lines.push("  }")
     }
-    _ => lines.push("  " + call)
+    _ => ()
   }
   match outputs.length() {
     0 => ()
@@ -1134,6 +1589,178 @@ fn Generator::moon_function(self : Generator, binding : Binding) -> String {
     _ => lines.push("  (" + outputs.map(o => o.1).join(", ") + ")")
   }
   lines.push("}")
+  lines.join("\n") + "\n"
+}
+
+///|
+/// Fields of a complete struct that can be read through a handle.
+fn Generator::readable_fields(
+  self : Generator,
+  record : String,
+) -> Array[FieldPlan] {
+  guard self.model.records.get(record) is Some(def) && def.complete else {
+    return []
+  }
+  let plans : Array[FieldPlan] = []
+  let names : Map[String, Bool] = Map([("is_live", true)])
+  for field in def.fields {
+    let moon = snake_name(field.name)
+    if names.contains(moon) {
+      continue
+    }
+    match (field.kind.base, field.kind.array, field.kind.pointers) {
+      (CChar, Some(n), 0) if n > 0 => plans.push(FText(field.name, moon, n))
+      (CInt(8, false), Some(n), 0) if n > 0 =>
+        plans.push(FBytes(field.name, moon, n))
+      _ =>
+        match self.scalar(field.kind) {
+          Some(kind) => plans.push(FScalar(field.name, moon, kind))
+          None => continue
+        }
+    }
+    names[moon] = true
+  }
+  plans
+}
+
+///|
+fn Generator::handle_source(
+  self : Generator,
+  record : String,
+  bindings : Array[Binding],
+) -> String {
+  let name = type_name(self.model, record)
+  let live = "raw_live_" + name
+  let ownership = match self.handles.get(record) {
+    Some(Some(destroy)) => {
+      let moon = match bindings.search_by(b => b.function.name == destroy) {
+        Some(i) => "`" + bindings[i].moon_name + "`"
+        None => "`" + destroy + "`"
+      }
+      "/// Handles from Create/Acquire functions are owned: " +
+      moon +
+      " releases one,\n/// and an owned handle still open when it is garbage collected is released\n/// then. Other handles are borrowed from the SDK; handles passed to callbacks\n/// stop being live when the callback returns."
+    }
+    _ =>
+      "/// Borrowed from the SDK; handles passed to callbacks stop being live when\n/// the callback returns."
+  }
+  let lines = [
+    "///|",
+    "/// Handle to C `" + record + "`.",
+    ownership,
+    "pub type " + name,
+    "",
+    "///|",
+    "#borrow(handle)",
+    "extern \"C\" fn " +
+    live +
+    "(handle : " +
+    name +
+    ") -> Int = \"moonohos_sys_" +
+    self.spec.name +
+    "_live\"",
+    "",
+    "///|",
+    "/// False once the handle was destroyed (or its callback returned).",
+    "pub fn " + name + "::is_live(self : " + name + ") -> Bool {",
+    "  " + live + "(self) != 0",
+    "}",
+  ]
+  for field in self.readable_fields(record) {
+    let (c_field, moon, extern_result, call, result_type) = match field {
+      FScalar(c, m, kind) =>
+        (
+          c,
+          m,
+          boundary_scalar(kind),
+          lift_scalar(self.model, kind, "raw_get_" + name + "_" + m + "(self)"),
+          moon_scalar(self.model, kind),
+        )
+      FText(c, m, n) =>
+        (
+          c,
+          m,
+          "Unit",
+          "let buffer = Bytes::make(" +
+          (n + 1).to_string() +
+          ", b'\\x00')\n  raw_get_" +
+          name +
+          "_" +
+          m +
+          "(self, buffer)\n  c_text(buffer)",
+          "String",
+        )
+      FBytes(c, m, n) =>
+        (
+          c,
+          m,
+          "Unit",
+          "let buffer = Bytes::make(" +
+          n.to_string() +
+          ", b'\\x00')\n  raw_get_" +
+          name +
+          "_" +
+          m +
+          "(self, buffer)\n  buffer",
+          "Bytes",
+        )
+    }
+    let buffer_param = if extern_result == "Unit" {
+      ", buffer : Bytes"
+    } else {
+      ""
+    }
+    lines.push("")
+    lines.push("///|")
+    lines.push(
+      if buffer_param == "" {
+        "#borrow(handle)"
+      } else {
+        "#borrow(handle, buffer)"
+      },
+    )
+    lines.push(
+      "extern \"C\" fn raw_get_" +
+      name +
+      "_" +
+      moon +
+      "(handle : " +
+      name +
+      buffer_param +
+      ") -> " +
+      extern_result +
+      " = \"moonohos_sys_get_" +
+      record +
+      "_" +
+      c_field +
+      "\"",
+    )
+    lines.push("")
+    lines.push("///|")
+    lines.push("/// C field `" + c_field + "`.")
+    lines.push(
+      "pub fn " +
+      name +
+      "::" +
+      moon +
+      "(self : " +
+      name +
+      ") -> " +
+      result_type +
+      " raise SysError {",
+    )
+    lines.push("  if !self.is_live() {")
+    lines.push(
+      "    raise Closed(\"" +
+      record +
+      "." +
+      c_field +
+      ": handle was destroyed\")",
+    )
+    lines.push("  }")
+    lines.push("  " + call)
+    lines.push("}")
+  }
   lines.join("\n") + "\n"
 }
 
@@ -1148,6 +1775,8 @@ let moon_helpers : Array[(String, String)] = [
       #|pub(all) suberror SysError {
       #|  /// C function, error constant name, raw code.
       #|  Failed(String, String, Int)
+      #|  /// A handle was used after it was destroyed.
+      #|  Closed(String)
       #|}
       #|
       #|///|
@@ -1157,6 +1786,7 @@ let moon_helpers : Array[(String, String)] = [
       #|      logger.write_string(
       #|        function + " failed: " + name + " (" + code.to_string() + ")",
       #|      )
+      #|    Closed(message) => logger.write_string(message)
       #|  }
       #|}
       #|
@@ -1228,7 +1858,21 @@ fn Generator::moon_source(
   ]
   // Functions first decide which enums and structs are needed.
   let functions = bindings.map(b => self.moon_function(b))
-  let used = functions.join("\n")
+  let handle_records = self.handles_used.keys().collect()
+  handle_records.sort()
+  let handle_sources = handle_records.map(r => self.handle_source(r, bindings))
+  let site_names = self.sites.keys().collect()
+  site_names.sort()
+  let slot_sources = site_names.map(site => {
+    "///|\n/// Index of a free callback slot for `" +
+    site +
+    "`, or -1.\nextern \"C\" fn raw_slot_" +
+    site +
+    "() -> Int = \"moonohos_sys_slot_" +
+    site +
+    "\"\n"
+  })
+  let used = functions.join("\n") + handle_sources.join("\n")
   for helper in moon_helpers {
     let needed = if helper.0 == "SysError" {
       used.contains("raise SysError")
@@ -1240,7 +1884,16 @@ fn Generator::moon_source(
     }
   }
   let enum_names = self.enums_used.keys().collect()
-  // Enums referenced only by struct fields.
+  // Enums referenced only by struct fields or handle getters.
+  for record in handle_records {
+    for field in self.readable_fields(record) {
+      match field {
+        FScalar(_, _, SEnum(name)) if !enum_names.contains(name) =>
+          enum_names.push(name)
+        _ => ()
+      }
+    }
+  }
   for record in self.records_used.keys() {
     match self.fields(record) {
       Some(fields) =>
@@ -1262,6 +1915,12 @@ fn Generator::moon_source(
   records.sort()
   for record in records {
     parts.push(self.record_source(record))
+  }
+  for source in handle_sources {
+    parts.push(source)
+  }
+  for source in slot_sources {
+    parts.push(source)
   }
   for function in functions {
     parts.push(function)
@@ -1286,4 +1945,45 @@ fn releasing_name(name : String) -> Bool {
 /// Getters fill a struct the caller provides without reading it.
 fn output_name(name : String) -> Bool {
   ["Get", "Init", "Query"].any(word => name.contains(word))
+}
+
+///|
+/// Functions whose returned pointer the caller owns.
+fn creating_name(name : String) -> Bool {
+  ["Create", "Acquire", "Open", "New", "Alloc"].any(word => name.contains(word))
+}
+
+///|
+/// Records the handles and callback sites a bound function uses.
+fn Generator::note_binding(
+  self : Generator,
+  params : Array[ParamPlan],
+  result : ResultPlan,
+  key : CallbackKey?,
+) -> Unit {
+  for param in params {
+    match param {
+      InHandle(_, record, _, _) | OutHandle(_, record, _) =>
+        self.handles_used[record] = true
+      InCallback(_, site, args, _) => {
+        self.sites[site] = args
+        for arg in args {
+          if arg is CbHandle(record, _) {
+            self.handles_used[record] = true
+          }
+        }
+        if key is Some(KeyHandle(_, record)) {
+          let sites = self.handle_sites.get(record).unwrap_or([])
+          if !sites.contains(site) {
+            sites.push(site)
+          }
+          self.handle_sites[record] = sites
+        }
+      }
+      _ => ()
+    }
+  }
+  if result is RHandle(record, _) {
+    self.handles_used[record] = true
+  }
 }

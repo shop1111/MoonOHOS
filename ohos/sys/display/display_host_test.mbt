@@ -7,6 +7,7 @@ test "display error codes surface as SysError on the host" {
     None
   } catch {
     Failed(function, name, code) => Some((function, name, code))
+    Closed(_) => None
   }
   assert_eq(
     error,
@@ -18,4 +19,29 @@ test "display error codes surface as SysError on the host" {
     ),
   )
   assert_false(@display.is_foldable())
+}
+
+///|
+test "handles and listeners fail cleanly on the host" {
+  // Creating a display handle reports 801 instead of returning a dead handle.
+  let created = try {
+    @display.create_primary_display() |> ignore
+    0
+  } catch {
+    Failed(_, _, code) => code
+    Closed(_) => -2
+  }
+  assert_eq(created, 801)
+  // A failed registration releases its callback slot: more attempts than the
+  // eight slots still reach the SDK call.
+  for _ in 0..<20 {
+    let code = try {
+      @display.register_display_change_listener(_ => ()) |> ignore
+      0
+    } catch {
+      Failed(_, _, code) => code
+      Closed(_) => -2
+    }
+    assert_eq(code, 801)
+  }
 }

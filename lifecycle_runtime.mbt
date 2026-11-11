@@ -68,6 +68,10 @@ fn lifecycle_core() -> String {
     #|  GateLock(const GateLock &) = delete;
     #|  GateLock &operator=(const GateLock &) = delete;
     #|};
+    #|// For generated system bindings (0.8): SDK threads delivering callbacks
+    #|// enter the gate before running MoonBit code.
+    #|extern "C" void moonohos_gate_enter(void) { gate.lock(); }
+    #|extern "C" void moonohos_gate_leave(void) { gate.unlock(); }
     #|struct CancelState { std::atomic<bool> cancelled{false}; };
     #|static CancelState *current_cancel = nullptr; // gate-protected
     #|static const std::atomic<bool> *current_failed = nullptr; // gate-protected: a callback of the running call failed

@@ -47,7 +47,7 @@ pub fn system_library_allowlist() -> Array[String] {
     "libhilog_ndk.z.so", "librawfile.z.so", "libdeviceinfo_ndk.z.so", "libnet_connection.so",
     "libohvibrator.z.so", "libability_access_control.so", "libbluetooth_ndk.so",
     "libhitrace_ndk.z.so", "libnative_display_manager.so", "libohbattery_info.so",
-    "libohhidebug.so", "libos_account_ndk.so", "libqos.so", "libtime_service_ndk.so",
+    "libohhidebug.so", "libohsensor.so", "libos_account_ndk.so", "libqos.so", "libtime_service_ndk.so",
     "libwifi_ndk.so",
   ]
 }

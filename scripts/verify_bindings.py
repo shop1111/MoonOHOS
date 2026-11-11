@@ -21,8 +21,27 @@ clang = native / "llvm/bin" / ("clang.exe" if os.name == "nt" else "clang")
 sysroot = native / "sysroot"
 packages = [Path(p) for p in sys.argv[2:]] or sorted(p for p in (root / "ohos/sys").iterdir() if (p / "moonohos.native.json").exists())
 targets = {"arm64-v8a": "aarch64-linux-ohos", "x86_64": "x86_64-linux-ohos"}
+# Generated stubs include moonbit.h (handles and callbacks use the runtime).
+moon_include = Path(os.environ.get("MOON_HOME", Path.home() / ".moon")) / "include"
 results = []
 work = Path(tempfile.mkdtemp(prefix="bindings-", dir=root / "_build" if (root / "_build").exists() else None))
+# The MoonBit runtime, compiled as `moonohos build` does, so --no-undefined
+# also covers the runtime functions handles and callbacks call.
+runtime_dir = moon_include.parent / "lib/runtime"
+runtime_objects = {}
+for abi, triple in targets.items():
+    out = work / "_runtime" / abi
+    out.mkdir(parents=True, exist_ok=True)
+    runtime_objects[abi] = []
+    for name in ["runtime.c", "env.c", "backtrace.c", "sync_io.c", "utf.c"]:
+        obj = out / (Path(name).stem + ".o")
+        r = subprocess.run([str(clang), f"--target={triple}", f"--sysroot={sysroot}", f"-I{moon_include}", "-std=c11", "-fPIC",
+                            "-D_GNU_SOURCE", "-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_SYSTEM", "-DMOONBIT_NATIVE_EXIT_ON_PANIC",
+                            "-fwrapv", "-fno-strict-aliasing", "-c", str(runtime_dir / name), "-o", str(obj)], capture_output=True, text=True)
+        if r.returncode:
+            print(r.stdout + r.stderr)
+            raise SystemExit(f"runtime compile failed: {name} {abi}")
+        runtime_objects[abi].append(str(obj))
 for package in packages:
     descriptor = json.loads((package / "moonohos.native.json").read_text(encoding="utf-8"))
     for abi, triple in targets.items():
@@ -31,7 +50,7 @@ for package in packages:
         objects = []
         for source in descriptor["sources"]:
             obj = out / (Path(source).stem + ".o")
-            compile_cmd = [str(clang), f"--target={triple}", f"--sysroot={sysroot}", "-DMOONOHOS_TARGET_OHOS",
+            compile_cmd = [str(clang), f"--target={triple}", f"--sysroot={sysroot}", "-DMOONOHOS_TARGET_OHOS", f"-I{moon_include}",
                            "-std=c11", "-fPIC", "-Wall", "-Wextra", "-Werror", "-c", str(package / source), "-o", str(obj)]
             r = subprocess.run(compile_cmd, capture_output=True, text=True)
             if r.returncode:
@@ -40,7 +59,7 @@ for package in packages:
             objects.append(str(obj))
         libs = [f"-l:{lib}" for lib in descriptor["systemLibraries"]]
         link_cmd = [str(clang), f"--target={triple}", f"--sysroot={sysroot}", "-shared", "-fPIC", "-o", str(out / "libcheck.so"),
-                    *objects, *libs, "-Wl,--no-undefined"]
+                    *objects, *runtime_objects[abi], *libs, "-lm", "-Wl,--no-undefined"]
         r = subprocess.run(link_cmd, capture_output=True, text=True)
         if r.returncode:
             print(r.stdout + r.stderr)

@@ -44,6 +44,8 @@ pub fn is_id_valid(HiTraceId) -> Bool
 
 pub fn is_trace_enabled() -> Bool
 
+pub fn register_trace_listener((Bool) -> Unit) -> Int32 raise SysError
+
 pub fn set_chain_id(HiTraceId, UInt64) -> HiTraceId
 
 pub fn set_flags(HiTraceId, Int32) -> HiTraceId
@@ -65,6 +67,13 @@ pub fn start_trace_ex(HiTrace_Output_Level, String, String) -> Unit
 pub fn unregister_trace_listener(Int32) -> Int32
 
 // Errors
+pub(all) suberror SysError {
+  Failed(String, String, Int32)
+  Closed(String)
+}
+pub fn SysError::output(Self, &Logger) -> Unit
+pub fn SysError::to_string(Self) -> String
+pub impl Show for SysError
 
 // Types and methods
 pub(all) struct HiTraceId {

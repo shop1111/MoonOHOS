@@ -5,6 +5,8 @@
 pub(all) suberror SysError {
   /// C function, error constant name, raw code.
   Failed(String, String, Int32)
+  /// A handle was used after it was destroyed.
+  Closed(String)
 }
 
 ///|
@@ -14,11 +16,22 @@ pub impl Show for SysError with fn output(self, logger) {
       logger.write_string(
         function + " failed: " + name + " (" + code.to_string() + ")",
       )
+    Closed(message) => logger.write_string(message)
   }
 }
 
 ///|
 pub extend SysError with Show::{to_string, output}
+
+///|
+/// Decodes a NUL-terminated (or full) UTF-8 buffer written by C.
+fn c_text(buffer : Bytes) -> String {
+  let mut end = 0
+  while end < buffer.length() && buffer[end] != b'\x00' {
+    end += 1
+  }
+  @utf8.decode_lossy(buffer[0:end])
+}
 
 ///|
 /// C `NativeDisplayManager_Rotation`. `Other` carries values this binding does not name.
@@ -338,6 +351,94 @@ pub extend NativeDisplayManager_Orientation with Eq::{equal, not_equal}
 pub extend NativeDisplayManager_Orientation with Show::{to_string, output}
 
 ///|
+/// C `NativeDisplayManager_DisplayState`. `Other` carries values this binding does not name.
+pub(all) enum NativeDisplayManager_DisplayState {
+  /// `DISPLAY_MANAGER_DISPLAY_STATE_UNKNOWN` (0)
+  DisplayManagerDisplayStateUnknown
+  /// `DISPLAY_MANAGER_DISPLAY_STATE_OFF` (1)
+  DisplayManagerDisplayStateOff
+  /// `DISPLAY_MANAGER_DISPLAY_STATE_ON` (2)
+  DisplayManagerDisplayStateOn
+  /// `DISPLAY_MANAGER_DISPLAY_STATE_DOZE` (3)
+  DisplayManagerDisplayStateDoze
+  /// `DISPLAY_MANAGER_DISPLAY_STATE_DOZE_SUSPEND` (4)
+  DisplayManagerDisplayStateDozeSuspend
+  /// `DISPLAY_MANAGER_DISPLAY_STATE_VR` (5)
+  DisplayManagerDisplayStateVr
+  /// `DISPLAY_MANAGER_DISPLAY_STATE_ON_SUSPEND` (6)
+  DisplayManagerDisplayStateOnSuspend
+  Other(Int32)
+}
+
+///|
+pub fn NativeDisplayManager_DisplayState::to_raw(
+  self : NativeDisplayManager_DisplayState,
+) -> Int32 {
+  match self {
+    DisplayManagerDisplayStateUnknown => 0
+    DisplayManagerDisplayStateOff => 1
+    DisplayManagerDisplayStateOn => 2
+    DisplayManagerDisplayStateDoze => 3
+    DisplayManagerDisplayStateDozeSuspend => 4
+    DisplayManagerDisplayStateVr => 5
+    DisplayManagerDisplayStateOnSuspend => 6
+    Other(value) => value
+  }
+}
+
+///|
+pub fn NativeDisplayManager_DisplayState::from_raw(
+  value : Int32,
+) -> NativeDisplayManager_DisplayState {
+  match value {
+    0 => DisplayManagerDisplayStateUnknown
+    1 => DisplayManagerDisplayStateOff
+    2 => DisplayManagerDisplayStateOn
+    3 => DisplayManagerDisplayStateDoze
+    4 => DisplayManagerDisplayStateDozeSuspend
+    5 => DisplayManagerDisplayStateVr
+    6 => DisplayManagerDisplayStateOnSuspend
+    _ => Other(value)
+  }
+}
+
+///|
+/// The C constant name, or `NativeDisplayManager_DisplayState(<value>)` for an unnamed value.
+pub fn NativeDisplayManager_DisplayState::c_name(
+  self : NativeDisplayManager_DisplayState,
+) -> String {
+  match self {
+    DisplayManagerDisplayStateUnknown => "DISPLAY_MANAGER_DISPLAY_STATE_UNKNOWN"
+    DisplayManagerDisplayStateOff => "DISPLAY_MANAGER_DISPLAY_STATE_OFF"
+    DisplayManagerDisplayStateOn => "DISPLAY_MANAGER_DISPLAY_STATE_ON"
+    DisplayManagerDisplayStateDoze => "DISPLAY_MANAGER_DISPLAY_STATE_DOZE"
+    DisplayManagerDisplayStateDozeSuspend =>
+      "DISPLAY_MANAGER_DISPLAY_STATE_DOZE_SUSPEND"
+    DisplayManagerDisplayStateVr => "DISPLAY_MANAGER_DISPLAY_STATE_VR"
+    DisplayManagerDisplayStateOnSuspend =>
+      "DISPLAY_MANAGER_DISPLAY_STATE_ON_SUSPEND"
+    Other(value) =>
+      "NativeDisplayManager_DisplayState(" + value.to_string() + ")"
+  }
+}
+
+///|
+pub impl Eq for NativeDisplayManager_DisplayState with fn equal(self, other) {
+  self.to_raw() == other.to_raw()
+}
+
+///|
+pub impl Show for NativeDisplayManager_DisplayState with fn output(self, logger) {
+  logger.write_string(self.c_name())
+}
+
+///|
+pub extend NativeDisplayManager_DisplayState with Eq::{equal, not_equal}
+
+///|
+pub extend NativeDisplayManager_DisplayState with Show::{to_string, output}
+
+///|
 /// C `NativeDisplayManager_FoldDisplayMode`. `Other` carries values this binding does not name.
 pub(all) enum NativeDisplayManager_FoldDisplayMode {
   /// `DISPLAY_MANAGER_FOLD_DISPLAY_MODE_UNKNOWN` (0)
@@ -421,17 +522,557 @@ pub extend NativeDisplayManager_FoldDisplayMode with Eq::{equal, not_equal}
 pub extend NativeDisplayManager_FoldDisplayMode with Show::{to_string, output}
 
 ///|
-/// C `NativeDisplayManager_Rect`, copied field by field.
-pub(all) struct NativeDisplayManager_Rect {
-  /// `left`
-  left : Int32
-  /// `top`
-  top : Int32
-  /// `width`
-  width : UInt32
-  /// `height`
-  height : UInt32
+/// Handle to C `NativeDisplayManager_Rect`.
+/// Handles from Create/Acquire functions are owned: `destroy_available_area` releases one,
+/// and an owned handle still open when it is garbage collected is released
+/// then. Other handles are borrowed from the SDK; handles passed to callbacks
+/// stop being live when the callback returns.
+pub type NativeDisplayManager_Rect
+
+///|
+#borrow(handle)
+extern "C" fn raw_live_NativeDisplayManager_Rect(
+  handle : NativeDisplayManager_Rect,
+) -> Int32 = "moonohos_sys_display_live"
+
+///|
+/// False once the handle was destroyed (or its callback returned).
+pub fn NativeDisplayManager_Rect::is_live(
+  self : NativeDisplayManager_Rect,
+) -> Bool {
+  raw_live_NativeDisplayManager_Rect(self) != 0
 }
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_Rect_left(
+  handle : NativeDisplayManager_Rect,
+) -> Int32 = "moonohos_sys_get_NativeDisplayManager_Rect_left"
+
+///|
+/// C field `left`.
+pub fn NativeDisplayManager_Rect::left(
+  self : NativeDisplayManager_Rect,
+) -> Int32 raise SysError {
+  if !self.is_live() {
+    raise Closed("NativeDisplayManager_Rect.left: handle was destroyed")
+  }
+  raw_get_NativeDisplayManager_Rect_left(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_Rect_top(
+  handle : NativeDisplayManager_Rect,
+) -> Int32 = "moonohos_sys_get_NativeDisplayManager_Rect_top"
+
+///|
+/// C field `top`.
+pub fn NativeDisplayManager_Rect::top(
+  self : NativeDisplayManager_Rect,
+) -> Int32 raise SysError {
+  if !self.is_live() {
+    raise Closed("NativeDisplayManager_Rect.top: handle was destroyed")
+  }
+  raw_get_NativeDisplayManager_Rect_top(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_Rect_width(
+  handle : NativeDisplayManager_Rect,
+) -> UInt32 = "moonohos_sys_get_NativeDisplayManager_Rect_width"
+
+///|
+/// C field `width`.
+pub fn NativeDisplayManager_Rect::width(
+  self : NativeDisplayManager_Rect,
+) -> UInt32 raise SysError {
+  if !self.is_live() {
+    raise Closed("NativeDisplayManager_Rect.width: handle was destroyed")
+  }
+  raw_get_NativeDisplayManager_Rect_width(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_Rect_height(
+  handle : NativeDisplayManager_Rect,
+) -> UInt32 = "moonohos_sys_get_NativeDisplayManager_Rect_height"
+
+///|
+/// C field `height`.
+pub fn NativeDisplayManager_Rect::height(
+  self : NativeDisplayManager_Rect,
+) -> UInt32 raise SysError {
+  if !self.is_live() {
+    raise Closed("NativeDisplayManager_Rect.height: handle was destroyed")
+  }
+  raw_get_NativeDisplayManager_Rect_height(self)
+}
+
+///|
+/// Handle to C `NativeDisplayManager_CutoutInfo`.
+/// Handles from Create/Acquire functions are owned: `destroy_default_display_cutout_info` releases one,
+/// and an owned handle still open when it is garbage collected is released
+/// then. Other handles are borrowed from the SDK; handles passed to callbacks
+/// stop being live when the callback returns.
+pub type NativeDisplayManager_CutoutInfo
+
+///|
+#borrow(handle)
+extern "C" fn raw_live_NativeDisplayManager_CutoutInfo(
+  handle : NativeDisplayManager_CutoutInfo,
+) -> Int32 = "moonohos_sys_display_live"
+
+///|
+/// False once the handle was destroyed (or its callback returned).
+pub fn NativeDisplayManager_CutoutInfo::is_live(
+  self : NativeDisplayManager_CutoutInfo,
+) -> Bool {
+  raw_live_NativeDisplayManager_CutoutInfo(self) != 0
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_CutoutInfo_bounding_rects_length(
+  handle : NativeDisplayManager_CutoutInfo,
+) -> Int32 = "moonohos_sys_get_NativeDisplayManager_CutoutInfo_boundingRectsLength"
+
+///|
+/// C field `boundingRectsLength`.
+pub fn NativeDisplayManager_CutoutInfo::bounding_rects_length(
+  self : NativeDisplayManager_CutoutInfo,
+) -> Int32 raise SysError {
+  if !self.is_live() {
+    raise Closed(
+      "NativeDisplayManager_CutoutInfo.boundingRectsLength: handle was destroyed",
+    )
+  }
+  raw_get_NativeDisplayManager_CutoutInfo_bounding_rects_length(self)
+}
+
+///|
+/// Handle to C `NativeDisplayManager_DisplayInfo`.
+/// Handles from Create/Acquire functions are owned: `destroy_display` releases one,
+/// and an owned handle still open when it is garbage collected is released
+/// then. Other handles are borrowed from the SDK; handles passed to callbacks
+/// stop being live when the callback returns.
+pub type NativeDisplayManager_DisplayInfo
+
+///|
+#borrow(handle)
+extern "C" fn raw_live_NativeDisplayManager_DisplayInfo(
+  handle : NativeDisplayManager_DisplayInfo,
+) -> Int32 = "moonohos_sys_display_live"
+
+///|
+/// False once the handle was destroyed (or its callback returned).
+pub fn NativeDisplayManager_DisplayInfo::is_live(
+  self : NativeDisplayManager_DisplayInfo,
+) -> Bool {
+  raw_live_NativeDisplayManager_DisplayInfo(self) != 0
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_DisplayInfo_id(
+  handle : NativeDisplayManager_DisplayInfo,
+) -> UInt32 = "moonohos_sys_get_NativeDisplayManager_DisplayInfo_id"
+
+///|
+/// C field `id`.
+pub fn NativeDisplayManager_DisplayInfo::id(
+  self : NativeDisplayManager_DisplayInfo,
+) -> UInt32 raise SysError {
+  if !self.is_live() {
+    raise Closed("NativeDisplayManager_DisplayInfo.id: handle was destroyed")
+  }
+  raw_get_NativeDisplayManager_DisplayInfo_id(self)
+}
+
+///|
+#borrow(handle, buffer)
+extern "C" fn raw_get_NativeDisplayManager_DisplayInfo_name(
+  handle : NativeDisplayManager_DisplayInfo,
+  buffer : Bytes,
+) -> Unit = "moonohos_sys_get_NativeDisplayManager_DisplayInfo_name"
+
+///|
+/// C field `name`.
+pub fn NativeDisplayManager_DisplayInfo::name(
+  self : NativeDisplayManager_DisplayInfo,
+) -> String raise SysError {
+  if !self.is_live() {
+    raise Closed("NativeDisplayManager_DisplayInfo.name: handle was destroyed")
+  }
+  let buffer = Bytes::make(34, b'\x00')
+  raw_get_NativeDisplayManager_DisplayInfo_name(self, buffer)
+  c_text(buffer)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_DisplayInfo_is_alive(
+  handle : NativeDisplayManager_DisplayInfo,
+) -> Int32 = "moonohos_sys_get_NativeDisplayManager_DisplayInfo_isAlive"
+
+///|
+/// C field `isAlive`.
+pub fn NativeDisplayManager_DisplayInfo::is_alive(
+  self : NativeDisplayManager_DisplayInfo,
+) -> Bool raise SysError {
+  if !self.is_live() {
+    raise Closed(
+      "NativeDisplayManager_DisplayInfo.isAlive: handle was destroyed",
+    )
+  }
+  raw_get_NativeDisplayManager_DisplayInfo_is_alive(self) != 0
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_DisplayInfo_width(
+  handle : NativeDisplayManager_DisplayInfo,
+) -> Int32 = "moonohos_sys_get_NativeDisplayManager_DisplayInfo_width"
+
+///|
+/// C field `width`.
+pub fn NativeDisplayManager_DisplayInfo::width(
+  self : NativeDisplayManager_DisplayInfo,
+) -> Int32 raise SysError {
+  if !self.is_live() {
+    raise Closed("NativeDisplayManager_DisplayInfo.width: handle was destroyed")
+  }
+  raw_get_NativeDisplayManager_DisplayInfo_width(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_DisplayInfo_height(
+  handle : NativeDisplayManager_DisplayInfo,
+) -> Int32 = "moonohos_sys_get_NativeDisplayManager_DisplayInfo_height"
+
+///|
+/// C field `height`.
+pub fn NativeDisplayManager_DisplayInfo::height(
+  self : NativeDisplayManager_DisplayInfo,
+) -> Int32 raise SysError {
+  if !self.is_live() {
+    raise Closed(
+      "NativeDisplayManager_DisplayInfo.height: handle was destroyed",
+    )
+  }
+  raw_get_NativeDisplayManager_DisplayInfo_height(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_DisplayInfo_physical_width(
+  handle : NativeDisplayManager_DisplayInfo,
+) -> Int32 = "moonohos_sys_get_NativeDisplayManager_DisplayInfo_physicalWidth"
+
+///|
+/// C field `physicalWidth`.
+pub fn NativeDisplayManager_DisplayInfo::physical_width(
+  self : NativeDisplayManager_DisplayInfo,
+) -> Int32 raise SysError {
+  if !self.is_live() {
+    raise Closed(
+      "NativeDisplayManager_DisplayInfo.physicalWidth: handle was destroyed",
+    )
+  }
+  raw_get_NativeDisplayManager_DisplayInfo_physical_width(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_DisplayInfo_physical_height(
+  handle : NativeDisplayManager_DisplayInfo,
+) -> Int32 = "moonohos_sys_get_NativeDisplayManager_DisplayInfo_physicalHeight"
+
+///|
+/// C field `physicalHeight`.
+pub fn NativeDisplayManager_DisplayInfo::physical_height(
+  self : NativeDisplayManager_DisplayInfo,
+) -> Int32 raise SysError {
+  if !self.is_live() {
+    raise Closed(
+      "NativeDisplayManager_DisplayInfo.physicalHeight: handle was destroyed",
+    )
+  }
+  raw_get_NativeDisplayManager_DisplayInfo_physical_height(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_DisplayInfo_refresh_rate(
+  handle : NativeDisplayManager_DisplayInfo,
+) -> UInt32 = "moonohos_sys_get_NativeDisplayManager_DisplayInfo_refreshRate"
+
+///|
+/// C field `refreshRate`.
+pub fn NativeDisplayManager_DisplayInfo::refresh_rate(
+  self : NativeDisplayManager_DisplayInfo,
+) -> UInt32 raise SysError {
+  if !self.is_live() {
+    raise Closed(
+      "NativeDisplayManager_DisplayInfo.refreshRate: handle was destroyed",
+    )
+  }
+  raw_get_NativeDisplayManager_DisplayInfo_refresh_rate(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_DisplayInfo_available_width(
+  handle : NativeDisplayManager_DisplayInfo,
+) -> UInt32 = "moonohos_sys_get_NativeDisplayManager_DisplayInfo_availableWidth"
+
+///|
+/// C field `availableWidth`.
+pub fn NativeDisplayManager_DisplayInfo::available_width(
+  self : NativeDisplayManager_DisplayInfo,
+) -> UInt32 raise SysError {
+  if !self.is_live() {
+    raise Closed(
+      "NativeDisplayManager_DisplayInfo.availableWidth: handle was destroyed",
+    )
+  }
+  raw_get_NativeDisplayManager_DisplayInfo_available_width(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_DisplayInfo_available_height(
+  handle : NativeDisplayManager_DisplayInfo,
+) -> UInt32 = "moonohos_sys_get_NativeDisplayManager_DisplayInfo_availableHeight"
+
+///|
+/// C field `availableHeight`.
+pub fn NativeDisplayManager_DisplayInfo::available_height(
+  self : NativeDisplayManager_DisplayInfo,
+) -> UInt32 raise SysError {
+  if !self.is_live() {
+    raise Closed(
+      "NativeDisplayManager_DisplayInfo.availableHeight: handle was destroyed",
+    )
+  }
+  raw_get_NativeDisplayManager_DisplayInfo_available_height(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_DisplayInfo_density_dpi(
+  handle : NativeDisplayManager_DisplayInfo,
+) -> Float = "moonohos_sys_get_NativeDisplayManager_DisplayInfo_densityDPI"
+
+///|
+/// C field `densityDPI`.
+pub fn NativeDisplayManager_DisplayInfo::density_dpi(
+  self : NativeDisplayManager_DisplayInfo,
+) -> Float raise SysError {
+  if !self.is_live() {
+    raise Closed(
+      "NativeDisplayManager_DisplayInfo.densityDPI: handle was destroyed",
+    )
+  }
+  raw_get_NativeDisplayManager_DisplayInfo_density_dpi(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_DisplayInfo_density_pixels(
+  handle : NativeDisplayManager_DisplayInfo,
+) -> Float = "moonohos_sys_get_NativeDisplayManager_DisplayInfo_densityPixels"
+
+///|
+/// C field `densityPixels`.
+pub fn NativeDisplayManager_DisplayInfo::density_pixels(
+  self : NativeDisplayManager_DisplayInfo,
+) -> Float raise SysError {
+  if !self.is_live() {
+    raise Closed(
+      "NativeDisplayManager_DisplayInfo.densityPixels: handle was destroyed",
+    )
+  }
+  raw_get_NativeDisplayManager_DisplayInfo_density_pixels(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_DisplayInfo_scaled_density(
+  handle : NativeDisplayManager_DisplayInfo,
+) -> Float = "moonohos_sys_get_NativeDisplayManager_DisplayInfo_scaledDensity"
+
+///|
+/// C field `scaledDensity`.
+pub fn NativeDisplayManager_DisplayInfo::scaled_density(
+  self : NativeDisplayManager_DisplayInfo,
+) -> Float raise SysError {
+  if !self.is_live() {
+    raise Closed(
+      "NativeDisplayManager_DisplayInfo.scaledDensity: handle was destroyed",
+    )
+  }
+  raw_get_NativeDisplayManager_DisplayInfo_scaled_density(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_DisplayInfo_x_dpi(
+  handle : NativeDisplayManager_DisplayInfo,
+) -> Float = "moonohos_sys_get_NativeDisplayManager_DisplayInfo_xDPI"
+
+///|
+/// C field `xDPI`.
+pub fn NativeDisplayManager_DisplayInfo::x_dpi(
+  self : NativeDisplayManager_DisplayInfo,
+) -> Float raise SysError {
+  if !self.is_live() {
+    raise Closed("NativeDisplayManager_DisplayInfo.xDPI: handle was destroyed")
+  }
+  raw_get_NativeDisplayManager_DisplayInfo_x_dpi(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_DisplayInfo_y_dpi(
+  handle : NativeDisplayManager_DisplayInfo,
+) -> Float = "moonohos_sys_get_NativeDisplayManager_DisplayInfo_yDPI"
+
+///|
+/// C field `yDPI`.
+pub fn NativeDisplayManager_DisplayInfo::y_dpi(
+  self : NativeDisplayManager_DisplayInfo,
+) -> Float raise SysError {
+  if !self.is_live() {
+    raise Closed("NativeDisplayManager_DisplayInfo.yDPI: handle was destroyed")
+  }
+  raw_get_NativeDisplayManager_DisplayInfo_y_dpi(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_DisplayInfo_rotation(
+  handle : NativeDisplayManager_DisplayInfo,
+) -> Int32 = "moonohos_sys_get_NativeDisplayManager_DisplayInfo_rotation"
+
+///|
+/// C field `rotation`.
+pub fn NativeDisplayManager_DisplayInfo::rotation(
+  self : NativeDisplayManager_DisplayInfo,
+) -> NativeDisplayManager_Rotation raise SysError {
+  if !self.is_live() {
+    raise Closed(
+      "NativeDisplayManager_DisplayInfo.rotation: handle was destroyed",
+    )
+  }
+  NativeDisplayManager_Rotation::from_raw(
+    raw_get_NativeDisplayManager_DisplayInfo_rotation(self),
+  )
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_DisplayInfo_state(
+  handle : NativeDisplayManager_DisplayInfo,
+) -> Int32 = "moonohos_sys_get_NativeDisplayManager_DisplayInfo_state"
+
+///|
+/// C field `state`.
+pub fn NativeDisplayManager_DisplayInfo::state(
+  self : NativeDisplayManager_DisplayInfo,
+) -> NativeDisplayManager_DisplayState raise SysError {
+  if !self.is_live() {
+    raise Closed("NativeDisplayManager_DisplayInfo.state: handle was destroyed")
+  }
+  NativeDisplayManager_DisplayState::from_raw(
+    raw_get_NativeDisplayManager_DisplayInfo_state(self),
+  )
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_DisplayInfo_orientation(
+  handle : NativeDisplayManager_DisplayInfo,
+) -> Int32 = "moonohos_sys_get_NativeDisplayManager_DisplayInfo_orientation"
+
+///|
+/// C field `orientation`.
+pub fn NativeDisplayManager_DisplayInfo::orientation(
+  self : NativeDisplayManager_DisplayInfo,
+) -> NativeDisplayManager_Orientation raise SysError {
+  if !self.is_live() {
+    raise Closed(
+      "NativeDisplayManager_DisplayInfo.orientation: handle was destroyed",
+    )
+  }
+  NativeDisplayManager_Orientation::from_raw(
+    raw_get_NativeDisplayManager_DisplayInfo_orientation(self),
+  )
+}
+
+///|
+/// Handle to C `NativeDisplayManager_DisplaysInfo`.
+/// Handles from Create/Acquire functions are owned: `destroy_all_displays` releases one,
+/// and an owned handle still open when it is garbage collected is released
+/// then. Other handles are borrowed from the SDK; handles passed to callbacks
+/// stop being live when the callback returns.
+pub type NativeDisplayManager_DisplaysInfo
+
+///|
+#borrow(handle)
+extern "C" fn raw_live_NativeDisplayManager_DisplaysInfo(
+  handle : NativeDisplayManager_DisplaysInfo,
+) -> Int32 = "moonohos_sys_display_live"
+
+///|
+/// False once the handle was destroyed (or its callback returned).
+pub fn NativeDisplayManager_DisplaysInfo::is_live(
+  self : NativeDisplayManager_DisplaysInfo,
+) -> Bool {
+  raw_live_NativeDisplayManager_DisplaysInfo(self) != 0
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_NativeDisplayManager_DisplaysInfo_displays_length(
+  handle : NativeDisplayManager_DisplaysInfo,
+) -> UInt32 = "moonohos_sys_get_NativeDisplayManager_DisplaysInfo_displaysLength"
+
+///|
+/// C field `displaysLength`.
+pub fn NativeDisplayManager_DisplaysInfo::displays_length(
+  self : NativeDisplayManager_DisplaysInfo,
+) -> UInt32 raise SysError {
+  if !self.is_live() {
+    raise Closed(
+      "NativeDisplayManager_DisplaysInfo.displaysLength: handle was destroyed",
+    )
+  }
+  raw_get_NativeDisplayManager_DisplaysInfo_displays_length(self)
+}
+
+///|
+/// Index of a free callback slot for `OH_NativeDisplayManager_RegisterDisplayAddListener_0`, or -1.
+extern "C" fn raw_slot_OH_NativeDisplayManager_RegisterDisplayAddListener_0() -> Int32 = "moonohos_sys_slot_OH_NativeDisplayManager_RegisterDisplayAddListener_0"
+
+///|
+/// Index of a free callback slot for `OH_NativeDisplayManager_RegisterDisplayChangeListener_0`, or -1.
+extern "C" fn raw_slot_OH_NativeDisplayManager_RegisterDisplayChangeListener_0() -> Int32 = "moonohos_sys_slot_OH_NativeDisplayManager_RegisterDisplayChangeListener_0"
+
+///|
+/// Index of a free callback slot for `OH_NativeDisplayManager_RegisterDisplayRemoveListener_0`, or -1.
+extern "C" fn raw_slot_OH_NativeDisplayManager_RegisterDisplayRemoveListener_0() -> Int32 = "moonohos_sys_slot_OH_NativeDisplayManager_RegisterDisplayRemoveListener_0"
+
+///|
+/// Index of a free callback slot for `OH_NativeDisplayManager_RegisterAvailableAreaChangeListener_0`, or -1.
+extern "C" fn raw_slot_OH_NativeDisplayManager_RegisterAvailableAreaChangeListener_0() -> Int32 = "moonohos_sys_slot_OH_NativeDisplayManager_RegisterAvailableAreaChangeListener_0"
+
+///|
+/// Index of a free callback slot for `OH_NativeDisplayManager_RegisterFoldDisplayModeChangeListener_0`, or -1.
+extern "C" fn raw_slot_OH_NativeDisplayManager_RegisterFoldDisplayModeChangeListener_0() -> Int32 = "moonohos_sys_slot_OH_NativeDisplayManager_RegisterFoldDisplayModeChangeListener_0"
 
 ///|
 #borrow(display_id)
@@ -712,6 +1353,60 @@ pub fn get_default_display_density_ydpi() -> Float raise SysError {
 }
 
 ///|
+#borrow(result_slot)
+extern "C" fn raw_OH_NativeDisplayManager_CreateDefaultDisplayCutoutInfo(
+  result_slot : FixedArray[Int32],
+) -> NativeDisplayManager_CutoutInfo = "moonohos_sys_OH_NativeDisplayManager_CreateDefaultDisplayCutoutInfo"
+
+///|
+/// `OH_NativeDisplayManager_CreateDefaultDisplayCutoutInfo` from `window_manager/oh_display_manager.h` (`libnative_display_manager.so`).
+/// Raises `SysError` when the call returns a non-zero error code.
+pub fn create_default_display_cutout_info() -> NativeDisplayManager_CutoutInfo raise SysError {
+  let result_slot : FixedArray[Int32] = [0]
+  let object = raw_OH_NativeDisplayManager_CreateDefaultDisplayCutoutInfo(
+    result_slot,
+  )
+  let code = result_slot[0]
+  if code != 0 {
+    raise Failed(
+      "OH_NativeDisplayManager_CreateDefaultDisplayCutoutInfo",
+      NativeDisplayManager_ErrorCode::from_raw(code).c_name(),
+      code,
+    )
+  }
+  object
+}
+
+///|
+#borrow(cutout_info)
+extern "C" fn raw_OH_NativeDisplayManager_DestroyDefaultDisplayCutoutInfo(
+  cutout_info : NativeDisplayManager_CutoutInfo,
+) -> Int32 = "moonohos_sys_OH_NativeDisplayManager_DestroyDefaultDisplayCutoutInfo"
+
+///|
+/// `OH_NativeDisplayManager_DestroyDefaultDisplayCutoutInfo` from `window_manager/oh_display_manager.h` (`libnative_display_manager.so`).
+/// Raises `SysError` when the call returns a non-zero error code.
+pub fn destroy_default_display_cutout_info(
+  cutout_info : NativeDisplayManager_CutoutInfo,
+) -> Unit raise SysError {
+  if !cutout_info.is_live() {
+    raise Closed(
+      "OH_NativeDisplayManager_DestroyDefaultDisplayCutoutInfo: cutout_info was destroyed",
+    )
+  }
+  let code = raw_OH_NativeDisplayManager_DestroyDefaultDisplayCutoutInfo(
+    cutout_info,
+  )
+  if code != 0 {
+    raise Failed(
+      "OH_NativeDisplayManager_DestroyDefaultDisplayCutoutInfo",
+      NativeDisplayManager_ErrorCode::from_raw(code).c_name(),
+      code,
+    )
+  }
+}
+
+///|
 extern "C" fn raw_OH_NativeDisplayManager_IsFoldable() -> Int32 = "moonohos_sys_OH_NativeDisplayManager_IsFoldable"
 
 ///|
@@ -744,6 +1439,46 @@ pub fn get_fold_display_mode() -> NativeDisplayManager_FoldDisplayMode raise Sys
 }
 
 ///|
+#borrow(display_change_callback, listener_index)
+extern "C" fn raw_OH_NativeDisplayManager_RegisterDisplayChangeListener(
+  display_change_callback_tramp : FuncRef[((UInt64) -> Unit, UInt64) -> Unit],
+  display_change_callback : (UInt64) -> Unit,
+  display_change_callback_slot : Int32,
+  listener_index : FixedArray[UInt32],
+) -> Int32 = "moonohos_sys_OH_NativeDisplayManager_RegisterDisplayChangeListener"
+
+///|
+/// `OH_NativeDisplayManager_RegisterDisplayChangeListener` from `window_manager/oh_display_manager.h` (`libnative_display_manager.so`).
+/// Raises `SysError` when the call returns a non-zero error code.
+/// The callback may run on an SDK thread; MoonOHOS enters the MoonBit gate first.
+pub fn register_display_change_listener(
+  display_change_callback : (UInt64) -> Unit,
+) -> UInt32 raise SysError {
+  let display_change_callback_slot = raw_slot_OH_NativeDisplayManager_RegisterDisplayChangeListener_0()
+  if display_change_callback_slot < 0 {
+    raise Failed(
+      "OH_NativeDisplayManager_RegisterDisplayChangeListener", "all 8 callback slots are in use",
+      -1,
+    )
+  }
+  let listener_index : FixedArray[UInt32] = [0U]
+  let code = raw_OH_NativeDisplayManager_RegisterDisplayChangeListener(
+    fn(moonohos_cb, moonohos_a0) { moonohos_cb(moonohos_a0) },
+    display_change_callback,
+    display_change_callback_slot,
+    listener_index,
+  )
+  if code != 0 {
+    raise Failed(
+      "OH_NativeDisplayManager_RegisterDisplayChangeListener",
+      NativeDisplayManager_ErrorCode::from_raw(code).c_name(),
+      code,
+    )
+  }
+  listener_index[0]
+}
+
+///|
 extern "C" fn raw_OH_NativeDisplayManager_UnregisterDisplayChangeListener(
   listener_index : UInt32,
 ) -> Int32 = "moonohos_sys_OH_NativeDisplayManager_UnregisterDisplayChangeListener"
@@ -764,6 +1499,50 @@ pub fn unregister_display_change_listener(
       code,
     )
   }
+}
+
+///|
+#borrow(display_mode_change_callback, listener_index)
+extern "C" fn raw_OH_NativeDisplayManager_RegisterFoldDisplayModeChangeListener(
+  display_mode_change_callback_tramp : FuncRef[
+    ((NativeDisplayManager_FoldDisplayMode) -> Unit, Int32) -> Unit,
+  ],
+  display_mode_change_callback : (NativeDisplayManager_FoldDisplayMode) -> Unit,
+  display_mode_change_callback_slot : Int32,
+  listener_index : FixedArray[UInt32],
+) -> Int32 = "moonohos_sys_OH_NativeDisplayManager_RegisterFoldDisplayModeChangeListener"
+
+///|
+/// `OH_NativeDisplayManager_RegisterFoldDisplayModeChangeListener` from `window_manager/oh_display_manager.h` (`libnative_display_manager.so`).
+/// Raises `SysError` when the call returns a non-zero error code.
+/// The callback may run on an SDK thread; MoonOHOS enters the MoonBit gate first.
+pub fn register_fold_display_mode_change_listener(
+  display_mode_change_callback : (NativeDisplayManager_FoldDisplayMode) -> Unit,
+) -> UInt32 raise SysError {
+  let display_mode_change_callback_slot = raw_slot_OH_NativeDisplayManager_RegisterFoldDisplayModeChangeListener_0()
+  if display_mode_change_callback_slot < 0 {
+    raise Failed(
+      "OH_NativeDisplayManager_RegisterFoldDisplayModeChangeListener", "all 8 callback slots are in use",
+      -1,
+    )
+  }
+  let listener_index : FixedArray[UInt32] = [0U]
+  let code = raw_OH_NativeDisplayManager_RegisterFoldDisplayModeChangeListener(
+    fn(moonohos_cb, moonohos_a0) {
+      moonohos_cb(NativeDisplayManager_FoldDisplayMode::from_raw(moonohos_a0))
+    },
+    display_mode_change_callback,
+    display_mode_change_callback_slot,
+    listener_index,
+  )
+  if code != 0 {
+    raise Failed(
+      "OH_NativeDisplayManager_RegisterFoldDisplayModeChangeListener",
+      NativeDisplayManager_ErrorCode::from_raw(code).c_name(),
+      code,
+    )
+  }
+  listener_index[0]
 }
 
 ///|
@@ -790,6 +1569,160 @@ pub fn unregister_fold_display_mode_change_listener(
 }
 
 ///|
+#borrow(result_slot)
+extern "C" fn raw_OH_NativeDisplayManager_CreateAllDisplays(
+  result_slot : FixedArray[Int32],
+) -> NativeDisplayManager_DisplaysInfo = "moonohos_sys_OH_NativeDisplayManager_CreateAllDisplays"
+
+///|
+/// `OH_NativeDisplayManager_CreateAllDisplays` from `window_manager/oh_display_manager.h` (`libnative_display_manager.so`).
+/// Raises `SysError` when the call returns a non-zero error code.
+pub fn create_all_displays() -> NativeDisplayManager_DisplaysInfo raise SysError {
+  let result_slot : FixedArray[Int32] = [0]
+  let object = raw_OH_NativeDisplayManager_CreateAllDisplays(result_slot)
+  let code = result_slot[0]
+  if code != 0 {
+    raise Failed(
+      "OH_NativeDisplayManager_CreateAllDisplays",
+      NativeDisplayManager_ErrorCode::from_raw(code).c_name(),
+      code,
+    )
+  }
+  object
+}
+
+///|
+#borrow(all_displays)
+extern "C" fn raw_OH_NativeDisplayManager_DestroyAllDisplays(
+  all_displays : NativeDisplayManager_DisplaysInfo,
+) -> Unit = "moonohos_sys_OH_NativeDisplayManager_DestroyAllDisplays"
+
+///|
+/// `OH_NativeDisplayManager_DestroyAllDisplays` from `window_manager/oh_display_manager.h` (`libnative_display_manager.so`).
+pub fn destroy_all_displays(
+  all_displays : NativeDisplayManager_DisplaysInfo,
+) -> Unit raise SysError {
+  if !all_displays.is_live() {
+    raise Closed(
+      "OH_NativeDisplayManager_DestroyAllDisplays: all_displays was destroyed",
+    )
+  }
+  raw_OH_NativeDisplayManager_DestroyAllDisplays(all_displays)
+}
+
+///|
+#borrow(result_slot)
+extern "C" fn raw_OH_NativeDisplayManager_CreateDisplayById(
+  result_slot : FixedArray[Int32],
+  display_id : UInt32,
+) -> NativeDisplayManager_DisplayInfo = "moonohos_sys_OH_NativeDisplayManager_CreateDisplayById"
+
+///|
+/// `OH_NativeDisplayManager_CreateDisplayById` from `window_manager/oh_display_manager.h` (`libnative_display_manager.so`).
+/// Raises `SysError` when the call returns a non-zero error code.
+pub fn create_display_by_id(
+  display_id : UInt32,
+) -> NativeDisplayManager_DisplayInfo raise SysError {
+  let result_slot : FixedArray[Int32] = [0]
+  let object = raw_OH_NativeDisplayManager_CreateDisplayById(
+    result_slot, display_id,
+  )
+  let code = result_slot[0]
+  if code != 0 {
+    raise Failed(
+      "OH_NativeDisplayManager_CreateDisplayById",
+      NativeDisplayManager_ErrorCode::from_raw(code).c_name(),
+      code,
+    )
+  }
+  object
+}
+
+///|
+#borrow(display_info)
+extern "C" fn raw_OH_NativeDisplayManager_DestroyDisplay(
+  display_info : NativeDisplayManager_DisplayInfo,
+) -> Unit = "moonohos_sys_OH_NativeDisplayManager_DestroyDisplay"
+
+///|
+/// `OH_NativeDisplayManager_DestroyDisplay` from `window_manager/oh_display_manager.h` (`libnative_display_manager.so`).
+pub fn destroy_display(
+  display_info : NativeDisplayManager_DisplayInfo,
+) -> Unit raise SysError {
+  if !display_info.is_live() {
+    raise Closed(
+      "OH_NativeDisplayManager_DestroyDisplay: display_info was destroyed",
+    )
+  }
+  raw_OH_NativeDisplayManager_DestroyDisplay(display_info)
+}
+
+///|
+#borrow(result_slot)
+extern "C" fn raw_OH_NativeDisplayManager_CreatePrimaryDisplay(
+  result_slot : FixedArray[Int32],
+) -> NativeDisplayManager_DisplayInfo = "moonohos_sys_OH_NativeDisplayManager_CreatePrimaryDisplay"
+
+///|
+/// `OH_NativeDisplayManager_CreatePrimaryDisplay` from `window_manager/oh_display_manager.h` (`libnative_display_manager.so`).
+/// Raises `SysError` when the call returns a non-zero error code.
+pub fn create_primary_display() -> NativeDisplayManager_DisplayInfo raise SysError {
+  let result_slot : FixedArray[Int32] = [0]
+  let object = raw_OH_NativeDisplayManager_CreatePrimaryDisplay(result_slot)
+  let code = result_slot[0]
+  if code != 0 {
+    raise Failed(
+      "OH_NativeDisplayManager_CreatePrimaryDisplay",
+      NativeDisplayManager_ErrorCode::from_raw(code).c_name(),
+      code,
+    )
+  }
+  object
+}
+
+///|
+#borrow(available_area_change_callback, listener_index)
+extern "C" fn raw_OH_NativeDisplayManager_RegisterAvailableAreaChangeListener(
+  available_area_change_callback_tramp : FuncRef[
+    ((UInt64) -> Unit, UInt64) -> Unit,
+  ],
+  available_area_change_callback : (UInt64) -> Unit,
+  available_area_change_callback_slot : Int32,
+  listener_index : FixedArray[UInt32],
+) -> Int32 = "moonohos_sys_OH_NativeDisplayManager_RegisterAvailableAreaChangeListener"
+
+///|
+/// `OH_NativeDisplayManager_RegisterAvailableAreaChangeListener` from `window_manager/oh_display_manager.h` (`libnative_display_manager.so`).
+/// Raises `SysError` when the call returns a non-zero error code.
+/// The callback may run on an SDK thread; MoonOHOS enters the MoonBit gate first.
+pub fn register_available_area_change_listener(
+  available_area_change_callback : (UInt64) -> Unit,
+) -> UInt32 raise SysError {
+  let available_area_change_callback_slot = raw_slot_OH_NativeDisplayManager_RegisterAvailableAreaChangeListener_0()
+  if available_area_change_callback_slot < 0 {
+    raise Failed(
+      "OH_NativeDisplayManager_RegisterAvailableAreaChangeListener", "all 8 callback slots are in use",
+      -1,
+    )
+  }
+  let listener_index : FixedArray[UInt32] = [0U]
+  let code = raw_OH_NativeDisplayManager_RegisterAvailableAreaChangeListener(
+    fn(moonohos_cb, moonohos_a0) { moonohos_cb(moonohos_a0) },
+    available_area_change_callback,
+    available_area_change_callback_slot,
+    listener_index,
+  )
+  if code != 0 {
+    raise Failed(
+      "OH_NativeDisplayManager_RegisterAvailableAreaChangeListener",
+      NativeDisplayManager_ErrorCode::from_raw(code).c_name(),
+      code,
+    )
+  }
+  listener_index[0]
+}
+
+///|
 extern "C" fn raw_OH_NativeDisplayManager_UnregisterAvailableAreaChangeListener(
   listener_index : UInt32,
 ) -> Int32 = "moonohos_sys_OH_NativeDisplayManager_UnregisterAvailableAreaChangeListener"
@@ -813,6 +1746,101 @@ pub fn unregister_available_area_change_listener(
 }
 
 ///|
+#borrow(result_slot)
+extern "C" fn raw_OH_NativeDisplayManager_CreateAvailableArea(
+  result_slot : FixedArray[Int32],
+  display_id : UInt64,
+) -> NativeDisplayManager_Rect = "moonohos_sys_OH_NativeDisplayManager_CreateAvailableArea"
+
+///|
+/// `OH_NativeDisplayManager_CreateAvailableArea` from `window_manager/oh_display_manager.h` (`libnative_display_manager.so`).
+/// Raises `SysError` when the call returns a non-zero error code.
+pub fn create_available_area(
+  display_id : UInt64,
+) -> NativeDisplayManager_Rect raise SysError {
+  let result_slot : FixedArray[Int32] = [0]
+  let object = raw_OH_NativeDisplayManager_CreateAvailableArea(
+    result_slot, display_id,
+  )
+  let code = result_slot[0]
+  if code != 0 {
+    raise Failed(
+      "OH_NativeDisplayManager_CreateAvailableArea",
+      NativeDisplayManager_ErrorCode::from_raw(code).c_name(),
+      code,
+    )
+  }
+  object
+}
+
+///|
+#borrow(available_area)
+extern "C" fn raw_OH_NativeDisplayManager_DestroyAvailableArea(
+  available_area : NativeDisplayManager_Rect,
+) -> Int32 = "moonohos_sys_OH_NativeDisplayManager_DestroyAvailableArea"
+
+///|
+/// `OH_NativeDisplayManager_DestroyAvailableArea` from `window_manager/oh_display_manager.h` (`libnative_display_manager.so`).
+/// Raises `SysError` when the call returns a non-zero error code.
+pub fn destroy_available_area(
+  available_area : NativeDisplayManager_Rect,
+) -> Unit raise SysError {
+  if !available_area.is_live() {
+    raise Closed(
+      "OH_NativeDisplayManager_DestroyAvailableArea: available_area was destroyed",
+    )
+  }
+  let code = raw_OH_NativeDisplayManager_DestroyAvailableArea(available_area)
+  if code != 0 {
+    raise Failed(
+      "OH_NativeDisplayManager_DestroyAvailableArea",
+      NativeDisplayManager_ErrorCode::from_raw(code).c_name(),
+      code,
+    )
+  }
+}
+
+///|
+#borrow(display_add_callback, listener_index)
+extern "C" fn raw_OH_NativeDisplayManager_RegisterDisplayAddListener(
+  display_add_callback_tramp : FuncRef[((UInt64) -> Unit, UInt64) -> Unit],
+  display_add_callback : (UInt64) -> Unit,
+  display_add_callback_slot : Int32,
+  listener_index : FixedArray[UInt32],
+) -> Int32 = "moonohos_sys_OH_NativeDisplayManager_RegisterDisplayAddListener"
+
+///|
+/// `OH_NativeDisplayManager_RegisterDisplayAddListener` from `window_manager/oh_display_manager.h` (`libnative_display_manager.so`).
+/// Raises `SysError` when the call returns a non-zero error code.
+/// The callback may run on an SDK thread; MoonOHOS enters the MoonBit gate first.
+pub fn register_display_add_listener(
+  display_add_callback : (UInt64) -> Unit,
+) -> UInt32 raise SysError {
+  let display_add_callback_slot = raw_slot_OH_NativeDisplayManager_RegisterDisplayAddListener_0()
+  if display_add_callback_slot < 0 {
+    raise Failed(
+      "OH_NativeDisplayManager_RegisterDisplayAddListener", "all 8 callback slots are in use",
+      -1,
+    )
+  }
+  let listener_index : FixedArray[UInt32] = [0U]
+  let code = raw_OH_NativeDisplayManager_RegisterDisplayAddListener(
+    fn(moonohos_cb, moonohos_a0) { moonohos_cb(moonohos_a0) },
+    display_add_callback,
+    display_add_callback_slot,
+    listener_index,
+  )
+  if code != 0 {
+    raise Failed(
+      "OH_NativeDisplayManager_RegisterDisplayAddListener",
+      NativeDisplayManager_ErrorCode::from_raw(code).c_name(),
+      code,
+    )
+  }
+  listener_index[0]
+}
+
+///|
 extern "C" fn raw_OH_NativeDisplayManager_UnregisterDisplayAddListener(
   listener_index : UInt32,
 ) -> Int32 = "moonohos_sys_OH_NativeDisplayManager_UnregisterDisplayAddListener"
@@ -833,6 +1861,46 @@ pub fn unregister_display_add_listener(
       code,
     )
   }
+}
+
+///|
+#borrow(display_remove_callback, listener_index)
+extern "C" fn raw_OH_NativeDisplayManager_RegisterDisplayRemoveListener(
+  display_remove_callback_tramp : FuncRef[((UInt64) -> Unit, UInt64) -> Unit],
+  display_remove_callback : (UInt64) -> Unit,
+  display_remove_callback_slot : Int32,
+  listener_index : FixedArray[UInt32],
+) -> Int32 = "moonohos_sys_OH_NativeDisplayManager_RegisterDisplayRemoveListener"
+
+///|
+/// `OH_NativeDisplayManager_RegisterDisplayRemoveListener` from `window_manager/oh_display_manager.h` (`libnative_display_manager.so`).
+/// Raises `SysError` when the call returns a non-zero error code.
+/// The callback may run on an SDK thread; MoonOHOS enters the MoonBit gate first.
+pub fn register_display_remove_listener(
+  display_remove_callback : (UInt64) -> Unit,
+) -> UInt32 raise SysError {
+  let display_remove_callback_slot = raw_slot_OH_NativeDisplayManager_RegisterDisplayRemoveListener_0()
+  if display_remove_callback_slot < 0 {
+    raise Failed(
+      "OH_NativeDisplayManager_RegisterDisplayRemoveListener", "all 8 callback slots are in use",
+      -1,
+    )
+  }
+  let listener_index : FixedArray[UInt32] = [0U]
+  let code = raw_OH_NativeDisplayManager_RegisterDisplayRemoveListener(
+    fn(moonohos_cb, moonohos_a0) { moonohos_cb(moonohos_a0) },
+    display_remove_callback,
+    display_remove_callback_slot,
+    listener_index,
+  )
+  if code != 0 {
+    raise Failed(
+      "OH_NativeDisplayManager_RegisterDisplayRemoveListener",
+      NativeDisplayManager_ErrorCode::from_raw(code).c_name(),
+      code,
+    )
+  }
+  listener_index[0]
 }
 
 ///|

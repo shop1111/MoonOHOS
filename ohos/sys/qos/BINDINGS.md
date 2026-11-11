@@ -19,4 +19,4 @@ Bound: 6, skipped: 1.
 
 | C function | Reason |
 |---|---|
-| `OH_QoS_GewuSubmitRequest` | parameter callback: unsupported type function pointer |
+| `OH_QoS_GewuSubmitRequest` | parameter callback: callback argument 1 is not a value, string or handle |

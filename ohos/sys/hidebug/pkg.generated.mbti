@@ -4,6 +4,8 @@ package "shop1111/moonohos_ohos/sys/hidebug"
 // Values
 pub fn acquire_async_context() -> UInt64
 
+pub fn destroy_backtrace_object(HiDebug_Backtrace_Object__) -> Unit raise SysError
+
 pub fn get_app_cpu_usage() -> Double
 
 pub fn get_app_memory_limit() -> HiDebug_MemoryLimit
@@ -11,6 +13,8 @@ pub fn get_app_memory_limit() -> HiDebug_MemoryLimit
 pub fn get_app_native_mem_info() -> HiDebug_NativeMemInfo
 
 pub fn get_app_native_mem_info_with_cache(Bool) -> HiDebug_NativeMemInfo
+
+pub fn get_default_malloc_dispatch_table() -> HiDebug_MallocDispatch?
 
 pub fn get_graphics_memory() -> UInt32 raise SysError
 
@@ -26,9 +30,15 @@ pub fn push_async_context(UInt64) -> Unit
 
 pub fn release_async_context(UInt64) -> Unit
 
+pub fn request_thread_lite_sampling(HiDebug_ProcessSamplerConfig, (String) -> Unit) -> Unit raise SysError
+
+pub fn request_trace(OH_HiDebug_RequestTraceConfig, (HiDebug_ErrorCode, String) -> Unit) -> Unit raise SysError
+
 pub fn reset_crash_obj(UInt64) -> Unit
 
 pub fn restore_malloc_dispatch_table() -> Unit
+
+pub fn set_malloc_dispatch_table(HiDebug_MallocDispatch) -> Unit raise SysError
 
 pub fn start_app_trace_capture(HiDebug_TraceFlag, UInt64, UInt32) -> String raise SysError
 
@@ -41,30 +51,15 @@ pub fn unregister_mem_dump_listener(String) -> Unit raise SysError
 // Errors
 pub(all) suberror SysError {
   Failed(String, String, Int32)
+  Closed(String)
 }
 pub fn SysError::output(Self, &Logger) -> Unit
 pub fn SysError::to_string(Self) -> String
 pub impl Show for SysError
 
 // Types and methods
-pub(all) enum HiDebug_CrashObjType {
-  HidebugCrashobjString
-  HidebugCrashobjMemory64b
-  HidebugCrashobjMemory256b
-  HidebugCrashobjMemory1024b
-  HidebugCrashobjMemory2048b
-  HidebugCrashobjMemory4096b
-  Other(Int32)
-}
-pub fn HiDebug_CrashObjType::c_name(Self) -> String
-pub fn HiDebug_CrashObjType::equal(Self, Self) -> Bool
-pub fn HiDebug_CrashObjType::from_raw(Int32) -> Self
-pub fn HiDebug_CrashObjType::not_equal(Self, Self) -> Bool
-pub fn HiDebug_CrashObjType::output(Self, &Logger) -> Unit
-pub fn HiDebug_CrashObjType::to_raw(Self) -> Int32
-pub fn HiDebug_CrashObjType::to_string(Self) -> String
-pub impl Eq for HiDebug_CrashObjType
-pub impl Show for HiDebug_CrashObjType
+pub type HiDebug_Backtrace_Object__
+pub fn HiDebug_Backtrace_Object__::is_live(Self) -> Bool
 
 pub(all) enum HiDebug_ErrorCode {
   HidebugSuccess
@@ -114,6 +109,9 @@ pub(all) struct HiDebug_GraphicsMemorySummary {
   graph : UInt32
 }
 
+pub type HiDebug_MallocDispatch
+pub fn HiDebug_MallocDispatch::is_live(Self) -> Bool
+
 pub(all) struct HiDebug_MemoryLimit {
   rss_limit : UInt64
   vss_limit : UInt64
@@ -128,6 +126,13 @@ pub(all) struct HiDebug_NativeMemInfo {
   shared_clean : UInt32
   private_clean : UInt32
 }
+
+pub type HiDebug_ProcessSamplerConfig
+pub fn HiDebug_ProcessSamplerConfig::duration(Self) -> UInt32 raise SysError
+pub fn HiDebug_ProcessSamplerConfig::frequency(Self) -> UInt32 raise SysError
+pub fn HiDebug_ProcessSamplerConfig::is_live(Self) -> Bool
+pub fn HiDebug_ProcessSamplerConfig::reserved(Self) -> UInt32 raise SysError
+pub fn HiDebug_ProcessSamplerConfig::size(Self) -> UInt32 raise SysError
 
 pub(all) struct HiDebug_SystemMemInfo {
   total_mem : UInt32
@@ -150,6 +155,12 @@ pub fn HiDebug_TraceFlag::to_string(Self) -> String
 pub impl Eq for HiDebug_TraceFlag
 pub impl Show for HiDebug_TraceFlag
 
+pub type OH_HiDebug_RequestTraceConfig
+pub fn OH_HiDebug_RequestTraceConfig::buffer_size_kb(Self) -> UInt32 raise SysError
+pub fn OH_HiDebug_RequestTraceConfig::duration_ms(Self) -> UInt32 raise SysError
+pub fn OH_HiDebug_RequestTraceConfig::is_live(Self) -> Bool
+pub fn OH_HiDebug_RequestTraceConfig::reserved(Self) -> UInt32 raise SysError
+
 pub(all) struct OH_HiDebug_ResProfilerConfig {
   max_duration : UInt32
   filter_size : UInt32
@@ -157,24 +168,6 @@ pub(all) struct OH_HiDebug_ResProfilerConfig {
   statistics_interval : UInt32
   sample_interval : UInt32
 }
-
-pub(all) enum OH_HiDebug_ResourceType {
-  OhResTypeFd
-  OhResTypeThread
-  OhResTypeNative
-  OhResTypeGpu
-  OhResTypeGlobalHandle
-  Other(Int32)
-}
-pub fn OH_HiDebug_ResourceType::c_name(Self) -> String
-pub fn OH_HiDebug_ResourceType::equal(Self, Self) -> Bool
-pub fn OH_HiDebug_ResourceType::from_raw(Int32) -> Self
-pub fn OH_HiDebug_ResourceType::not_equal(Self, Self) -> Bool
-pub fn OH_HiDebug_ResourceType::output(Self, &Logger) -> Unit
-pub fn OH_HiDebug_ResourceType::to_raw(Self) -> Int32
-pub fn OH_HiDebug_ResourceType::to_string(Self) -> String
-pub impl Eq for OH_HiDebug_ResourceType
-pub impl Show for OH_HiDebug_ResourceType
 
 // Type aliases
 

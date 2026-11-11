@@ -5,6 +5,8 @@
 pub(all) suberror SysError {
   /// C function, error constant name, raw code.
   Failed(String, String, Int32)
+  /// A handle was used after it was destroyed.
+  Closed(String)
 }
 
 ///|
@@ -14,6 +16,7 @@ pub impl Show for SysError with fn output(self, logger) {
       logger.write_string(
         function + " failed: " + name + " (" + code.to_string() + ")",
       )
+    Closed(message) => logger.write_string(message)
   }
 }
 
@@ -292,153 +295,6 @@ pub extend HiDebug_TraceFlag with Eq::{equal, not_equal}
 pub extend HiDebug_TraceFlag with Show::{to_string, output}
 
 ///|
-/// C `HiDebug_CrashObjType`. `Other` carries values this binding does not name.
-pub(all) enum HiDebug_CrashObjType {
-  /// `HIDEBUG_CRASHOBJ_STRING` (0)
-  HidebugCrashobjString
-  /// `HIDEBUG_CRASHOBJ_MEMORY_64B` (1)
-  HidebugCrashobjMemory64b
-  /// `HIDEBUG_CRASHOBJ_MEMORY_256B` (2)
-  HidebugCrashobjMemory256b
-  /// `HIDEBUG_CRASHOBJ_MEMORY_1024B` (3)
-  HidebugCrashobjMemory1024b
-  /// `HIDEBUG_CRASHOBJ_MEMORY_2048B` (4)
-  HidebugCrashobjMemory2048b
-  /// `HIDEBUG_CRASHOBJ_MEMORY_4096B` (5)
-  HidebugCrashobjMemory4096b
-  Other(Int32)
-}
-
-///|
-pub fn HiDebug_CrashObjType::to_raw(self : HiDebug_CrashObjType) -> Int32 {
-  match self {
-    HidebugCrashobjString => 0
-    HidebugCrashobjMemory64b => 1
-    HidebugCrashobjMemory256b => 2
-    HidebugCrashobjMemory1024b => 3
-    HidebugCrashobjMemory2048b => 4
-    HidebugCrashobjMemory4096b => 5
-    Other(value) => value
-  }
-}
-
-///|
-pub fn HiDebug_CrashObjType::from_raw(value : Int32) -> HiDebug_CrashObjType {
-  match value {
-    0 => HidebugCrashobjString
-    1 => HidebugCrashobjMemory64b
-    2 => HidebugCrashobjMemory256b
-    3 => HidebugCrashobjMemory1024b
-    4 => HidebugCrashobjMemory2048b
-    5 => HidebugCrashobjMemory4096b
-    _ => Other(value)
-  }
-}
-
-///|
-/// The C constant name, or `HiDebug_CrashObjType(<value>)` for an unnamed value.
-pub fn HiDebug_CrashObjType::c_name(self : HiDebug_CrashObjType) -> String {
-  match self {
-    HidebugCrashobjString => "HIDEBUG_CRASHOBJ_STRING"
-    HidebugCrashobjMemory64b => "HIDEBUG_CRASHOBJ_MEMORY_64B"
-    HidebugCrashobjMemory256b => "HIDEBUG_CRASHOBJ_MEMORY_256B"
-    HidebugCrashobjMemory1024b => "HIDEBUG_CRASHOBJ_MEMORY_1024B"
-    HidebugCrashobjMemory2048b => "HIDEBUG_CRASHOBJ_MEMORY_2048B"
-    HidebugCrashobjMemory4096b => "HIDEBUG_CRASHOBJ_MEMORY_4096B"
-    Other(value) => "HiDebug_CrashObjType(" + value.to_string() + ")"
-  }
-}
-
-///|
-pub impl Eq for HiDebug_CrashObjType with fn equal(self, other) {
-  self.to_raw() == other.to_raw()
-}
-
-///|
-pub impl Show for HiDebug_CrashObjType with fn output(self, logger) {
-  logger.write_string(self.c_name())
-}
-
-///|
-pub extend HiDebug_CrashObjType with Eq::{equal, not_equal}
-
-///|
-pub extend HiDebug_CrashObjType with Show::{to_string, output}
-
-///|
-/// C `OH_HiDebug_ResourceType`. `Other` carries values this binding does not name.
-pub(all) enum OH_HiDebug_ResourceType {
-  /// `OH_RES_TYPE_FD` (0)
-  OhResTypeFd
-  /// `OH_RES_TYPE_THREAD` (1)
-  OhResTypeThread
-  /// `OH_RES_TYPE_NATIVE` (2)
-  OhResTypeNative
-  /// `OH_RES_TYPE_GPU` (3)
-  OhResTypeGpu
-  /// `OH_RES_TYPE_GLOBAL_HANDLE` (4)
-  OhResTypeGlobalHandle
-  Other(Int32)
-}
-
-///|
-pub fn OH_HiDebug_ResourceType::to_raw(self : OH_HiDebug_ResourceType) -> Int32 {
-  match self {
-    OhResTypeFd => 0
-    OhResTypeThread => 1
-    OhResTypeNative => 2
-    OhResTypeGpu => 3
-    OhResTypeGlobalHandle => 4
-    Other(value) => value
-  }
-}
-
-///|
-pub fn OH_HiDebug_ResourceType::from_raw(
-  value : Int32,
-) -> OH_HiDebug_ResourceType {
-  match value {
-    0 => OhResTypeFd
-    1 => OhResTypeThread
-    2 => OhResTypeNative
-    3 => OhResTypeGpu
-    4 => OhResTypeGlobalHandle
-    _ => Other(value)
-  }
-}
-
-///|
-/// The C constant name, or `OH_HiDebug_ResourceType(<value>)` for an unnamed value.
-pub fn OH_HiDebug_ResourceType::c_name(
-  self : OH_HiDebug_ResourceType,
-) -> String {
-  match self {
-    OhResTypeFd => "OH_RES_TYPE_FD"
-    OhResTypeThread => "OH_RES_TYPE_THREAD"
-    OhResTypeNative => "OH_RES_TYPE_NATIVE"
-    OhResTypeGpu => "OH_RES_TYPE_GPU"
-    OhResTypeGlobalHandle => "OH_RES_TYPE_GLOBAL_HANDLE"
-    Other(value) => "OH_HiDebug_ResourceType(" + value.to_string() + ")"
-  }
-}
-
-///|
-pub impl Eq for OH_HiDebug_ResourceType with fn equal(self, other) {
-  self.to_raw() == other.to_raw()
-}
-
-///|
-pub impl Show for OH_HiDebug_ResourceType with fn output(self, logger) {
-  logger.write_string(self.c_name())
-}
-
-///|
-pub extend OH_HiDebug_ResourceType with Eq::{equal, not_equal}
-
-///|
-pub extend OH_HiDebug_ResourceType with Show::{to_string, output}
-
-///|
 /// C `HiDebug_MemoryLimit`, copied field by field.
 pub(all) struct HiDebug_MemoryLimit {
   /// `rssLimit`
@@ -500,6 +356,217 @@ pub(all) struct HiDebug_GraphicsMemorySummary {
   /// `graph`
   graph : UInt32
 }
+
+///|
+/// Handle to C `HiDebug_MallocDispatch`.
+/// Borrowed from the SDK; handles passed to callbacks stop being live when
+/// the callback returns.
+pub type HiDebug_MallocDispatch
+
+///|
+#borrow(handle)
+extern "C" fn raw_live_HiDebug_MallocDispatch(
+  handle : HiDebug_MallocDispatch,
+) -> Int32 = "moonohos_sys_hidebug_live"
+
+///|
+/// False once the handle was destroyed (or its callback returned).
+pub fn HiDebug_MallocDispatch::is_live(self : HiDebug_MallocDispatch) -> Bool {
+  raw_live_HiDebug_MallocDispatch(self) != 0
+}
+
+///|
+/// Handle to C `HiDebug_Backtrace_Object__`.
+/// Handles from Create/Acquire functions are owned: `destroy_backtrace_object` releases one,
+/// and an owned handle still open when it is garbage collected is released
+/// then. Other handles are borrowed from the SDK; handles passed to callbacks
+/// stop being live when the callback returns.
+pub type HiDebug_Backtrace_Object__
+
+///|
+#borrow(handle)
+extern "C" fn raw_live_HiDebug_Backtrace_Object__(
+  handle : HiDebug_Backtrace_Object__,
+) -> Int32 = "moonohos_sys_hidebug_live"
+
+///|
+/// False once the handle was destroyed (or its callback returned).
+pub fn HiDebug_Backtrace_Object__::is_live(
+  self : HiDebug_Backtrace_Object__,
+) -> Bool {
+  raw_live_HiDebug_Backtrace_Object__(self) != 0
+}
+
+///|
+/// Handle to C `HiDebug_ProcessSamplerConfig`.
+/// Borrowed from the SDK; handles passed to callbacks stop being live when
+/// the callback returns.
+pub type HiDebug_ProcessSamplerConfig
+
+///|
+#borrow(handle)
+extern "C" fn raw_live_HiDebug_ProcessSamplerConfig(
+  handle : HiDebug_ProcessSamplerConfig,
+) -> Int32 = "moonohos_sys_hidebug_live"
+
+///|
+/// False once the handle was destroyed (or its callback returned).
+pub fn HiDebug_ProcessSamplerConfig::is_live(
+  self : HiDebug_ProcessSamplerConfig,
+) -> Bool {
+  raw_live_HiDebug_ProcessSamplerConfig(self) != 0
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_HiDebug_ProcessSamplerConfig_size(
+  handle : HiDebug_ProcessSamplerConfig,
+) -> UInt32 = "moonohos_sys_get_HiDebug_ProcessSamplerConfig_size"
+
+///|
+/// C field `size`.
+pub fn HiDebug_ProcessSamplerConfig::size(
+  self : HiDebug_ProcessSamplerConfig,
+) -> UInt32 raise SysError {
+  if !self.is_live() {
+    raise Closed("HiDebug_ProcessSamplerConfig.size: handle was destroyed")
+  }
+  raw_get_HiDebug_ProcessSamplerConfig_size(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_HiDebug_ProcessSamplerConfig_frequency(
+  handle : HiDebug_ProcessSamplerConfig,
+) -> UInt32 = "moonohos_sys_get_HiDebug_ProcessSamplerConfig_frequency"
+
+///|
+/// C field `frequency`.
+pub fn HiDebug_ProcessSamplerConfig::frequency(
+  self : HiDebug_ProcessSamplerConfig,
+) -> UInt32 raise SysError {
+  if !self.is_live() {
+    raise Closed("HiDebug_ProcessSamplerConfig.frequency: handle was destroyed")
+  }
+  raw_get_HiDebug_ProcessSamplerConfig_frequency(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_HiDebug_ProcessSamplerConfig_duration(
+  handle : HiDebug_ProcessSamplerConfig,
+) -> UInt32 = "moonohos_sys_get_HiDebug_ProcessSamplerConfig_duration"
+
+///|
+/// C field `duration`.
+pub fn HiDebug_ProcessSamplerConfig::duration(
+  self : HiDebug_ProcessSamplerConfig,
+) -> UInt32 raise SysError {
+  if !self.is_live() {
+    raise Closed("HiDebug_ProcessSamplerConfig.duration: handle was destroyed")
+  }
+  raw_get_HiDebug_ProcessSamplerConfig_duration(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_HiDebug_ProcessSamplerConfig_reserved(
+  handle : HiDebug_ProcessSamplerConfig,
+) -> UInt32 = "moonohos_sys_get_HiDebug_ProcessSamplerConfig_reserved"
+
+///|
+/// C field `reserved`.
+pub fn HiDebug_ProcessSamplerConfig::reserved(
+  self : HiDebug_ProcessSamplerConfig,
+) -> UInt32 raise SysError {
+  if !self.is_live() {
+    raise Closed("HiDebug_ProcessSamplerConfig.reserved: handle was destroyed")
+  }
+  raw_get_HiDebug_ProcessSamplerConfig_reserved(self)
+}
+
+///|
+/// Handle to C `OH_HiDebug_RequestTraceConfig`.
+/// Borrowed from the SDK; handles passed to callbacks stop being live when
+/// the callback returns.
+pub type OH_HiDebug_RequestTraceConfig
+
+///|
+#borrow(handle)
+extern "C" fn raw_live_OH_HiDebug_RequestTraceConfig(
+  handle : OH_HiDebug_RequestTraceConfig,
+) -> Int32 = "moonohos_sys_hidebug_live"
+
+///|
+/// False once the handle was destroyed (or its callback returned).
+pub fn OH_HiDebug_RequestTraceConfig::is_live(
+  self : OH_HiDebug_RequestTraceConfig,
+) -> Bool {
+  raw_live_OH_HiDebug_RequestTraceConfig(self) != 0
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_OH_HiDebug_RequestTraceConfig_buffer_size_kb(
+  handle : OH_HiDebug_RequestTraceConfig,
+) -> UInt32 = "moonohos_sys_get_OH_HiDebug_RequestTraceConfig_bufferSizeKb"
+
+///|
+/// C field `bufferSizeKb`.
+pub fn OH_HiDebug_RequestTraceConfig::buffer_size_kb(
+  self : OH_HiDebug_RequestTraceConfig,
+) -> UInt32 raise SysError {
+  if !self.is_live() {
+    raise Closed(
+      "OH_HiDebug_RequestTraceConfig.bufferSizeKb: handle was destroyed",
+    )
+  }
+  raw_get_OH_HiDebug_RequestTraceConfig_buffer_size_kb(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_OH_HiDebug_RequestTraceConfig_duration_ms(
+  handle : OH_HiDebug_RequestTraceConfig,
+) -> UInt32 = "moonohos_sys_get_OH_HiDebug_RequestTraceConfig_durationMs"
+
+///|
+/// C field `durationMs`.
+pub fn OH_HiDebug_RequestTraceConfig::duration_ms(
+  self : OH_HiDebug_RequestTraceConfig,
+) -> UInt32 raise SysError {
+  if !self.is_live() {
+    raise Closed(
+      "OH_HiDebug_RequestTraceConfig.durationMs: handle was destroyed",
+    )
+  }
+  raw_get_OH_HiDebug_RequestTraceConfig_duration_ms(self)
+}
+
+///|
+#borrow(handle)
+extern "C" fn raw_get_OH_HiDebug_RequestTraceConfig_reserved(
+  handle : OH_HiDebug_RequestTraceConfig,
+) -> UInt32 = "moonohos_sys_get_OH_HiDebug_RequestTraceConfig_reserved"
+
+///|
+/// C field `reserved`.
+pub fn OH_HiDebug_RequestTraceConfig::reserved(
+  self : OH_HiDebug_RequestTraceConfig,
+) -> UInt32 raise SysError {
+  if !self.is_live() {
+    raise Closed("OH_HiDebug_RequestTraceConfig.reserved: handle was destroyed")
+  }
+  raw_get_OH_HiDebug_RequestTraceConfig_reserved(self)
+}
+
+///|
+/// Index of a free callback slot for `OH_HiDebug_RequestTrace_1`, or -1.
+extern "C" fn raw_slot_OH_HiDebug_RequestTrace_1() -> Int32 = "moonohos_sys_slot_OH_HiDebug_RequestTrace_1"
+
+///|
+/// Index of a free callback slot for `OH_HiDebug_RequestThreadLiteSampling_1`, or -1.
+extern "C" fn raw_slot_OH_HiDebug_RequestThreadLiteSampling_1() -> Int32 = "moonohos_sys_slot_OH_HiDebug_RequestThreadLiteSampling_1"
 
 ///|
 extern "C" fn raw_OH_HiDebug_GetSystemCpuUsage() -> Double = "moonohos_sys_OH_HiDebug_GetSystemCpuUsage"
@@ -707,6 +774,51 @@ pub fn stop_app_trace_capture() -> Unit raise SysError {
 }
 
 ///|
+#borrow(config, callback)
+extern "C" fn raw_OH_HiDebug_RequestTrace(
+  config : OH_HiDebug_RequestTraceConfig,
+  callback_tramp : FuncRef[
+    ((HiDebug_ErrorCode, String) -> Unit, Int32, Bytes) -> Unit,
+  ],
+  callback : (HiDebug_ErrorCode, String) -> Unit,
+  callback_slot : Int32,
+) -> Int32 = "moonohos_sys_OH_HiDebug_RequestTrace"
+
+///|
+/// `OH_HiDebug_RequestTrace` from `hidebug/hidebug.h` (`libohhidebug.so`).
+/// Raises `SysError` when the call returns a non-zero error code.
+/// The callback may run on an SDK thread; MoonOHOS enters the MoonBit gate first.
+pub fn request_trace(
+  config : OH_HiDebug_RequestTraceConfig,
+  callback : (HiDebug_ErrorCode, String) -> Unit,
+) -> Unit raise SysError {
+  if !config.is_live() {
+    raise Closed("OH_HiDebug_RequestTrace: config was destroyed")
+  }
+  let callback_slot = raw_slot_OH_HiDebug_RequestTrace_1()
+  if callback_slot < 0 {
+    raise Failed(
+      "OH_HiDebug_RequestTrace", "all 8 callback slots are in use", -1,
+    )
+  }
+  let code = raw_OH_HiDebug_RequestTrace(
+    config,
+    fn(moonohos_cb, moonohos_a0, moonohos_a1) {
+      moonohos_cb(HiDebug_ErrorCode::from_raw(moonohos_a0), c_text(moonohos_a1))
+    },
+    callback,
+    callback_slot,
+  )
+  if code != 0 {
+    raise Failed(
+      "OH_HiDebug_RequestTrace",
+      HiDebug_ErrorCode::from_raw(code).c_name(),
+      code,
+    )
+  }
+}
+
+///|
 #borrow(value)
 extern "C" fn raw_OH_HiDebug_GetGraphicsMemory(
   value : FixedArray[UInt32],
@@ -729,12 +841,70 @@ pub fn get_graphics_memory() -> UInt32 raise SysError {
 }
 
 ///|
+#borrow(dispatch_table)
+extern "C" fn raw_OH_HiDebug_SetMallocDispatchTable(
+  dispatch_table : HiDebug_MallocDispatch,
+) -> Int32 = "moonohos_sys_OH_HiDebug_SetMallocDispatchTable"
+
+///|
+/// `OH_HiDebug_SetMallocDispatchTable` from `hidebug/hidebug.h` (`libohhidebug.so`).
+/// Raises `SysError` when the call returns a non-zero error code.
+pub fn set_malloc_dispatch_table(
+  dispatch_table : HiDebug_MallocDispatch,
+) -> Unit raise SysError {
+  if !dispatch_table.is_live() {
+    raise Closed(
+      "OH_HiDebug_SetMallocDispatchTable: dispatch_table was destroyed",
+    )
+  }
+  let code = raw_OH_HiDebug_SetMallocDispatchTable(dispatch_table)
+  if code != 0 {
+    raise Failed(
+      "OH_HiDebug_SetMallocDispatchTable",
+      HiDebug_ErrorCode::from_raw(code).c_name(),
+      code,
+    )
+  }
+}
+
+///|
+extern "C" fn raw_OH_HiDebug_GetDefaultMallocDispatchTable() -> HiDebug_MallocDispatch = "moonohos_sys_OH_HiDebug_GetDefaultMallocDispatchTable"
+
+///|
+/// `OH_HiDebug_GetDefaultMallocDispatchTable` from `hidebug/hidebug.h` (`libohhidebug.so`).
+pub fn get_default_malloc_dispatch_table() -> HiDebug_MallocDispatch? {
+  let object = raw_OH_HiDebug_GetDefaultMallocDispatchTable()
+  if object.is_live() {
+    Some(object)
+  } else {
+    None
+  }
+}
+
+///|
 extern "C" fn raw_OH_HiDebug_RestoreMallocDispatchTable() -> Unit = "moonohos_sys_OH_HiDebug_RestoreMallocDispatchTable"
 
 ///|
 /// `OH_HiDebug_RestoreMallocDispatchTable` from `hidebug/hidebug.h` (`libohhidebug.so`).
 pub fn restore_malloc_dispatch_table() -> Unit {
   raw_OH_HiDebug_RestoreMallocDispatchTable()
+}
+
+///|
+#borrow(object)
+extern "C" fn raw_OH_HiDebug_DestroyBacktraceObject(
+  object : HiDebug_Backtrace_Object__,
+) -> Unit = "moonohos_sys_OH_HiDebug_DestroyBacktraceObject"
+
+///|
+/// `OH_HiDebug_DestroyBacktraceObject` from `hidebug/hidebug.h` (`libohhidebug.so`).
+pub fn destroy_backtrace_object(
+  object : HiDebug_Backtrace_Object__,
+) -> Unit raise SysError {
+  if !object.is_live() {
+    raise Closed("OH_HiDebug_DestroyBacktraceObject: object was destroyed")
+  }
+  raw_OH_HiDebug_DestroyBacktraceObject(object)
 }
 
 ///|
@@ -764,6 +934,48 @@ pub fn get_graphics_memory_summary(
     )
   }
   { gl: summary_gl[0], graph: summary_graph[0], }
+}
+
+///|
+#borrow(config, stacks_callback)
+extern "C" fn raw_OH_HiDebug_RequestThreadLiteSampling(
+  config : HiDebug_ProcessSamplerConfig,
+  stacks_callback_tramp : FuncRef[((String) -> Unit, Bytes) -> Unit],
+  stacks_callback : (String) -> Unit,
+  stacks_callback_slot : Int32,
+) -> Int32 = "moonohos_sys_OH_HiDebug_RequestThreadLiteSampling"
+
+///|
+/// `OH_HiDebug_RequestThreadLiteSampling` from `hidebug/hidebug.h` (`libohhidebug.so`).
+/// Raises `SysError` when the call returns a non-zero error code.
+/// The callback may run on an SDK thread; MoonOHOS enters the MoonBit gate first.
+pub fn request_thread_lite_sampling(
+  config : HiDebug_ProcessSamplerConfig,
+  stacks_callback : (String) -> Unit,
+) -> Unit raise SysError {
+  if !config.is_live() {
+    raise Closed("OH_HiDebug_RequestThreadLiteSampling: config was destroyed")
+  }
+  let stacks_callback_slot = raw_slot_OH_HiDebug_RequestThreadLiteSampling_1()
+  if stacks_callback_slot < 0 {
+    raise Failed(
+      "OH_HiDebug_RequestThreadLiteSampling", "all 8 callback slots are in use",
+      -1,
+    )
+  }
+  let code = raw_OH_HiDebug_RequestThreadLiteSampling(
+    config,
+    fn(moonohos_cb, moonohos_a0) { moonohos_cb(c_text(moonohos_a0)) },
+    stacks_callback,
+    stacks_callback_slot,
+  )
+  if code != 0 {
+    raise Failed(
+      "OH_HiDebug_RequestThreadLiteSampling",
+      HiDebug_ErrorCode::from_raw(code).c_name(),
+      code,
+    )
+  }
 }
 
 ///|

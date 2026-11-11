@@ -5,6 +5,8 @@
 pub(all) suberror SysError {
   /// C function, error constant name, raw code.
   Failed(String, String, Int32)
+  /// A handle was used after it was destroyed.
+  Closed(String)
 }
 
 ///|
@@ -14,6 +16,7 @@ pub impl Show for SysError with fn output(self, logger) {
       logger.write_string(
         function + " failed: " + name + " (" + code.to_string() + ")",
       )
+    Closed(message) => logger.write_string(message)
   }
 }
 

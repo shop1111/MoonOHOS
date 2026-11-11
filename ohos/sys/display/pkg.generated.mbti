@@ -2,6 +2,24 @@
 package "shop1111/moonohos_ohos/sys/display"
 
 // Values
+pub fn create_all_displays() -> NativeDisplayManager_DisplaysInfo raise SysError
+
+pub fn create_available_area(UInt64) -> NativeDisplayManager_Rect raise SysError
+
+pub fn create_default_display_cutout_info() -> NativeDisplayManager_CutoutInfo raise SysError
+
+pub fn create_display_by_id(UInt32) -> NativeDisplayManager_DisplayInfo raise SysError
+
+pub fn create_primary_display() -> NativeDisplayManager_DisplayInfo raise SysError
+
+pub fn destroy_all_displays(NativeDisplayManager_DisplaysInfo) -> Unit raise SysError
+
+pub fn destroy_available_area(NativeDisplayManager_Rect) -> Unit raise SysError
+
+pub fn destroy_default_display_cutout_info(NativeDisplayManager_CutoutInfo) -> Unit raise SysError
+
+pub fn destroy_display(NativeDisplayManager_DisplayInfo) -> Unit raise SysError
+
 pub fn get_default_display_density_dpi() -> Int32 raise SysError
 
 pub fn get_default_display_density_pixels() -> Float raise SysError
@@ -34,6 +52,16 @@ pub fn get_fold_display_mode() -> NativeDisplayManager_FoldDisplayMode raise Sys
 
 pub fn is_foldable() -> Bool
 
+pub fn register_available_area_change_listener((UInt64) -> Unit) -> UInt32 raise SysError
+
+pub fn register_display_add_listener((UInt64) -> Unit) -> UInt32 raise SysError
+
+pub fn register_display_change_listener((UInt64) -> Unit) -> UInt32 raise SysError
+
+pub fn register_display_remove_listener((UInt64) -> Unit) -> UInt32 raise SysError
+
+pub fn register_fold_display_mode_change_listener((NativeDisplayManager_FoldDisplayMode) -> Unit) -> UInt32 raise SysError
+
 pub fn unregister_available_area_change_listener(UInt32) -> Unit raise SysError
 
 pub fn unregister_display_add_listener(UInt32) -> Unit raise SysError
@@ -47,12 +75,62 @@ pub fn unregister_fold_display_mode_change_listener(UInt32) -> Unit raise SysErr
 // Errors
 pub(all) suberror SysError {
   Failed(String, String, Int32)
+  Closed(String)
 }
 pub fn SysError::output(Self, &Logger) -> Unit
 pub fn SysError::to_string(Self) -> String
 pub impl Show for SysError
 
 // Types and methods
+pub type NativeDisplayManager_CutoutInfo
+pub fn NativeDisplayManager_CutoutInfo::bounding_rects_length(Self) -> Int32 raise SysError
+pub fn NativeDisplayManager_CutoutInfo::is_live(Self) -> Bool
+
+pub type NativeDisplayManager_DisplayInfo
+pub fn NativeDisplayManager_DisplayInfo::available_height(Self) -> UInt32 raise SysError
+pub fn NativeDisplayManager_DisplayInfo::available_width(Self) -> UInt32 raise SysError
+pub fn NativeDisplayManager_DisplayInfo::density_dpi(Self) -> Float raise SysError
+pub fn NativeDisplayManager_DisplayInfo::density_pixels(Self) -> Float raise SysError
+pub fn NativeDisplayManager_DisplayInfo::height(Self) -> Int32 raise SysError
+pub fn NativeDisplayManager_DisplayInfo::id(Self) -> UInt32 raise SysError
+pub fn NativeDisplayManager_DisplayInfo::is_alive(Self) -> Bool raise SysError
+pub fn NativeDisplayManager_DisplayInfo::is_live(Self) -> Bool
+pub fn NativeDisplayManager_DisplayInfo::name(Self) -> String raise SysError
+pub fn NativeDisplayManager_DisplayInfo::orientation(Self) -> NativeDisplayManager_Orientation raise SysError
+pub fn NativeDisplayManager_DisplayInfo::physical_height(Self) -> Int32 raise SysError
+pub fn NativeDisplayManager_DisplayInfo::physical_width(Self) -> Int32 raise SysError
+pub fn NativeDisplayManager_DisplayInfo::refresh_rate(Self) -> UInt32 raise SysError
+pub fn NativeDisplayManager_DisplayInfo::rotation(Self) -> NativeDisplayManager_Rotation raise SysError
+pub fn NativeDisplayManager_DisplayInfo::scaled_density(Self) -> Float raise SysError
+pub fn NativeDisplayManager_DisplayInfo::state(Self) -> NativeDisplayManager_DisplayState raise SysError
+pub fn NativeDisplayManager_DisplayInfo::width(Self) -> Int32 raise SysError
+pub fn NativeDisplayManager_DisplayInfo::x_dpi(Self) -> Float raise SysError
+pub fn NativeDisplayManager_DisplayInfo::y_dpi(Self) -> Float raise SysError
+
+pub(all) enum NativeDisplayManager_DisplayState {
+  DisplayManagerDisplayStateUnknown
+  DisplayManagerDisplayStateOff
+  DisplayManagerDisplayStateOn
+  DisplayManagerDisplayStateDoze
+  DisplayManagerDisplayStateDozeSuspend
+  DisplayManagerDisplayStateVr
+  DisplayManagerDisplayStateOnSuspend
+  Other(Int32)
+}
+pub fn NativeDisplayManager_DisplayState::c_name(Self) -> String
+pub fn NativeDisplayManager_DisplayState::equal(Self, Self) -> Bool
+pub fn NativeDisplayManager_DisplayState::from_raw(Int32) -> Self
+pub fn NativeDisplayManager_DisplayState::not_equal(Self, Self) -> Bool
+pub fn NativeDisplayManager_DisplayState::output(Self, &Logger) -> Unit
+pub fn NativeDisplayManager_DisplayState::to_raw(Self) -> Int32
+pub fn NativeDisplayManager_DisplayState::to_string(Self) -> String
+pub impl Eq for NativeDisplayManager_DisplayState
+pub impl Show for NativeDisplayManager_DisplayState
+
+pub type NativeDisplayManager_DisplaysInfo
+pub fn NativeDisplayManager_DisplaysInfo::displays_length(Self) -> UInt32 raise SysError
+pub fn NativeDisplayManager_DisplaysInfo::is_live(Self) -> Bool
+
 pub(all) enum NativeDisplayManager_ErrorCode {
   DisplayManagerOk
   DisplayManagerErrorNoPermission
@@ -111,12 +189,12 @@ pub fn NativeDisplayManager_Orientation::to_string(Self) -> String
 pub impl Eq for NativeDisplayManager_Orientation
 pub impl Show for NativeDisplayManager_Orientation
 
-pub(all) struct NativeDisplayManager_Rect {
-  left : Int32
-  top : Int32
-  width : UInt32
-  height : UInt32
-}
+pub type NativeDisplayManager_Rect
+pub fn NativeDisplayManager_Rect::height(Self) -> UInt32 raise SysError
+pub fn NativeDisplayManager_Rect::is_live(Self) -> Bool
+pub fn NativeDisplayManager_Rect::left(Self) -> Int32 raise SysError
+pub fn NativeDisplayManager_Rect::top(Self) -> Int32 raise SysError
+pub fn NativeDisplayManager_Rect::width(Self) -> UInt32 raise SysError
 
 pub(all) enum NativeDisplayManager_Rotation {
   DisplayManagerRotation0

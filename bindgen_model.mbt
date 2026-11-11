@@ -21,6 +21,9 @@ pub(all) enum CBase {
   CRecord(String)
   /// Anything the generator does not bind; the text says what it was.
   CUnsupported(String)
+  /// Function pointer: result, argument types and argument spellings (the
+  /// spellings declare matching C trampolines).
+  CCallback(CType, Array[CType], Array[String])
 }
 
 ///|
@@ -236,7 +239,7 @@ fn Resolver::resolve(self : Resolver, text : String, depth : Int32) -> CType {
   let mut body = text.trim().to_owned()
   if body.contains("(") {
     return {
-      base: CUnsupported("function pointer"),
+      base: self.callback(body, depth),
       pointers: 0,
       const_pointee: false,
       array: None,
@@ -459,3 +462,37 @@ pub extend CBase with Eq::{equal, not_equal}
 ///|
 #deprecated
 pub extend CBase with @debug.Debug::{to_repr}
+
+///|
+/// `void (*)(Sensor_Event *)` / `void (*const)(uint64_t)`; anything else
+/// (function types, nested function pointers) stays unsupported.
+fn Resolver::callback(self : Resolver, text : String, depth : Int32) -> CBase {
+  guard text.find("(*") is Some(star) else {
+    return CUnsupported("function type")
+  }
+  let rest = text[star + 2:].to_owned()
+  guard rest.find(")") is Some(close) else {
+    return CUnsupported("function pointer")
+  }
+  let args_text = rest[close + 1:].trim().to_owned()
+  if !args_text.has_prefix("(") || !args_text.has_suffix(")") {
+    return CUnsupported("function pointer")
+  }
+  let inner = args_text[1:args_text.length() - 1].trim().to_owned()
+  if inner.contains("(") || inner.contains("...") {
+    return CUnsupported(
+      "function pointer with nested function pointer or varargs",
+    )
+  }
+  let result = self.resolve(text[:star].to_owned(), depth + 1)
+  let args : Array[CType] = []
+  let spellings : Array[String] = []
+  if inner != "" && inner != "void" {
+    for part in inner.split(",") {
+      let spelling = part.trim().to_owned()
+      args.push(self.resolve(spelling, depth + 1))
+      spellings.push(spelling)
+    }
+  }
+  CCallback(result, args, spellings)
+}

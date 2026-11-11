@@ -7,6 +7,7 @@ pub fn get_time_zone() -> String raise SysError
 // Errors
 pub(all) suberror SysError {
   Failed(String, String, Int32)
+  Closed(String)
 }
 pub fn SysError::output(Self, &Logger) -> Unit
 pub fn SysError::to_string(Self) -> String
