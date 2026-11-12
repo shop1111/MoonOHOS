@@ -1,6 +1,6 @@
 name = "shop1111/moonohos"
 
-version = "0.8.0"
+version = "0.9.0"
 
 preferred_target = "native"
 
@@ -8,11 +8,19 @@ supported_targets = [ "native" ]
 
 repository = "https://github.com/shop1111/MoonOHOS"
 
-keywords = [ "harmonyos", "native", "ffi", "node-api", "code-generation" ]
+keywords = [
+  "harmonyos",
+  "native",
+  "ffi",
+  "node-api",
+  "code-generation",
+  "bindgen",
+  "xcomponent",
+]
 
 license = "Apache-2.0"
 
-description = "HarmonyOS Native module framework for MoonBit: async tasks, platform modules and HAR packaging."
+description = "HarmonyOS Native module framework for MoonBit: Node-API bridge with async tasks, SDK binding generation, XComponent graphics and HAR packaging."
 
 readme = "README.md"
 

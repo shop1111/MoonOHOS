@@ -7,5 +7,5 @@ preferred_target = "native"
 license = "Apache-2.0"
 
 import {
-  "shop1111/moonohos_ohos@0.8.0",
+  "shop1111/moonohos_ohos@0.9.0",
 }

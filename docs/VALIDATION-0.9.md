@@ -1,6 +1,6 @@
-# MoonOHOS 0.9（开发中）验证记录：XComponent 图形
+# MoonOHOS 0.9 验证记录：XComponent 图形
 
-记录日期：2026-11-12。工具链：moonc `v0.10.20+65efd5b93`、HarmonyOS SDK API 26。设计和用法见 [XCOMPONENT.md](XCOMPONENT.md)，0.8 的记录见 [VALIDATION-0.8.md](VALIDATION-0.8.md)。
+记录日期：2026-11-12。工具链：moonc `v0.10.20+65efd5b93`、HarmonyOS SDK API 26。设计和用法见 [XCOMPONENT.md](XCOMPONENT.md)，0.8 的记录见 [VALIDATION-0.8.md](VALIDATION-0.8.md)。0.9.0 于同日发布。
 
 ## 第一阶段：surface 包
 
