@@ -86,7 +86,7 @@ for ($run = 1; $run -le $Runs; $run++) {
     if (-not $tapped -and $joined -match 'MOONSEARCH_SURFACE_WAIT x=(\d+) y=(\d+)') {
       # Taps the XComponent; MoonBit draws a marker where the touch landed.
       Device @('shell', 'uinput', '-T', '-c', $Matches[1], $Matches[2]) | Out-Null
-      Start-Sleep -Milliseconds 800
+      Start-Sleep -Milliseconds 300
       if ($run -eq 1) {
         Device @('shell', 'snapshot_display', '-f', '/data/local/tmp/moonsurface.jpeg') | Out-Null
         Device @('file', 'recv', '/data/local/tmp/moonsurface.jpeg', (Join-Path $Evidence 'surface-page.jpeg')) | Out-Null

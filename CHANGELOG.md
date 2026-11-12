@@ -20,6 +20,24 @@ All notable changes to MoonOHOS are recorded here. The format follows
   markers, frame bar) that follows rotation; the emulator scenario taps it
   and checks frame rate, buffer size, touch delivery and release
   (docs/VALIDATION-0.9.md).
+- `sys/drawing` (0.9 phase 2): Native Drawing generated from 16
+  `native_drawing/` headers, 322 functions (canvas, bitmap, brush, pen,
+  path, rect, round rect, point, color, matrix, font, typeface, text blob,
+  shader effects); `libnative_drawing.so` allowlisted.
+- `Surface::draw(render)`: binds a Native Drawing canvas directly to the
+  window buffer (no copy), runs `render` and queues the buffer; the canvas
+  handle is invalidated when `render` returns. The search example draws its
+  frames this way (gradient shader, anti-aliased shapes, text) and switches
+  to the CPU canvas during the probe so both paths run on the emulator.
+- bindgen: consecutive `const E *` inputs (32/64-bit integers, float,
+  double) followed by a size/count/len parameter become `FixedArray[E]`
+  parameters sharing that length (gradients, glyph widths).
+
+### Fixed
+- bindgen: a parameter named like a local of the generated C stub (`r`,
+  `object`) redefined it and failed to compile
+  (`OH_Drawing_BrushSetColor4f(..., float r, ...)`); such parameters now get
+  a trailing `_` (`sys/hidebug`'s `destroy_backtrace_object(object_)`).
 
 ### Known issues
 - Exported functions become C symbols `moonohos_<name>`, which can collide

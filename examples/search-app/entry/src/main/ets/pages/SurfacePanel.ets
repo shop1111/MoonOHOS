@@ -43,14 +43,18 @@ function field(report: string, name: string): string {
   return '';
 }
 
-// Two reports `seconds` apart: frames advanced at a plausible rate, the
-// buffer has the requested size and the injected tap reached MoonBit.
+// Two reports `seconds` apart: frames advanced at a plausible rate on both
+// paths (Native Drawing, then the CPU canvas), the buffer has the requested
+// size and the injected tap reached MoonBit.
 export function surfaceVerdict(before: string, after: string, seconds: number, expected: string): string {
   const frames: number = Number(field(after, 'frames')) - Number(field(before, 'frames'));
   const fps: number = frames / seconds;
   const buffer: string = field(after, 'buffer');
   const touches: number = Number(field(after, 'touches'));
+  const drawing: number = Number(field(after, 'drawing_frames')) - Number(field(before, 'drawing_frames'));
+  const cpu: number = Number(field(after, 'cpu_frames')) - Number(field(before, 'cpu_frames'));
   const ok: boolean = field(after, 'running') === 'true' && field(after, 'error') === '' &&
-    fps >= 20 && buffer === expected && touches >= 1;
-  return `${ok ? 'pass' : 'fail'} frames=${frames} fps=${fps.toFixed(1)} buffer=${buffer} touches=${touches}`;
+    fps >= 20 && buffer === expected && touches >= 1 && drawing > 0 && cpu > 0;
+  return `${ok ? 'pass' : 'fail'} frames=${frames} fps=${fps.toFixed(1)} drawing=${drawing} cpu=${cpu} ` +
+    `buffer=${buffer} touches=${touches}`;
 }

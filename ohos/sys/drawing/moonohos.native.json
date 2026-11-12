@@ -1,0 +1,14 @@
+{
+  "schema": "moonohos-native-v1",
+  "package": "shop1111/moonohos_ohos/sys/drawing",
+  "sources": [
+    "drawing_stub.c"
+  ],
+  "systemLibraries": [
+    "libnative_drawing.so"
+  ],
+  "abis": [
+    "arm64-v8a",
+    "x86_64"
+  ]
+}

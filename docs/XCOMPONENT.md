@@ -1,6 +1,9 @@
 # XComponent 图形（0.9）
 
-`shop1111/moonohos_ohos/surface` 让 MoonBit 在 ArkUI 的 XComponent 上绘制画面：ArkTS 把 XComponent 的 surface id 交给 MoonBit，MoonBit 打开对应的 NativeWindow，在 CPU 上画进自己的像素数组，每帧复制到窗口缓冲区并提交；帧节奏由 VSync 回调驱动，触摸事件从 ArkTS 转发过来。验证记录见 [VALIDATION-0.9.md](VALIDATION-0.9.md)。
+`shop1111/moonohos_ohos/surface` 让 MoonBit 在 ArkUI 的 XComponent 上绘制画面：ArkTS 把 XComponent 的 surface id 交给 MoonBit，MoonBit 打开对应的 NativeWindow，每帧绘制并提交；帧节奏由 VSync 回调驱动，触摸事件从 ArkTS 转发过来。绘制有两条路径：
+
+- **Native Drawing**：`surface.draw(canvas => ...)` 把生成的 `sys/drawing` 画布直接绑定到窗口缓冲区，用画刷、路径、文字、渐变等绘制，不复制像素。
+- **CPU 像素数组**：在 MoonBit 的 `Canvas`（或任意 `FixedArray[UInt]`）里逐像素绘制，`present` 复制到缓冲区。验证记录见 [VALIDATION-0.9.md](VALIDATION-0.9.md)。
 
 ## 为什么用 surface id
 
@@ -20,15 +23,26 @@ MoonBit（核心模块导出这些函数）：
 ```moonbit
 let surface = @surface.Surface::open(surface_id, width=360, height=200)
 let vsync = @surface.VSync::open("demo")
-let canvas = @surface.Canvas::new(360, 200)
+let brush = @drawing.brush_create().unwrap()
+@drawing.brush_set_anti_alias(brush, true)
+@drawing.brush_set_color(brush, 0xFFFFC400U) // ARGB
 
 fn frame(ts : Int64) -> Unit {
-  canvas.clear(@surface.rgba(16, 24, 64))
-  canvas.fill_circle(180, 100, 30, @surface.rgba(255, 196, 0))
-  ignore(surface.present_canvas(canvas)) // 失败时抛 SurfaceError
-  vsync.request_frame(frame) // 下一帧
+  try {
+    ignore(surface.draw(canvas => {
+      @drawing.canvas_clear(canvas, 0xFF101840U)
+      @drawing.canvas_attach_brush(canvas, brush)
+      @drawing.canvas_draw_circle(canvas, @drawing.point_create(180, 100).unwrap(), 30)
+      @drawing.canvas_detach_brush(canvas)
+    }))
+    vsync.request_frame(frame) // 下一帧
+  } catch {
+    error => println(error) // SurfaceError，或绘制函数的 SysError
+  }
 }
 ```
+
+CPU 路径把 `surface.draw(...)` 换成在 `@surface.Canvas` 上绘制后 `surface.present_canvas(canvas)`。
 
 ArkTS：
 
@@ -52,6 +66,7 @@ XComponent({ type: XComponentType.SURFACE, controller: this.controller })
 | API | 说明 |
 |---|---|
 | `Surface::open(id, width?, height?)` | 解析十进制 surface id，打开窗口，设置 CPU 读写用途和 RGBA 8888 格式。给了尺寸时缓冲区固定为该尺寸，由合成器缩放到组件大小；不给时跟随组件的 surface 尺寸 |
+| `Surface::draw(render)` | 申请缓冲区，以 RGBA 8888、预乘 alpha、缓冲区自身的 stride 创建位图和 Native Drawing 画布，调用 `render(canvas)` 后提交。画布只在 `render` 内有效，返回后再用抛 `@drawing.SysError::Closed`；`render` 抛出的错误在提交（可能只画了一部分的）帧之后重新抛出 |
 | `Surface::present(pixels, width, height)` / `present_canvas(canvas)` | 申请缓冲区，等待释放 fence（最多 3 秒），映射内存，按 stride 逐行复制（超出部分裁掉），提交整块区域；返回缓冲区实际的宽、高、stride |
 | `Surface::resize(w, h)`、`size()`、`frames()`、`close()`、`is_open()` | 关闭后再调用抛 `Closed`；未关闭就被回收时，终结器释放窗口 |
 | `VSync::open(name)`、`request_frame(callback)`、`period()`、`close()` | `callback(timestamp_ns)` 只执行一次，在下一次刷新时于 VSync 线程上调用；要持续动画就在回调里再申请下一帧 |
@@ -67,13 +82,22 @@ VSync 回调在系统的 VSync 线程上执行，先进入 MoonOHOS 的进程门
 
 帧申请不会让 `VSync` 句柄保持存活：如果在回调里释放了最后一个引用，不会在 SDK 自己的回调中销毁 VSync 对象。已申请但尚未送达的帧，在 `close` 之后可能不再执行。
 
+## Native Drawing 的对接
+
+`sys/drawing` 由 `moonohos bindgen` 从 16 个 `native_drawing/` 头文件生成（322 个函数，见 `ohos/sys/drawing/BINDINGS.md`）。画布、画刷、画笔、路径、字体、文字块、着色器都是句柄：由 Create 产生、配对 Destroy 的归 MoonBit 所有，回收时自动释放。
+
+生成器不处理 `void *`，所以“画布画到窗口缓冲区”由 `surface` 包手写：`draw` 在 C 里用 `OH_Drawing_BitmapCreateFromPixels` 把映射后的缓冲区包成位图，创建画布并绑定，然后构造一个与生成包句柄布局相同的外部对象（载荷首字段是 SDK 指针）交给 MoonBit。`render` 返回后，句柄被置为失效，画布和位图随即销毁，缓冲区解除映射并提交。这依赖生成句柄的内存布局，`surface` 的宿主测试会检查：surface 构造的句柄在 drawing 包里是有效的，置为失效后 drawing 的函数抛 `Closed`。
+
+为了生成渐变，0.9 给生成器加了一种形态：连续的 `const E *` 后跟长度参数（如 `const uint32_t *colors, const float *pos, uint32_t size`）生成为共享长度的 `FixedArray` 参数，见 [BINDGEN.md](BINDGEN.md)。
+
 ## 实现中发现的问题
 
 - **组件尺寸变化会重置缓冲区尺寸。** 旋转屏幕后，ArkUI 把窗口的缓冲区尺寸改回组件的像素尺寸，固定尺寸的画面只画在左上角，其余为黑色。现在 `present` 在申请缓冲区前检查尺寸，不一致时重新设置。
+- **生成的参数名会和桩函数的局部变量重名。** `OH_Drawing_BrushSetColor4f(brush, a, r, g, b, ...)` 的参数 `r` 与桩函数保存返回值的 `r` 冲突，`-Werror` 编译失败。生成器现在给这类参数加 `_`。
 - **导出函数的 C 符号会和平台包冲突。** 桥接把导出函数 `f` 生成为 C 符号 `moonohos_f`。示例导出 `surface_resize` 时，和 surface 包自己的 `moonohos_surface_resize` 重名，编译失败。surface 包的符号已改为 `moonohos_ohos_surface_*` / `moonohos_ohos_vsync_*`。`hilog`、`rawfile`、`task` 包的符号（如 `moonohos_rawfile_read`）仍有同样的风险，需要在桥接层统一解决。
 
 ## 后续
 
-- **Native Drawing**：用 `moonohos bindgen` 生成 `sys/drawing`（画布、画笔、路径、文字都是 Create/Destroy 句柄），画布直接绑定到窗口缓冲区，替代逐像素绘制。
 - **EGL / OpenGL ES**：在同一个 NativeWindow 上创建 EGL 表面，供需要 GPU 的应用使用。
-- 帧率：模拟器上 381x140 的缓冲区约 40–45 帧/秒，还没有分析瓶颈在绘制、复制还是缓冲区队列；ARM64 真机未测。
+- **文字排版**：`drawing_text_typography.h` 等段落排版接口尚未生成，目前只能用字体和文字块画单行文字。
+- 帧率：模拟器上 381x140 的缓冲区，Native Drawing 和 CPU 路径都约 54–60 帧/秒（第一阶段测得 40–45，差异未分析，可能与模拟器负载有关）；更大的缓冲区和 ARM64 真机未测。

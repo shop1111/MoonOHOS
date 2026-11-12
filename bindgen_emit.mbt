@@ -106,6 +106,11 @@ priv enum ParamPlan {
   OutArray(String, Scalar, String, String)
   /// Function pointer: name, callback site, argument plans, C spelling.
   InCallback(String, String, Array[CbArg], String)
+  /// `const E *` input array of 32/64-bit numbers: name, element, C spelling.
+  InArray(String, Scalar, String)
+  /// Length shared by the preceding input arrays: their names, C spelling.
+  /// Filled from the first array; the others must have the same length.
+  InLength(Array[String], String)
 }
 
 ///|
@@ -292,6 +297,24 @@ fn Generator::scalar(self : Generator, kind : CType) -> Scalar? {
 }
 
 ///|
+/// Element of a `const E *` input array: numbers whose C width matches the
+/// MoonBit `FixedArray` element (no 8/16-bit, no enums or bools).
+fn array_element(kind : CType) -> Scalar? {
+  guard kind.pointers == 1 && kind.const_pointee && kind.array is None else {
+    return None
+  }
+  match kind.base {
+    CInt(32, true) => Some(SInt)
+    CInt(32, false) => Some(SUInt)
+    CInt(64, true) => Some(SInt64)
+    CInt(64, false) => Some(SUInt64)
+    CFloat => Some(SFloat)
+    CDouble => Some(SDouble)
+    _ => None
+  }
+}
+
+///|
 fn Generator::fields(self : Generator, record : String) -> Array[FieldPlan]? {
   guard self.model.records.get(record) is Some(def) && def.complete else {
     return None
@@ -427,7 +450,10 @@ fn Generator::plan(
     return Err("variadic function")
   }
   let params : Array[ParamPlan] = []
-  let names : Map[String, Bool] = Map([])
+  // Locals of the generated C stub (`r` holds the result, `object` a new
+  // handle): parameters with these names get a trailing `_`, e.g. the
+  // red component `r` of `OH_Drawing_BrushSetColor4f`.
+  let names : Map[String, Bool] = Map([("r", true), ("object", true)])
   let fresh = fn(name : String) -> String {
     let mut moon = snake_name(name)
     while names.contains(moon) {
@@ -603,6 +629,33 @@ fn Generator::plan(
           None =>
             return Err("parameter " + param.name + ": unsupported pointer")
         }
+      }
+      // `const E *a, const F *b, <int> count`: input arrays sharing the
+      // length that follows them (e.g. gradient colors and positions).
+      (1, _) if array_element(kind) is Some(_) => {
+        let mut j = i
+        while j < function.params.length() &&
+              array_element(function.params[j].kind) is Some(_) {
+          j += 1
+        }
+        guard function.params.get(j) is Some(len) &&
+          is_integer(len.kind) &&
+          length_name(len.name) else {
+          return Err(
+            "parameter " +
+            param.name +
+            ": pointer to const value (array length unknown)",
+          )
+        }
+        let names : Array[String] = []
+        for k in i..<j {
+          let element = array_element(function.params[k].kind).unwrap()
+          let name = fresh(function.params[k].name)
+          names.push(name)
+          params.push(InArray(name, element, spellings[k]))
+        }
+        params.push(InLength(names, spellings[j]))
+        i = j
       }
       (1, _) =>
         return Err(
@@ -1330,6 +1383,35 @@ fn Generator::lower(self : Generator, binding : Binding) -> Lowered {
         out.c_params.push("const uint8_t *" + name)
         out.args.push("c_string(" + name + ")")
       }
+      InArray(name, kind, _) => {
+        out.extern_params.push(
+          name + " : FixedArray[" + boundary_scalar(kind) + "]",
+        )
+        out.borrowed.push(name)
+        out.c_params.push(c_scalar(kind) + " *" + name)
+        out.args.push(name)
+      }
+      InLength(names, _) => {
+        let first = names[0]
+        out.extern_params.push(first + "_count : Int")
+        out.c_params.push("int32_t " + first + "_count")
+        out.args.push(first + ".length()")
+        for other in names[1:] {
+          out.setup.push(
+            "guard " +
+            other +
+            ".length() == " +
+            first +
+            ".length() else { abort(\"" +
+            binding.function.name +
+            ": " +
+            other +
+            " and " +
+            first +
+            " must have the same length\") }",
+          )
+        }
+      }
       InBytes(name, _, _) => {
         out.extern_params.push(name + " : Bytes")
         out.borrowed.push(name)
@@ -1461,6 +1543,8 @@ fn Generator::api_params(self : Generator, binding : Binding) -> Array[String] {
         Some(name + " : " + moon_scalar(self.model, kind))
       InString(name) => Some(name + " : String")
       InBytes(name, _, _) => Some(name + " : Bytes")
+      InArray(name, kind, _) =>
+        Some(name + " : FixedArray[" + moon_scalar(self.model, kind) + "]")
       InStruct(name, record, _) | InOutStruct(name, record) =>
         Some(name + " : " + type_name(self.model, record))
       InHandle(name, record, _, _) =>
@@ -1471,7 +1555,8 @@ fn Generator::api_params(self : Generator, binding : Binding) -> Array[String] {
       | OutString(_, _, _)
       | OutStruct(_, _)
       | OutHandle(_, _, _)
-      | OutArray(_, _, _, _) => None
+      | OutArray(_, _, _, _)
+      | InLength(_, _) => None
     }
   })
 }

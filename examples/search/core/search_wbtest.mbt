@@ -127,3 +127,8 @@ test "surface demo fails cleanly on the host" {
   assert_eq(surface_detach(), "attached=false")
   assert_true(surface_attach("not-a-number", 1, 1).contains("not a surface id"))
 }
+
+///|
+test "surface mode switch needs an attached scene" {
+  assert_eq(surface_mode(false), "attached=false")
+}

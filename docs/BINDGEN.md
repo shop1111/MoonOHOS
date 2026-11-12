@@ -53,6 +53,7 @@ moonohos bindgen --spec ohos/sys/display/moonohos.bindgen.json --sdk "<DevEco St
 | 值、枚举、结构体按值或 `const T *` | 普通参数 |
 | `const char *` | `String` 参数 |
 | `const uint8_t *` + 长度 | `Bytes` 参数，长度自动填入 |
+| 连续的 `const E *`（E 为 32/64 位整数、`float`、`double`）后跟名称含 size/count/len 的整数 | 每个指针一个 `FixedArray[E]` 参数，长度取第一个数组，其余数组长度不同时 `abort`（0.9，如渐变的 `colors`、`pos`） |
 | 非 const 标量指针 `T *` | 输出参数，变为返回值的一部分 |
 | `char *` + 长度（按值，或长度本身是指针） | 输出 `String` |
 | 非 const 结构体指针 | 函数名含 Get/Init/Query 时是纯输出，否则既是参数也是返回值（如 `set_chain_id(id, ..) -> HiTraceId`） |
@@ -94,6 +95,9 @@ moonohos bindgen --spec ohos/sys/display/moonohos.bindgen.json --sdk "<DevEco St
 - 指针数组（`T **` 后跟数量，如 `OH_Sensor_GetInfos`）、元素不是数值的输出数组。
 - 非 const 的 8 位整数指针，以及后面紧跟长度参数的标量指针：它们是数组缓冲区，按单个值写入会越界。
 - 来源不明的 `char *` 返回值，以及非句柄类型的指针返回值（不知道由谁释放）。
+- `void *`（无类型指针，如 `OH_Drawing_BitmapCreateFromPixels` 的像素地址）。窗口缓冲区与画布的对接由 `surface` 包手写完成，见 [XCOMPONENT.md](XCOMPONENT.md)。
+
+参数名与桩函数内部的局部变量（`r`、`object`）重名时，生成的参数名加 `_`（0.9 修正：`OH_Drawing_BrushSetColor4f` 的红色分量 `r` 曾导致编译失败）。
 
 ## 校验
 
@@ -113,6 +117,7 @@ moonohos bindgen --spec ohos/sys/display/moonohos.bindgen.json --sdk "<DevEco St
 | `sys/bluetooth` | `ConnectivityKit/bluetooth/oh_bluetooth.h` | 1 / 0 |
 | `sys/deviceinfo` | `deviceinfo.h` | 27 / 0 |
 | `sys/display` | `window_manager/oh_display_manager.h` | 35 / 0 |
+| `sys/drawing`（0.9） | `native_drawing/` 下 16 个头文件：canvas、bitmap、brush、pen、path、rect、round_rect、point、color、matrix、font、typeface、text_blob、shader_effect、types、error_code | 322 / 17 |
 | `sys/hidebug` | `hidebug/hidebug.h` | 23 / 8 |
 | `sys/hitrace` | `hitrace/trace.h` | 32 / 2 |
 | `sys/osaccount` | `BasicServicesKit/os_account.h` | 2 / 0 |
@@ -122,6 +127,6 @@ moonohos bindgen --spec ohos/sys/display/moonohos.bindgen.json --sdk "<DevEco St
 | `sys/timeservice` | `BasicServicesKit/time_service.h` | 1 / 0 |
 | `sys/vibrator` | `sensors/vibrator.h` | 3 / 0 |
 | `sys/wifi` | `ConnectivityKit/wifi/oh_wifi.h` | 3 / 0 |
-| 合计 14 个包 | | 160 / 15 |
+| 合计 15 个包 | | 482 / 32 |
 
 第一阶段（不含句柄和回调）是 13 个包、117 / 31。

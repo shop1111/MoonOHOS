@@ -891,20 +891,20 @@ pub fn restore_malloc_dispatch_table() -> Unit {
 }
 
 ///|
-#borrow(object)
+#borrow(object_)
 extern "C" fn raw_OH_HiDebug_DestroyBacktraceObject(
-  object : HiDebug_Backtrace_Object__,
+  object_ : HiDebug_Backtrace_Object__,
 ) -> Unit = "moonohos_sys_OH_HiDebug_DestroyBacktraceObject"
 
 ///|
 /// `OH_HiDebug_DestroyBacktraceObject` from `hidebug/hidebug.h` (`libohhidebug.so`).
 pub fn destroy_backtrace_object(
-  object : HiDebug_Backtrace_Object__,
+  object_ : HiDebug_Backtrace_Object__,
 ) -> Unit raise SysError {
-  if !object.is_live() {
-    raise Closed("OH_HiDebug_DestroyBacktraceObject: object was destroyed")
+  if !object_.is_live() {
+    raise Closed("OH_HiDebug_DestroyBacktraceObject: object_ was destroyed")
   }
-  raw_OH_HiDebug_DestroyBacktraceObject(object)
+  raw_OH_HiDebug_DestroyBacktraceObject(object_)
 }
 
 ///|

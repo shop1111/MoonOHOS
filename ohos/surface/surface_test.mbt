@@ -81,3 +81,22 @@ test "blit copies rows into a strided buffer and clips" {
   let expected : FixedArray[UInt32] = [1, 2, 0, 0, 4, 5, 0, 0, 0, 0, 0, 0]
   assert_true(dst == expected)
 }
+
+///|
+test "draw hands out canvases in the sys/drawing handle layout" {
+  // A handle built by the surface stub is live for the drawing package...
+  let canvas = @surface.borrowed_canvas_for_test(7)
+  assert_true(canvas.is_live())
+  // ...and once `draw` invalidates it, drawing calls raise Closed instead of
+  // reaching the SDK.
+  @surface.release_canvas_for_test(canvas)
+  assert_false(canvas.is_live())
+  let closed = try {
+    @drawing.canvas_clear(canvas, 0xFF000000U)
+    false
+  } catch {
+    @drawing.Closed(_) => true
+    _ => false
+  }
+  assert_true(closed)
+}

@@ -8,7 +8,7 @@
 
 | 检查 | 结果 |
 |---|---|
-| `ohos` 宿主测试（新增 5 个：surface id 解析和越界、宿主上打开返回 801、颜色字节顺序、画布裁剪、按 stride 复制） | 17 / 17 |
+| `ohos` 宿主测试（第一阶段新增 5 个：surface id 解析和越界、宿主上打开返回 801、颜色字节顺序、画布裁剪、按 stride 复制） | 17 / 17 |
 | `verify_bindings.py`（默认检查范围加入 `ohos/surface`）：两个 ABI 以 `-Wall -Wextra -Werror` 编译桩函数，以 `--no-undefined` 链接 `libnative_window.so`、`libnative_vsync.so` | 通过 |
 | `examples/search`（新增宿主测试：宿主上 `surface_attach` 返回 801、错误的 id、未打开时的触摸和报告） | 通过 |
 | 检索示例 `moonohos build` + HAP 构建（两个系统库加入白名单） | 通过 |
@@ -44,8 +44,38 @@ MOONSEARCH_SURFACE_CLOSED released=true ... frames=461,window_frames=461,vsync_r
 
 证据：`evidence/v0.9/surface-device-run-1.log`、`surface-device-run-2.log`、`surface-page.jpeg`。
 
+## 第二阶段：Native Drawing（2026-11-12）
+
+`moonohos bindgen` 生成 `sys/drawing`：16 个 `native_drawing/` 头文件，绑定 322 个函数，跳过 17 个（无类型指针 `void *`、长度不明的常量数组、返回所有权不明的指针）。`surface` 包新增 `draw`，把画布直接绑定到窗口缓冲区。
+
+| 检查 | 结果 |
+|---|---|
+| 生成器单元测试（新增：共享长度的常量数组输入、16 位元素不生成、与桩函数局部变量同名的参数） | 通过 |
+| 重新生成全部 15 个包：只有 `sys/drawing` 是新的，`sys/hidebug` 的参数 `object` 改为 `object_`，其余不变 | 482 / 32 |
+| `verify_bindings.py`：16 个包（含 drawing 和 surface）两个 ABI，`-Werror` 编译、`--no-undefined` 链接 | 通过 |
+| `ohos` 宿主测试（新增：surface 构造的画布句柄在 drawing 包里有效，失效后 drawing 函数抛 `Closed`） | 通过 |
+| 检索示例宿主测试、`moonohos build` + HAP 构建 | 通过 |
+
+### 模拟器
+
+检索示例改用 Native Drawing 绘制每一帧：三段线性渐变背景（生成的 `shader_effect_create_linear_gradient`，颜色和位置数组）、抗锯齿的小球和触摸点、白色文字“MoonBit · Native Drawing · 帧号”（字体 + 文字块）、帧计数条。测量窗口为 4 秒：前 3 秒用 Native Drawing（期间脚本点击并截图），最后 1 秒切到 CPU 路径，两条路径都要有帧。两轮都通过：
+
+```text
+MOONSEARCH_SURFACE pass frames=217 fps=54.3 drawing=155 cpu=62 buffer=381x140 touches=1      （第一轮）
+MOONSEARCH_SURFACE pass frames=223 fps=55.8 drawing=163 cpu=60 buffer=381x140 touches=1      （第二轮）
+```
+
+截图（`evidence/v0.9/drawing-page.jpeg`）中可以看到文字、渐变（底部为青色，与 CPU 路径的纯蓝渐变不同）、小球和点击位置的圆点。整轮的结果和第一阶段一致：每帧都成功提交，页面离开时释放（`released=true`），后台建大索引时帧回调等待进程门。
+
+第一次截图的时机太晚：脚本发现等待标记、点击、截图共用了 2 秒以上，截到的是切换后的 CPU 画面。把 Native Drawing 阶段延长到 3 秒、点击后的等待从 0.8 秒缩短到 0.3 秒后，截图落在 Native Drawing 阶段。
+
+模拟器启动 15 秒后的第一次运行失败：页面在第一轮建完大索引后被关闭（`MOONSEARCH_PAGE_CLOSED round=1` 出现在内存探针中途），此前只画了 2 帧。随后连续两次、共四轮都通过。0.8 验证时也遇到过模拟器刚开机时的第一次运行异常；这次没有查到页面被关闭的原因，记为未解决。
+
+证据：`evidence/v0.9/drawing-device-run-1.log`、`drawing-device-run-2.log`、`drawing-page.jpeg`。
+
 ## 未验证
 
 - ARM64 真机：只在 x86_64 模拟器运行；ARM64 只做了编译和链接。
 - 帧率瓶颈（绘制、复制或缓冲区队列）没有分析；更大的缓冲区和真机上的帧率未测。
-- Native Drawing、EGL/OpenGL ES 尚未接入。
+- EGL/OpenGL ES 尚未接入；322 个 drawing 函数中在设备上调用过的约 20 个。
+- 模拟器刚开机时第一次运行页面被提前关闭的原因。

@@ -419,13 +419,13 @@ void moonohos_sys_OH_HiDebug_RestoreMallocDispatchTable(void) {
 #endif
 }
 
-void moonohos_sys_OH_HiDebug_DestroyBacktraceObject(void *object) {
+void moonohos_sys_OH_HiDebug_DestroyBacktraceObject(void *object_) {
 #ifdef MOONOHOS_TARGET_OHOS
-  void *p_object = ((moonohos_sys_handle *)object)->ptr;
-  OH_HiDebug_DestroyBacktraceObject((HiDebug_Backtrace_Object)p_object);
-  if (1) ((moonohos_sys_handle *)object)->ptr = NULL;
+  void *p_object_ = ((moonohos_sys_handle *)object_)->ptr;
+  OH_HiDebug_DestroyBacktraceObject((HiDebug_Backtrace_Object)p_object_);
+  if (1) ((moonohos_sys_handle *)object_)->ptr = NULL;
 #else
-  (void)object;
+  (void)object_;
 #endif
 }
 

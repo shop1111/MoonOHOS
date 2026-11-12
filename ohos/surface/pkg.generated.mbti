@@ -1,14 +1,22 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "shop1111/moonohos_ohos/surface"
 
+import {
+  "shop1111/moonohos_ohos/sys/drawing",
+}
+
 // Values
 pub fn blit(FixedArray[UInt32], Int32, Int32, Int32, FixedArray[UInt32], Int32, Int32) -> Unit
+
+pub fn borrowed_canvas_for_test(Int32) -> @drawing.OH_Drawing_Canvas
 
 pub fn components(UInt32) -> (Int32, Int32, Int32, Int32)
 
 pub fn delivered_frames() -> Int64
 
 pub fn parse_surface_id(String) -> UInt64 raise SurfaceError
+
+pub fn release_canvas_for_test(@drawing.OH_Drawing_Canvas) -> Unit
 
 pub fn rgba(Int32, Int32, Int32, a? : Int32) -> UInt32
 
@@ -49,6 +57,7 @@ pub fn Presented::not_equal(Self, Self) -> Bool
 
 pub type Surface
 pub fn Surface::close(Self) -> Unit
+pub fn Surface::draw(Self, (@drawing.OH_Drawing_Canvas) -> Unit raise) -> Presented raise
 pub fn Surface::frames(Self) -> Int64
 pub fn Surface::is_open(Self) -> Bool
 pub fn Surface::open(String, width? : Int32, height? : Int32) -> Self raise SurfaceError

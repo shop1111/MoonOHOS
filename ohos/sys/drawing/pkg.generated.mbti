@@ -1,0 +1,1204 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/sys/drawing"
+
+// Values
+pub fn bitmap_build(OH_Drawing_Bitmap, UInt32, UInt32, OH_Drawing_BitmapFormat) -> Unit raise SysError
+
+pub fn bitmap_create() -> OH_Drawing_Bitmap?
+
+pub fn bitmap_destroy(OH_Drawing_Bitmap) -> Unit raise SysError
+
+pub fn bitmap_get_alpha_format(OH_Drawing_Bitmap) -> OH_Drawing_AlphaFormat raise SysError
+
+pub fn bitmap_get_color_format(OH_Drawing_Bitmap) -> OH_Drawing_ColorFormat raise SysError
+
+pub fn bitmap_get_height(OH_Drawing_Bitmap) -> UInt32 raise SysError
+
+pub fn bitmap_get_image_info(OH_Drawing_Bitmap) -> OH_Drawing_Image_Info raise SysError
+
+pub fn bitmap_get_row_bytes(OH_Drawing_Bitmap) -> UInt32 raise SysError
+
+pub fn bitmap_get_width(OH_Drawing_Bitmap) -> UInt32 raise SysError
+
+pub fn brush_copy(OH_Drawing_Brush) -> OH_Drawing_Brush? raise SysError
+
+pub fn brush_create() -> OH_Drawing_Brush?
+
+pub fn brush_destroy(OH_Drawing_Brush) -> Unit raise SysError
+
+pub fn brush_get_alpha(OH_Drawing_Brush) -> Int32 raise SysError
+
+pub fn brush_get_alpha_float(OH_Drawing_Brush) -> Float raise SysError
+
+pub fn brush_get_blue_float(OH_Drawing_Brush) -> Float raise SysError
+
+pub fn brush_get_color(OH_Drawing_Brush) -> UInt32 raise SysError
+
+pub fn brush_get_filter(OH_Drawing_Brush, OH_Drawing_Filter) -> Unit raise SysError
+
+pub fn brush_get_green_float(OH_Drawing_Brush) -> Float raise SysError
+
+pub fn brush_get_red_float(OH_Drawing_Brush) -> Float raise SysError
+
+pub fn brush_is_anti_alias(OH_Drawing_Brush) -> Bool raise SysError
+
+pub fn brush_reset(OH_Drawing_Brush) -> Unit raise SysError
+
+pub fn brush_set_alpha(OH_Drawing_Brush, Int32) -> Unit raise SysError
+
+pub fn brush_set_anti_alias(OH_Drawing_Brush, Bool) -> Unit raise SysError
+
+pub fn brush_set_blend_mode(OH_Drawing_Brush, OH_Drawing_BlendMode) -> Unit raise SysError
+
+pub fn brush_set_color(OH_Drawing_Brush, UInt32) -> Unit raise SysError
+
+pub fn brush_set_color4f(OH_Drawing_Brush, Float, Float, Float, Float, OH_NativeColorSpaceManager) -> Unit raise SysError
+
+pub fn brush_set_filter(OH_Drawing_Brush, OH_Drawing_Filter) -> Unit raise SysError
+
+pub fn brush_set_shader_effect(OH_Drawing_Brush, OH_Drawing_ShaderEffect) -> Unit raise SysError
+
+pub fn brush_set_shadow_layer(OH_Drawing_Brush, OH_Drawing_ShadowLayer) -> Unit raise SysError
+
+pub fn canvas_attach_brush(OH_Drawing_Canvas, OH_Drawing_Brush) -> Unit raise SysError
+
+pub fn canvas_attach_pen(OH_Drawing_Canvas, OH_Drawing_Pen) -> Unit raise SysError
+
+pub fn canvas_bind(OH_Drawing_Canvas, OH_Drawing_Bitmap) -> Unit raise SysError
+
+pub fn canvas_clear(OH_Drawing_Canvas, UInt32) -> Unit raise SysError
+
+pub fn canvas_clip_path(OH_Drawing_Canvas, OH_Drawing_Path, OH_Drawing_CanvasClipOp, Bool) -> Unit raise SysError
+
+pub fn canvas_clip_rect(OH_Drawing_Canvas, OH_Drawing_Rect, OH_Drawing_CanvasClipOp, Bool) -> Unit raise SysError
+
+pub fn canvas_clip_region(OH_Drawing_Canvas, OH_Drawing_Region, OH_Drawing_CanvasClipOp) -> Unit raise SysError
+
+pub fn canvas_clip_round_rect(OH_Drawing_Canvas, OH_Drawing_RoundRect, OH_Drawing_CanvasClipOp, Bool) -> Unit raise SysError
+
+pub fn canvas_concat_matrix(OH_Drawing_Canvas, OH_Drawing_Matrix) -> Unit raise SysError
+
+pub fn canvas_create() -> OH_Drawing_Canvas?
+
+pub fn canvas_create_with_pixel_map(OH_Drawing_PixelMap) -> OH_Drawing_Canvas? raise SysError
+
+pub fn canvas_destroy(OH_Drawing_Canvas) -> Unit raise SysError
+
+pub fn canvas_detach_brush(OH_Drawing_Canvas) -> Unit raise SysError
+
+pub fn canvas_detach_pen(OH_Drawing_Canvas) -> Unit raise SysError
+
+pub fn canvas_draw_arc(OH_Drawing_Canvas, OH_Drawing_Rect, Float, Float) -> Unit raise SysError
+
+pub fn canvas_draw_arc_with_center(OH_Drawing_Canvas, OH_Drawing_Rect, Float, Float, Bool) -> Unit raise SysError
+
+pub fn canvas_draw_background(OH_Drawing_Canvas, OH_Drawing_Brush) -> Unit raise SysError
+
+pub fn canvas_draw_bitmap(OH_Drawing_Canvas, OH_Drawing_Bitmap, Float, Float) -> Unit raise SysError
+
+pub fn canvas_draw_bitmap_rect(OH_Drawing_Canvas, OH_Drawing_Bitmap, OH_Drawing_Rect, OH_Drawing_Rect, OH_Drawing_SamplingOptions) -> Unit raise SysError
+
+pub fn canvas_draw_circle(OH_Drawing_Canvas, OH_Drawing_Point, Float) -> Unit raise SysError
+
+pub fn canvas_draw_color(OH_Drawing_Canvas, UInt32, OH_Drawing_BlendMode) -> Unit raise SysError
+
+pub fn canvas_draw_glyphs(OH_Drawing_Canvas, FixedArray[Int32], Int32, OH_Drawing_Point2D, Int32, Int32, Int32, OH_Drawing_Font) -> Unit raise SysError
+
+pub fn canvas_draw_image_rect(OH_Drawing_Canvas, OH_Drawing_Image, OH_Drawing_Rect, OH_Drawing_SamplingOptions) -> Unit raise SysError
+
+pub fn canvas_draw_image_rect_with_src(OH_Drawing_Canvas, OH_Drawing_Image, OH_Drawing_Rect, OH_Drawing_Rect, OH_Drawing_SamplingOptions, OH_Drawing_SrcRectConstraint) -> Unit raise SysError
+
+pub fn canvas_draw_line(OH_Drawing_Canvas, Float, Float, Float, Float) -> Unit raise SysError
+
+pub fn canvas_draw_nested_round_rect(OH_Drawing_Canvas, OH_Drawing_RoundRect, OH_Drawing_RoundRect) -> Unit raise SysError
+
+pub fn canvas_draw_oval(OH_Drawing_Canvas, OH_Drawing_Rect) -> Unit raise SysError
+
+pub fn canvas_draw_path(OH_Drawing_Canvas, OH_Drawing_Path) -> Unit raise SysError
+
+pub fn canvas_draw_pixel_map_mesh(OH_Drawing_Canvas, OH_Drawing_PixelMap, UInt32, UInt32, FixedArray[Float], UInt32, FixedArray[UInt32], UInt32) -> Unit raise SysError
+
+pub fn canvas_draw_pixel_map_nine(OH_Drawing_Canvas, OH_Drawing_PixelMap, OH_Drawing_Rect, OH_Drawing_Rect, OH_Drawing_FilterMode) -> Unit raise SysError
+
+pub fn canvas_draw_pixel_map_rect(OH_Drawing_Canvas, OH_Drawing_PixelMap, OH_Drawing_Rect, OH_Drawing_Rect, OH_Drawing_SamplingOptions) -> Unit raise SysError
+
+pub fn canvas_draw_pixel_map_rect_constraint(OH_Drawing_Canvas, OH_Drawing_PixelMap, OH_Drawing_Rect, OH_Drawing_Rect, OH_Drawing_SamplingOptions, OH_Drawing_SrcRectConstraint) -> Unit raise SysError
+
+pub fn canvas_draw_point(OH_Drawing_Canvas, OH_Drawing_Point2D) -> Unit raise SysError
+
+pub fn canvas_draw_points(OH_Drawing_Canvas, OH_Drawing_PointMode, UInt32, OH_Drawing_Point2D) -> Unit raise SysError
+
+pub fn canvas_draw_record_cmd(OH_Drawing_Canvas, OH_Drawing_RecordCmd) -> Unit raise SysError
+
+pub fn canvas_draw_record_cmd_nesting(OH_Drawing_Canvas, OH_Drawing_RecordCmd) -> Unit raise SysError
+
+pub fn canvas_draw_rect(OH_Drawing_Canvas, OH_Drawing_Rect) -> Unit raise SysError
+
+pub fn canvas_draw_region(OH_Drawing_Canvas, OH_Drawing_Region) -> Unit raise SysError
+
+pub fn canvas_draw_round_rect(OH_Drawing_Canvas, OH_Drawing_RoundRect) -> Unit raise SysError
+
+pub fn canvas_draw_shadow(OH_Drawing_Canvas, OH_Drawing_Path, OH_Drawing_Point3D, OH_Drawing_Point3D, Float, UInt32, UInt32, OH_Drawing_CanvasShadowFlags) -> Unit raise SysError
+
+pub fn canvas_draw_single_character(OH_Drawing_Canvas, String, OH_Drawing_Font, Float, Float) -> Unit raise SysError
+
+pub fn canvas_draw_single_character_with_features(OH_Drawing_Canvas, String, OH_Drawing_Font, Float, Float, OH_Drawing_FontFeatures) -> Unit raise SysError
+
+pub fn canvas_draw_text_blob(OH_Drawing_Canvas, OH_Drawing_TextBlob, Float, Float) -> Unit raise SysError
+
+pub fn canvas_get_height(OH_Drawing_Canvas) -> Int32 raise SysError
+
+pub fn canvas_get_image_info(OH_Drawing_Canvas) -> OH_Drawing_Image_Info raise SysError
+
+pub fn canvas_get_local_clip_bounds(OH_Drawing_Canvas, OH_Drawing_Rect) -> Unit raise SysError
+
+pub fn canvas_get_save_count(OH_Drawing_Canvas) -> UInt32 raise SysError
+
+pub fn canvas_get_total_matrix(OH_Drawing_Canvas, OH_Drawing_Matrix) -> Unit raise SysError
+
+pub fn canvas_get_width(OH_Drawing_Canvas) -> Int32 raise SysError
+
+pub fn canvas_is_clip_empty(OH_Drawing_Canvas) -> Bool raise SysError
+
+pub fn canvas_is_opaque(OH_Drawing_Canvas) -> Bool raise SysError
+
+pub fn canvas_quick_reject_path(OH_Drawing_Canvas, OH_Drawing_Path) -> Bool raise SysError
+
+pub fn canvas_quick_reject_rect(OH_Drawing_Canvas, OH_Drawing_Rect) -> Bool raise SysError
+
+pub fn canvas_read_pixels_to_bitmap(OH_Drawing_Canvas, OH_Drawing_Bitmap, Int32, Int32) -> Bool raise SysError
+
+pub fn canvas_reset_clip(OH_Drawing_Canvas) -> Unit raise SysError
+
+pub fn canvas_reset_matrix(OH_Drawing_Canvas) -> Unit raise SysError
+
+pub fn canvas_restore(OH_Drawing_Canvas) -> Unit raise SysError
+
+pub fn canvas_restore_to_count(OH_Drawing_Canvas, UInt32) -> Unit raise SysError
+
+pub fn canvas_rotate(OH_Drawing_Canvas, Float, Float, Float) -> Unit raise SysError
+
+pub fn canvas_save(OH_Drawing_Canvas) -> Unit raise SysError
+
+pub fn canvas_save_layer(OH_Drawing_Canvas, OH_Drawing_Rect, OH_Drawing_Brush) -> Unit raise SysError
+
+pub fn canvas_scale(OH_Drawing_Canvas, Float, Float) -> Unit raise SysError
+
+pub fn canvas_set_matrix(OH_Drawing_Canvas, OH_Drawing_Matrix) -> Unit raise SysError
+
+pub fn canvas_skew(OH_Drawing_Canvas, Float, Float) -> Unit raise SysError
+
+pub fn canvas_translate(OH_Drawing_Canvas, Float, Float) -> Unit raise SysError
+
+pub fn color_set_argb(UInt32, UInt32, UInt32, UInt32) -> UInt32
+
+pub fn error_code_get() -> Unit raise SysError
+
+pub fn error_code_reset() -> Unit
+
+pub fn font_arguments_add_variation(OH_Drawing_FontArguments, String, Float) -> Unit raise SysError
+
+pub fn font_arguments_create() -> OH_Drawing_FontArguments?
+
+pub fn font_arguments_destroy(OH_Drawing_FontArguments) -> Unit raise SysError
+
+pub fn font_create() -> OH_Drawing_Font?
+
+pub fn font_destroy(OH_Drawing_Font) -> Unit raise SysError
+
+pub fn font_features_add_feature(OH_Drawing_FontFeatures, String, Float) -> Unit raise SysError
+
+pub fn font_features_create() -> OH_Drawing_FontFeatures?
+
+pub fn font_features_destroy(OH_Drawing_FontFeatures) -> Unit raise SysError
+
+pub fn font_get_edging(OH_Drawing_Font) -> OH_Drawing_FontEdging raise SysError
+
+pub fn font_get_hinting(OH_Drawing_Font) -> OH_Drawing_FontHinting raise SysError
+
+pub fn font_get_metrics(OH_Drawing_Font) -> (Float, OH_Drawing_Font_Metrics) raise SysError
+
+pub fn font_get_path_for_glyph(OH_Drawing_Font, Int32, OH_Drawing_Path) -> Unit raise SysError
+
+pub fn font_get_scale_x(OH_Drawing_Font) -> Float raise SysError
+
+pub fn font_get_spacing(OH_Drawing_Font) -> Float raise SysError
+
+pub fn font_get_text_size(OH_Drawing_Font) -> Float raise SysError
+
+pub fn font_get_text_skew_x(OH_Drawing_Font) -> Float raise SysError
+
+pub fn font_get_typeface(OH_Drawing_Font) -> OH_Drawing_Typeface? raise SysError
+
+pub fn font_is_baseline_snap(OH_Drawing_Font) -> Bool raise SysError
+
+pub fn font_is_embedded_bitmaps(OH_Drawing_Font) -> Bool raise SysError
+
+pub fn font_is_fake_bold_text(OH_Drawing_Font) -> Bool raise SysError
+
+pub fn font_is_force_auto_hinting(OH_Drawing_Font) -> Bool raise SysError
+
+pub fn font_is_linear_text(OH_Drawing_Font) -> Bool raise SysError
+
+pub fn font_is_subpixel(OH_Drawing_Font) -> Bool raise SysError
+
+pub fn font_is_theme_font_followed(OH_Drawing_Font) -> Bool raise SysError
+
+pub fn font_measure_single_character(OH_Drawing_Font, String) -> Float raise SysError
+
+pub fn font_measure_single_character_with_features(OH_Drawing_Font, String, OH_Drawing_FontFeatures) -> Float raise SysError
+
+pub fn font_set_baseline_snap(OH_Drawing_Font, Bool) -> Unit raise SysError
+
+pub fn font_set_edging(OH_Drawing_Font, OH_Drawing_FontEdging) -> Unit raise SysError
+
+pub fn font_set_embedded_bitmaps(OH_Drawing_Font, Bool) -> Unit raise SysError
+
+pub fn font_set_fake_bold_text(OH_Drawing_Font, Bool) -> Unit raise SysError
+
+pub fn font_set_force_auto_hinting(OH_Drawing_Font, Bool) -> Unit raise SysError
+
+pub fn font_set_hinting(OH_Drawing_Font, OH_Drawing_FontHinting) -> Unit raise SysError
+
+pub fn font_set_linear_text(OH_Drawing_Font, Bool) -> Unit raise SysError
+
+pub fn font_set_scale_x(OH_Drawing_Font, Float) -> Unit raise SysError
+
+pub fn font_set_subpixel(OH_Drawing_Font, Bool) -> Unit raise SysError
+
+pub fn font_set_text_size(OH_Drawing_Font, Float) -> Unit raise SysError
+
+pub fn font_set_text_skew_x(OH_Drawing_Font, Float) -> Unit raise SysError
+
+pub fn font_set_theme_font_followed(OH_Drawing_Font, Bool) -> Unit raise SysError
+
+pub fn font_set_typeface(OH_Drawing_Font, OH_Drawing_Typeface) -> Unit raise SysError
+
+pub fn matrix_concat(OH_Drawing_Matrix, OH_Drawing_Matrix, OH_Drawing_Matrix) -> Unit raise SysError
+
+pub fn matrix_copy(OH_Drawing_Matrix) -> OH_Drawing_Matrix? raise SysError
+
+pub fn matrix_create() -> OH_Drawing_Matrix?
+
+pub fn matrix_create_rotation(Float, Float, Float) -> OH_Drawing_Matrix?
+
+pub fn matrix_create_scale(Float, Float, Float, Float) -> OH_Drawing_Matrix?
+
+pub fn matrix_create_translation(Float, Float) -> OH_Drawing_Matrix?
+
+pub fn matrix_destroy(OH_Drawing_Matrix) -> Unit raise SysError
+
+pub fn matrix_get_all(OH_Drawing_Matrix) -> Float raise SysError
+
+pub fn matrix_get_value(OH_Drawing_Matrix, Int32) -> Float raise SysError
+
+pub fn matrix_invert(OH_Drawing_Matrix, OH_Drawing_Matrix) -> Bool raise SysError
+
+pub fn matrix_is_affine(OH_Drawing_Matrix) -> Bool raise SysError
+
+pub fn matrix_is_equal(OH_Drawing_Matrix, OH_Drawing_Matrix) -> Bool raise SysError
+
+pub fn matrix_is_identity(OH_Drawing_Matrix) -> Bool raise SysError
+
+pub fn matrix_map_points(OH_Drawing_Matrix, OH_Drawing_Point2D, OH_Drawing_Point2D, Int32) -> OH_Drawing_Point2D raise SysError
+
+pub fn matrix_map_rect(OH_Drawing_Matrix, OH_Drawing_Rect, OH_Drawing_Rect) -> Bool raise SysError
+
+pub fn matrix_post_rotate(OH_Drawing_Matrix, Float, Float, Float) -> Unit raise SysError
+
+pub fn matrix_post_scale(OH_Drawing_Matrix, Float, Float, Float, Float) -> Unit raise SysError
+
+pub fn matrix_post_translate(OH_Drawing_Matrix, Float, Float) -> Unit raise SysError
+
+pub fn matrix_pre_concat(OH_Drawing_Matrix, OH_Drawing_Matrix) -> Unit raise SysError
+
+pub fn matrix_pre_rotate(OH_Drawing_Matrix, Float, Float, Float) -> Unit raise SysError
+
+pub fn matrix_pre_scale(OH_Drawing_Matrix, Float, Float, Float, Float) -> Unit raise SysError
+
+pub fn matrix_pre_skew(OH_Drawing_Matrix, Float, Float, Float, Float) -> Unit raise SysError
+
+pub fn matrix_pre_translate(OH_Drawing_Matrix, Float, Float) -> Unit raise SysError
+
+pub fn matrix_rect_stays_rect(OH_Drawing_Matrix) -> Bool raise SysError
+
+pub fn matrix_reset(OH_Drawing_Matrix) -> Unit raise SysError
+
+pub fn matrix_rotate(OH_Drawing_Matrix, Float, Float, Float) -> Unit raise SysError
+
+pub fn matrix_scale(OH_Drawing_Matrix, Float, Float, Float, Float) -> Unit raise SysError
+
+pub fn matrix_set_matrix(OH_Drawing_Matrix, Float, Float, Float, Float, Float, Float, Float, Float, Float) -> Unit raise SysError
+
+pub fn matrix_set_poly_to_poly(OH_Drawing_Matrix, OH_Drawing_Point2D, OH_Drawing_Point2D, UInt32) -> Bool raise SysError
+
+pub fn matrix_set_rect_to_rect(OH_Drawing_Matrix, OH_Drawing_Rect, OH_Drawing_Rect, OH_Drawing_ScaleToFit) -> Bool raise SysError
+
+pub fn matrix_set_sin_cos(OH_Drawing_Matrix, Float, Float, Float, Float) -> Unit raise SysError
+
+pub fn matrix_translate(OH_Drawing_Matrix, Float, Float) -> Unit raise SysError
+
+pub fn path_add_arc(OH_Drawing_Path, OH_Drawing_Rect, Float, Float) -> Unit raise SysError
+
+pub fn path_add_circle(OH_Drawing_Path, Float, Float, Float, OH_Drawing_PathDirection) -> Unit raise SysError
+
+pub fn path_add_oval(OH_Drawing_Path, OH_Drawing_Rect, OH_Drawing_PathDirection) -> Unit raise SysError
+
+pub fn path_add_oval_with_initial_point(OH_Drawing_Path, OH_Drawing_Rect, UInt32, OH_Drawing_PathDirection) -> Unit raise SysError
+
+pub fn path_add_path(OH_Drawing_Path, OH_Drawing_Path, OH_Drawing_Matrix) -> Unit raise SysError
+
+pub fn path_add_path_with_matrix_and_mode(OH_Drawing_Path, OH_Drawing_Path, OH_Drawing_Matrix, OH_Drawing_PathAddMode) -> Unit raise SysError
+
+pub fn path_add_path_with_mode(OH_Drawing_Path, OH_Drawing_Path, OH_Drawing_PathAddMode) -> Unit raise SysError
+
+pub fn path_add_path_with_offset_and_mode(OH_Drawing_Path, OH_Drawing_Path, Float, Float, OH_Drawing_PathAddMode) -> Unit raise SysError
+
+pub fn path_add_polygon(OH_Drawing_Path, OH_Drawing_Point2D, UInt32, Bool) -> Unit raise SysError
+
+pub fn path_add_rect(OH_Drawing_Path, Float, Float, Float, Float, OH_Drawing_PathDirection) -> Unit raise SysError
+
+pub fn path_add_rect_with_initial_corner(OH_Drawing_Path, OH_Drawing_Rect, OH_Drawing_PathDirection, UInt32) -> Unit raise SysError
+
+pub fn path_add_round_rect(OH_Drawing_Path, OH_Drawing_RoundRect, OH_Drawing_PathDirection) -> Unit raise SysError
+
+pub fn path_approximate(OH_Drawing_Path, Float) -> (Float, UInt32) raise SysError
+
+pub fn path_arc_to(OH_Drawing_Path, Float, Float, Float, Float, Float, Float) -> Unit raise SysError
+
+pub fn path_build_from_svg_string(OH_Drawing_Path, String) -> Bool raise SysError
+
+pub fn path_close(OH_Drawing_Path) -> Unit raise SysError
+
+pub fn path_conic_to(OH_Drawing_Path, Float, Float, Float, Float, Float) -> Unit raise SysError
+
+pub fn path_contains(OH_Drawing_Path, Float, Float) -> Bool raise SysError
+
+pub fn path_convert_to_svg_string(OH_Drawing_Path) -> String raise SysError
+
+pub fn path_copy(OH_Drawing_Path) -> OH_Drawing_Path? raise SysError
+
+pub fn path_create() -> OH_Drawing_Path?
+
+pub fn path_cubic_to(OH_Drawing_Path, Float, Float, Float, Float, Float, Float) -> Unit raise SysError
+
+pub fn path_destroy(OH_Drawing_Path) -> Unit raise SysError
+
+pub fn path_get_bounds(OH_Drawing_Path, OH_Drawing_Rect) -> Unit raise SysError
+
+pub fn path_get_conic_weight_data(OH_Drawing_Path) -> (Float, UInt32) raise SysError
+
+pub fn path_get_fill_type(OH_Drawing_Path) -> OH_Drawing_PathFillType raise SysError
+
+pub fn path_get_last_point(OH_Drawing_Path) -> OH_Drawing_Point2D raise SysError
+
+pub fn path_get_length(OH_Drawing_Path, Bool) -> Float raise SysError
+
+pub fn path_get_matrix(OH_Drawing_Path, Bool, Float, OH_Drawing_Matrix, OH_Drawing_PathMeasureMatrixFlags) -> Bool raise SysError
+
+pub fn path_get_point_data(OH_Drawing_Path) -> (OH_Drawing_Point2D, UInt32) raise SysError
+
+pub fn path_get_position_tangent(OH_Drawing_Path, Bool, Float) -> (Bool, OH_Drawing_Point2D, OH_Drawing_Point2D) raise SysError
+
+pub fn path_get_segment(OH_Drawing_Path, Bool, Float, Float, Bool, OH_Drawing_Path) -> Bool raise SysError
+
+pub fn path_get_verb_data(OH_Drawing_Path) -> (OH_Drawing_PathIteratorVerb, UInt32) raise SysError
+
+pub fn path_interpolate(OH_Drawing_Path, OH_Drawing_Path, Float, OH_Drawing_Path) -> Bool raise SysError
+
+pub fn path_is_closed(OH_Drawing_Path, Bool) -> Bool raise SysError
+
+pub fn path_is_empty(OH_Drawing_Path) -> Bool raise SysError
+
+pub fn path_is_equal(OH_Drawing_Path, OH_Drawing_Path) -> Bool raise SysError
+
+pub fn path_is_interpolate(OH_Drawing_Path, OH_Drawing_Path) -> Bool raise SysError
+
+pub fn path_is_inverse_fill_type(OH_Drawing_Path) -> Bool raise SysError
+
+pub fn path_is_rect(OH_Drawing_Path, OH_Drawing_Rect) -> Bool raise SysError
+
+pub fn path_line_to(OH_Drawing_Path, Float, Float) -> Unit raise SysError
+
+pub fn path_move_to(OH_Drawing_Path, Float, Float) -> Unit raise SysError
+
+pub fn path_offset(OH_Drawing_Path, OH_Drawing_Path, Float, Float) -> Unit raise SysError
+
+pub fn path_op(OH_Drawing_Path, OH_Drawing_Path, OH_Drawing_PathOpMode) -> Bool raise SysError
+
+pub fn path_quad_to(OH_Drawing_Path, Float, Float, Float, Float) -> Unit raise SysError
+
+pub fn path_r_conic_to(OH_Drawing_Path, Float, Float, Float, Float, Float) -> Unit raise SysError
+
+pub fn path_r_cubic_to(OH_Drawing_Path, Float, Float, Float, Float, Float, Float) -> Unit raise SysError
+
+pub fn path_r_line_to(OH_Drawing_Path, Float, Float) -> Unit raise SysError
+
+pub fn path_r_move_to(OH_Drawing_Path, Float, Float) -> Unit raise SysError
+
+pub fn path_r_quad_to(OH_Drawing_Path, Float, Float, Float, Float) -> Unit raise SysError
+
+pub fn path_reset(OH_Drawing_Path) -> Unit raise SysError
+
+pub fn path_set_fill_type(OH_Drawing_Path, OH_Drawing_PathFillType) -> Unit raise SysError
+
+pub fn path_set_path(OH_Drawing_Path, OH_Drawing_Path) -> Unit raise SysError
+
+pub fn path_toggle_inverse_fill_type(OH_Drawing_Path) -> Unit raise SysError
+
+pub fn path_transform(OH_Drawing_Path, OH_Drawing_Matrix) -> Unit raise SysError
+
+pub fn path_transform_with_perspective_clip(OH_Drawing_Path, OH_Drawing_Matrix, OH_Drawing_Path, Bool) -> Unit raise SysError
+
+pub fn pen_copy(OH_Drawing_Pen) -> OH_Drawing_Pen? raise SysError
+
+pub fn pen_create() -> OH_Drawing_Pen?
+
+pub fn pen_destroy(OH_Drawing_Pen) -> Unit raise SysError
+
+pub fn pen_get_alpha(OH_Drawing_Pen) -> Int32 raise SysError
+
+pub fn pen_get_alpha_float(OH_Drawing_Pen) -> Float raise SysError
+
+pub fn pen_get_blue_float(OH_Drawing_Pen) -> Float raise SysError
+
+pub fn pen_get_cap(OH_Drawing_Pen) -> OH_Drawing_PenLineCapStyle raise SysError
+
+pub fn pen_get_color(OH_Drawing_Pen) -> UInt32 raise SysError
+
+pub fn pen_get_fill_path(OH_Drawing_Pen, OH_Drawing_Path, OH_Drawing_Path, OH_Drawing_Rect, OH_Drawing_Matrix) -> Bool raise SysError
+
+pub fn pen_get_filter(OH_Drawing_Pen, OH_Drawing_Filter) -> Unit raise SysError
+
+pub fn pen_get_green_float(OH_Drawing_Pen) -> Float raise SysError
+
+pub fn pen_get_join(OH_Drawing_Pen) -> OH_Drawing_PenLineJoinStyle raise SysError
+
+pub fn pen_get_miter_limit(OH_Drawing_Pen) -> Float raise SysError
+
+pub fn pen_get_red_float(OH_Drawing_Pen) -> Float raise SysError
+
+pub fn pen_get_width(OH_Drawing_Pen) -> Float raise SysError
+
+pub fn pen_is_anti_alias(OH_Drawing_Pen) -> Bool raise SysError
+
+pub fn pen_reset(OH_Drawing_Pen) -> Unit raise SysError
+
+pub fn pen_set_alpha(OH_Drawing_Pen, Int32) -> Unit raise SysError
+
+pub fn pen_set_anti_alias(OH_Drawing_Pen, Bool) -> Unit raise SysError
+
+pub fn pen_set_blend_mode(OH_Drawing_Pen, OH_Drawing_BlendMode) -> Unit raise SysError
+
+pub fn pen_set_cap(OH_Drawing_Pen, OH_Drawing_PenLineCapStyle) -> Unit raise SysError
+
+pub fn pen_set_color(OH_Drawing_Pen, UInt32) -> Unit raise SysError
+
+pub fn pen_set_color4f(OH_Drawing_Pen, Float, Float, Float, Float, OH_NativeColorSpaceManager) -> Unit raise SysError
+
+pub fn pen_set_filter(OH_Drawing_Pen, OH_Drawing_Filter) -> Unit raise SysError
+
+pub fn pen_set_join(OH_Drawing_Pen, OH_Drawing_PenLineJoinStyle) -> Unit raise SysError
+
+pub fn pen_set_miter_limit(OH_Drawing_Pen, Float) -> Unit raise SysError
+
+pub fn pen_set_path_effect(OH_Drawing_Pen, OH_Drawing_PathEffect) -> Unit raise SysError
+
+pub fn pen_set_shader_effect(OH_Drawing_Pen, OH_Drawing_ShaderEffect) -> Unit raise SysError
+
+pub fn pen_set_shadow_layer(OH_Drawing_Pen, OH_Drawing_ShadowLayer) -> Unit raise SysError
+
+pub fn pen_set_width(OH_Drawing_Pen, Float) -> Unit raise SysError
+
+pub fn point_create(Float, Float) -> OH_Drawing_Point?
+
+pub fn point_destroy(OH_Drawing_Point) -> Unit raise SysError
+
+pub fn point_get_x(OH_Drawing_Point) -> Float raise SysError
+
+pub fn point_get_y(OH_Drawing_Point) -> Float raise SysError
+
+pub fn point_negate(OH_Drawing_Point) -> Unit raise SysError
+
+pub fn point_offset(OH_Drawing_Point, Float, Float) -> Unit raise SysError
+
+pub fn point_set(OH_Drawing_Point, Float, Float) -> Unit raise SysError
+
+pub fn rect_contains(OH_Drawing_Rect, OH_Drawing_Rect) -> Bool raise SysError
+
+pub fn rect_copy(OH_Drawing_Rect, OH_Drawing_Rect) -> Unit raise SysError
+
+pub fn rect_create(Float, Float, Float, Float) -> OH_Drawing_Rect?
+
+pub fn rect_create_array(UInt64) -> OH_Drawing_Array?
+
+pub fn rect_destroy(OH_Drawing_Rect) -> Unit raise SysError
+
+pub fn rect_destroy_array(OH_Drawing_Array) -> Unit raise SysError
+
+pub fn rect_get_array_element(OH_Drawing_Array, UInt64) -> OH_Drawing_Rect raise SysError
+
+pub fn rect_get_array_size(OH_Drawing_Array) -> UInt64 raise SysError
+
+pub fn rect_get_bottom(OH_Drawing_Rect) -> Float raise SysError
+
+pub fn rect_get_height(OH_Drawing_Rect) -> Float raise SysError
+
+pub fn rect_get_left(OH_Drawing_Rect) -> Float raise SysError
+
+pub fn rect_get_right(OH_Drawing_Rect) -> Float raise SysError
+
+pub fn rect_get_top(OH_Drawing_Rect) -> Float raise SysError
+
+pub fn rect_get_width(OH_Drawing_Rect) -> Float raise SysError
+
+pub fn rect_inset(OH_Drawing_Rect, Float, Float, Float, Float) -> Unit raise SysError
+
+pub fn rect_intersect(OH_Drawing_Rect, OH_Drawing_Rect) -> Bool raise SysError
+
+pub fn rect_is_empty(OH_Drawing_Rect) -> Bool raise SysError
+
+pub fn rect_join(OH_Drawing_Rect, OH_Drawing_Rect) -> Bool raise SysError
+
+pub fn rect_offset(OH_Drawing_Rect, Float, Float) -> Unit raise SysError
+
+pub fn rect_offset_to(OH_Drawing_Rect, Float, Float) -> Unit raise SysError
+
+pub fn rect_set_bottom(OH_Drawing_Rect, Float) -> Unit raise SysError
+
+pub fn rect_set_empty(OH_Drawing_Rect) -> Unit raise SysError
+
+pub fn rect_set_left(OH_Drawing_Rect, Float) -> Unit raise SysError
+
+pub fn rect_set_right(OH_Drawing_Rect, Float) -> Unit raise SysError
+
+pub fn rect_set_top(OH_Drawing_Rect, Float) -> Unit raise SysError
+
+pub fn rect_sort(OH_Drawing_Rect) -> Unit raise SysError
+
+pub fn rect_union(OH_Drawing_Rect, OH_Drawing_Rect) -> Unit raise SysError
+
+pub fn round_rect_copy(OH_Drawing_RoundRect) -> OH_Drawing_RoundRect? raise SysError
+
+pub fn round_rect_create(OH_Drawing_Rect, Float, Float) -> OH_Drawing_RoundRect? raise SysError
+
+pub fn round_rect_destroy(OH_Drawing_RoundRect) -> Unit raise SysError
+
+pub fn round_rect_get_corner(OH_Drawing_RoundRect, OH_Drawing_CornerPos) -> OH_Drawing_Point2D raise SysError
+
+pub fn round_rect_offset(OH_Drawing_RoundRect, Float, Float) -> Unit raise SysError
+
+pub fn round_rect_set_corner(OH_Drawing_RoundRect, OH_Drawing_CornerPos, OH_Drawing_Point2D) -> Unit raise SysError
+
+pub fn shader_effect_create_color_shader(UInt32) -> OH_Drawing_ShaderEffect?
+
+pub fn shader_effect_create_compose(OH_Drawing_ShaderEffect, OH_Drawing_ShaderEffect, OH_Drawing_BlendMode) -> OH_Drawing_ShaderEffect? raise SysError
+
+pub fn shader_effect_create_image_shader(OH_Drawing_Image, OH_Drawing_TileMode, OH_Drawing_TileMode, OH_Drawing_SamplingOptions, OH_Drawing_Matrix) -> OH_Drawing_ShaderEffect? raise SysError
+
+pub fn shader_effect_create_linear_gradient(OH_Drawing_Point, OH_Drawing_Point, FixedArray[UInt32], FixedArray[Float], OH_Drawing_TileMode) -> OH_Drawing_ShaderEffect? raise SysError
+
+pub fn shader_effect_create_linear_gradient_with_local_matrix(OH_Drawing_Point2D, OH_Drawing_Point2D, FixedArray[UInt32], FixedArray[Float], OH_Drawing_TileMode, OH_Drawing_Matrix) -> OH_Drawing_ShaderEffect? raise SysError
+
+pub fn shader_effect_create_pixel_map_shader(OH_Drawing_PixelMap, OH_Drawing_TileMode, OH_Drawing_TileMode, OH_Drawing_SamplingOptions, OH_Drawing_Matrix) -> OH_Drawing_ShaderEffect? raise SysError
+
+pub fn shader_effect_create_radial_gradient(OH_Drawing_Point, Float, FixedArray[UInt32], FixedArray[Float], OH_Drawing_TileMode) -> OH_Drawing_ShaderEffect? raise SysError
+
+pub fn shader_effect_create_radial_gradient_with_local_matrix(OH_Drawing_Point2D, Float, FixedArray[UInt32], FixedArray[Float], OH_Drawing_TileMode, OH_Drawing_Matrix) -> OH_Drawing_ShaderEffect? raise SysError
+
+pub fn shader_effect_create_sweep_gradient(OH_Drawing_Point, FixedArray[UInt32], FixedArray[Float], OH_Drawing_TileMode) -> OH_Drawing_ShaderEffect? raise SysError
+
+pub fn shader_effect_create_sweep_gradient_with_local_matrix(OH_Drawing_Point, FixedArray[UInt32], FixedArray[Float], OH_Drawing_TileMode, OH_Drawing_Matrix) -> OH_Drawing_ShaderEffect? raise SysError
+
+pub fn shader_effect_create_two_point_conical_gradient(OH_Drawing_Point2D, Float, OH_Drawing_Point2D, Float, FixedArray[UInt32], FixedArray[Float], OH_Drawing_TileMode, OH_Drawing_Matrix) -> OH_Drawing_ShaderEffect? raise SysError
+
+pub fn shader_effect_destroy(OH_Drawing_ShaderEffect) -> Unit raise SysError
+
+pub fn text_blob_builder_alloc_run_pos(OH_Drawing_TextBlobBuilder, OH_Drawing_Font, Int32, OH_Drawing_Rect) -> OH_Drawing_RunBuffer? raise SysError
+
+pub fn text_blob_builder_create() -> OH_Drawing_TextBlobBuilder?
+
+pub fn text_blob_builder_destroy(OH_Drawing_TextBlobBuilder) -> Unit raise SysError
+
+pub fn text_blob_builder_make(OH_Drawing_TextBlobBuilder) -> OH_Drawing_TextBlob? raise SysError
+
+pub fn text_blob_create_from_string(String, OH_Drawing_Font, OH_Drawing_TextEncoding) -> OH_Drawing_TextBlob? raise SysError
+
+pub fn text_blob_destroy(OH_Drawing_TextBlob) -> Unit raise SysError
+
+pub fn text_blob_get_bounds(OH_Drawing_TextBlob, OH_Drawing_Rect) -> Unit raise SysError
+
+pub fn text_blob_unique_id(OH_Drawing_TextBlob) -> UInt32 raise SysError
+
+pub fn typeface_create_default() -> OH_Drawing_Typeface?
+
+pub fn typeface_create_from_current(OH_Drawing_Typeface, OH_Drawing_FontArguments) -> OH_Drawing_Typeface? raise SysError
+
+pub fn typeface_create_from_file(String, Int32) -> OH_Drawing_Typeface?
+
+pub fn typeface_create_from_file_with_arguments(String, OH_Drawing_FontArguments) -> OH_Drawing_Typeface? raise SysError
+
+pub fn typeface_create_from_stream(OH_Drawing_MemoryStream, Int32) -> OH_Drawing_Typeface? raise SysError
+
+pub fn typeface_destroy(OH_Drawing_Typeface) -> Unit raise SysError
+
+pub fn typeface_is_bold(OH_Drawing_Typeface) -> Bool raise SysError
+
+pub fn typeface_is_italic(OH_Drawing_Typeface) -> Bool raise SysError
+
+// Errors
+pub(all) suberror SysError {
+  Failed(String, String, Int32)
+  Closed(String)
+}
+pub fn SysError::output(Self, &Logger) -> Unit
+pub fn SysError::to_string(Self) -> String
+pub impl Show for SysError
+
+// Types and methods
+pub(all) enum OH_Drawing_AlphaFormat {
+  AlphaFormatUnknown
+  AlphaFormatOpaque
+  AlphaFormatPremul
+  AlphaFormatUnpremul
+  Other(Int32)
+}
+pub fn OH_Drawing_AlphaFormat::c_name(Self) -> String
+pub fn OH_Drawing_AlphaFormat::equal(Self, Self) -> Bool
+pub fn OH_Drawing_AlphaFormat::from_raw(Int32) -> Self
+pub fn OH_Drawing_AlphaFormat::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_AlphaFormat::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_AlphaFormat::to_raw(Self) -> Int32
+pub fn OH_Drawing_AlphaFormat::to_string(Self) -> String
+pub impl Eq for OH_Drawing_AlphaFormat
+pub impl Show for OH_Drawing_AlphaFormat
+
+pub type OH_Drawing_Array
+pub fn OH_Drawing_Array::is_live(Self) -> Bool
+
+pub type OH_Drawing_Bitmap
+pub fn OH_Drawing_Bitmap::is_live(Self) -> Bool
+
+pub(all) struct OH_Drawing_BitmapFormat {
+  color_format : OH_Drawing_ColorFormat
+  alpha_format : OH_Drawing_AlphaFormat
+}
+
+pub(all) enum OH_Drawing_BlendMode {
+  BlendModeClear
+  BlendModeSrc
+  BlendModeDst
+  BlendModeSrcOver
+  BlendModeDstOver
+  BlendModeSrcIn
+  BlendModeDstIn
+  BlendModeSrcOut
+  BlendModeDstOut
+  BlendModeSrcAtop
+  BlendModeDstAtop
+  BlendModeXor
+  BlendModePlus
+  BlendModeModulate
+  BlendModeScreen
+  BlendModeOverlay
+  BlendModeDarken
+  BlendModeLighten
+  BlendModeColorDodge
+  BlendModeColorBurn
+  BlendModeHardLight
+  BlendModeSoftLight
+  BlendModeDifference
+  BlendModeExclusion
+  BlendModeMultiply
+  BlendModeHue
+  BlendModeSaturation
+  BlendModeColor
+  BlendModeLuminosity
+  Other(Int32)
+}
+pub fn OH_Drawing_BlendMode::c_name(Self) -> String
+pub fn OH_Drawing_BlendMode::equal(Self, Self) -> Bool
+pub fn OH_Drawing_BlendMode::from_raw(Int32) -> Self
+pub fn OH_Drawing_BlendMode::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_BlendMode::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_BlendMode::to_raw(Self) -> Int32
+pub fn OH_Drawing_BlendMode::to_string(Self) -> String
+pub impl Eq for OH_Drawing_BlendMode
+pub impl Show for OH_Drawing_BlendMode
+
+pub type OH_Drawing_Brush
+pub fn OH_Drawing_Brush::is_live(Self) -> Bool
+
+pub type OH_Drawing_Canvas
+pub fn OH_Drawing_Canvas::is_live(Self) -> Bool
+
+pub(all) enum OH_Drawing_CanvasClipOp {
+  Difference
+  Intersect
+  Other(Int32)
+}
+pub fn OH_Drawing_CanvasClipOp::c_name(Self) -> String
+pub fn OH_Drawing_CanvasClipOp::equal(Self, Self) -> Bool
+pub fn OH_Drawing_CanvasClipOp::from_raw(Int32) -> Self
+pub fn OH_Drawing_CanvasClipOp::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_CanvasClipOp::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_CanvasClipOp::to_raw(Self) -> Int32
+pub fn OH_Drawing_CanvasClipOp::to_string(Self) -> String
+pub impl Eq for OH_Drawing_CanvasClipOp
+pub impl Show for OH_Drawing_CanvasClipOp
+
+pub(all) enum OH_Drawing_CanvasShadowFlags {
+  ShadowFlagsNone
+  ShadowFlagsTransparentOccluder
+  ShadowFlagsGeometricOnly
+  ShadowFlagsAll
+  Other(Int32)
+}
+pub fn OH_Drawing_CanvasShadowFlags::c_name(Self) -> String
+pub fn OH_Drawing_CanvasShadowFlags::equal(Self, Self) -> Bool
+pub fn OH_Drawing_CanvasShadowFlags::from_raw(Int32) -> Self
+pub fn OH_Drawing_CanvasShadowFlags::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_CanvasShadowFlags::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_CanvasShadowFlags::to_raw(Self) -> Int32
+pub fn OH_Drawing_CanvasShadowFlags::to_string(Self) -> String
+pub impl Eq for OH_Drawing_CanvasShadowFlags
+pub impl Show for OH_Drawing_CanvasShadowFlags
+
+pub(all) enum OH_Drawing_ColorFormat {
+  ColorFormatUnknown
+  ColorFormatAlpha8
+  ColorFormatRgb565
+  ColorFormatArgb4444
+  ColorFormatRgba8888
+  ColorFormatBgra8888
+  Other(Int32)
+}
+pub fn OH_Drawing_ColorFormat::c_name(Self) -> String
+pub fn OH_Drawing_ColorFormat::equal(Self, Self) -> Bool
+pub fn OH_Drawing_ColorFormat::from_raw(Int32) -> Self
+pub fn OH_Drawing_ColorFormat::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_ColorFormat::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_ColorFormat::to_raw(Self) -> Int32
+pub fn OH_Drawing_ColorFormat::to_string(Self) -> String
+pub impl Eq for OH_Drawing_ColorFormat
+pub impl Show for OH_Drawing_ColorFormat
+
+pub(all) enum OH_Drawing_CornerPos {
+  CornerPosTopLeft
+  CornerPosTopRight
+  CornerPosBottomRight
+  CornerPosBottomLeft
+  Other(Int32)
+}
+pub fn OH_Drawing_CornerPos::c_name(Self) -> String
+pub fn OH_Drawing_CornerPos::equal(Self, Self) -> Bool
+pub fn OH_Drawing_CornerPos::from_raw(Int32) -> Self
+pub fn OH_Drawing_CornerPos::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_CornerPos::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_CornerPos::to_raw(Self) -> Int32
+pub fn OH_Drawing_CornerPos::to_string(Self) -> String
+pub impl Eq for OH_Drawing_CornerPos
+pub impl Show for OH_Drawing_CornerPos
+
+pub(all) enum OH_Drawing_ErrorCode {
+  OhDrawingSuccess
+  OhDrawingErrorNoPermission
+  OhDrawingErrorInvalidParameter
+  OhDrawingErrorParameterOutOfRange
+  OhDrawingErrorAllocationFailed
+  OhDrawingErrorAttributeIdMismatch
+  OhDrawingErrorIncorrectParameter
+  OhDrawingErrorFileNotFound
+  OhDrawingErrorOpenFileFailed
+  OhDrawingErrorFileSeekFailed
+  OhDrawingErrorGetFileSizeFailed
+  OhDrawingErrorReadFileFailed
+  OhDrawingErrorEmptyFile
+  OhDrawingErrorFileCorrupted
+  Other(Int32)
+}
+pub fn OH_Drawing_ErrorCode::c_name(Self) -> String
+pub fn OH_Drawing_ErrorCode::equal(Self, Self) -> Bool
+pub fn OH_Drawing_ErrorCode::from_raw(Int32) -> Self
+pub fn OH_Drawing_ErrorCode::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_ErrorCode::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_ErrorCode::to_raw(Self) -> Int32
+pub fn OH_Drawing_ErrorCode::to_string(Self) -> String
+pub impl Eq for OH_Drawing_ErrorCode
+pub impl Show for OH_Drawing_ErrorCode
+
+pub type OH_Drawing_Filter
+pub fn OH_Drawing_Filter::is_live(Self) -> Bool
+
+pub(all) enum OH_Drawing_FilterMode {
+  FilterModeNearest
+  FilterModeLinear
+  Other(Int32)
+}
+pub fn OH_Drawing_FilterMode::c_name(Self) -> String
+pub fn OH_Drawing_FilterMode::equal(Self, Self) -> Bool
+pub fn OH_Drawing_FilterMode::from_raw(Int32) -> Self
+pub fn OH_Drawing_FilterMode::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_FilterMode::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_FilterMode::to_raw(Self) -> Int32
+pub fn OH_Drawing_FilterMode::to_string(Self) -> String
+pub impl Eq for OH_Drawing_FilterMode
+pub impl Show for OH_Drawing_FilterMode
+
+pub type OH_Drawing_Font
+pub fn OH_Drawing_Font::is_live(Self) -> Bool
+
+pub type OH_Drawing_FontArguments
+pub fn OH_Drawing_FontArguments::is_live(Self) -> Bool
+
+pub(all) enum OH_Drawing_FontEdging {
+  FontEdgingAlias
+  FontEdgingAntiAlias
+  FontEdgingSubpixelAntiAlias
+  Other(Int32)
+}
+pub fn OH_Drawing_FontEdging::c_name(Self) -> String
+pub fn OH_Drawing_FontEdging::equal(Self, Self) -> Bool
+pub fn OH_Drawing_FontEdging::from_raw(Int32) -> Self
+pub fn OH_Drawing_FontEdging::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_FontEdging::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_FontEdging::to_raw(Self) -> Int32
+pub fn OH_Drawing_FontEdging::to_string(Self) -> String
+pub impl Eq for OH_Drawing_FontEdging
+pub impl Show for OH_Drawing_FontEdging
+
+pub type OH_Drawing_FontFeatures
+pub fn OH_Drawing_FontFeatures::is_live(Self) -> Bool
+
+pub(all) enum OH_Drawing_FontHinting {
+  FontHintingNone
+  FontHintingSlight
+  FontHintingNormal
+  FontHintingFull
+  Other(Int32)
+}
+pub fn OH_Drawing_FontHinting::c_name(Self) -> String
+pub fn OH_Drawing_FontHinting::equal(Self, Self) -> Bool
+pub fn OH_Drawing_FontHinting::from_raw(Int32) -> Self
+pub fn OH_Drawing_FontHinting::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_FontHinting::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_FontHinting::to_raw(Self) -> Int32
+pub fn OH_Drawing_FontHinting::to_string(Self) -> String
+pub impl Eq for OH_Drawing_FontHinting
+pub impl Show for OH_Drawing_FontHinting
+
+pub(all) struct OH_Drawing_Font_Metrics {
+  flags : UInt32
+  top : Float
+  ascent : Float
+  descent : Float
+  bottom : Float
+  leading : Float
+  avg_char_width : Float
+  max_char_width : Float
+  x_min : Float
+  x_max : Float
+  x_height : Float
+  cap_height : Float
+  underline_thickness : Float
+  underline_position : Float
+  strikeout_thickness : Float
+  strikeout_position : Float
+}
+
+pub type OH_Drawing_Image
+pub fn OH_Drawing_Image::is_live(Self) -> Bool
+
+pub(all) struct OH_Drawing_Image_Info {
+  width : Int32
+  height : Int32
+  color_type : OH_Drawing_ColorFormat
+  alpha_type : OH_Drawing_AlphaFormat
+}
+
+pub type OH_Drawing_Matrix
+pub fn OH_Drawing_Matrix::is_live(Self) -> Bool
+
+pub type OH_Drawing_MemoryStream
+pub fn OH_Drawing_MemoryStream::is_live(Self) -> Bool
+
+pub type OH_Drawing_Path
+pub fn OH_Drawing_Path::is_live(Self) -> Bool
+
+pub(all) enum OH_Drawing_PathAddMode {
+  PathAddModeAppend
+  PathAddModeExtend
+  Other(Int32)
+}
+pub fn OH_Drawing_PathAddMode::c_name(Self) -> String
+pub fn OH_Drawing_PathAddMode::equal(Self, Self) -> Bool
+pub fn OH_Drawing_PathAddMode::from_raw(Int32) -> Self
+pub fn OH_Drawing_PathAddMode::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_PathAddMode::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_PathAddMode::to_raw(Self) -> Int32
+pub fn OH_Drawing_PathAddMode::to_string(Self) -> String
+pub impl Eq for OH_Drawing_PathAddMode
+pub impl Show for OH_Drawing_PathAddMode
+
+pub(all) enum OH_Drawing_PathDirection {
+  PathDirectionCw
+  PathDirectionCcw
+  Other(Int32)
+}
+pub fn OH_Drawing_PathDirection::c_name(Self) -> String
+pub fn OH_Drawing_PathDirection::equal(Self, Self) -> Bool
+pub fn OH_Drawing_PathDirection::from_raw(Int32) -> Self
+pub fn OH_Drawing_PathDirection::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_PathDirection::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_PathDirection::to_raw(Self) -> Int32
+pub fn OH_Drawing_PathDirection::to_string(Self) -> String
+pub impl Eq for OH_Drawing_PathDirection
+pub impl Show for OH_Drawing_PathDirection
+
+pub type OH_Drawing_PathEffect
+pub fn OH_Drawing_PathEffect::is_live(Self) -> Bool
+
+pub(all) enum OH_Drawing_PathFillType {
+  PathFillTypeWinding
+  PathFillTypeEvenOdd
+  PathFillTypeInverseWinding
+  PathFillTypeInverseEvenOdd
+  Other(Int32)
+}
+pub fn OH_Drawing_PathFillType::c_name(Self) -> String
+pub fn OH_Drawing_PathFillType::equal(Self, Self) -> Bool
+pub fn OH_Drawing_PathFillType::from_raw(Int32) -> Self
+pub fn OH_Drawing_PathFillType::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_PathFillType::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_PathFillType::to_raw(Self) -> Int32
+pub fn OH_Drawing_PathFillType::to_string(Self) -> String
+pub impl Eq for OH_Drawing_PathFillType
+pub impl Show for OH_Drawing_PathFillType
+
+pub(all) enum OH_Drawing_PathIteratorVerb {
+  Move
+  Line
+  Quad
+  Conic
+  Cubic
+  Close
+  Done
+  Other(Int32)
+}
+pub fn OH_Drawing_PathIteratorVerb::c_name(Self) -> String
+pub fn OH_Drawing_PathIteratorVerb::equal(Self, Self) -> Bool
+pub fn OH_Drawing_PathIteratorVerb::from_raw(Int32) -> Self
+pub fn OH_Drawing_PathIteratorVerb::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_PathIteratorVerb::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_PathIteratorVerb::to_raw(Self) -> Int32
+pub fn OH_Drawing_PathIteratorVerb::to_string(Self) -> String
+pub impl Eq for OH_Drawing_PathIteratorVerb
+pub impl Show for OH_Drawing_PathIteratorVerb
+
+pub(all) enum OH_Drawing_PathMeasureMatrixFlags {
+  GetPositionMatrix
+  GetTangentMatrix
+  GetPositionAndTangentMatrix
+  Other(Int32)
+}
+pub fn OH_Drawing_PathMeasureMatrixFlags::c_name(Self) -> String
+pub fn OH_Drawing_PathMeasureMatrixFlags::equal(Self, Self) -> Bool
+pub fn OH_Drawing_PathMeasureMatrixFlags::from_raw(Int32) -> Self
+pub fn OH_Drawing_PathMeasureMatrixFlags::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_PathMeasureMatrixFlags::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_PathMeasureMatrixFlags::to_raw(Self) -> Int32
+pub fn OH_Drawing_PathMeasureMatrixFlags::to_string(Self) -> String
+pub impl Eq for OH_Drawing_PathMeasureMatrixFlags
+pub impl Show for OH_Drawing_PathMeasureMatrixFlags
+
+pub(all) enum OH_Drawing_PathOpMode {
+  PathOpModeDifference
+  PathOpModeIntersect
+  PathOpModeUnion
+  PathOpModeXor
+  PathOpModeReverseDifference
+  Other(Int32)
+}
+pub fn OH_Drawing_PathOpMode::c_name(Self) -> String
+pub fn OH_Drawing_PathOpMode::equal(Self, Self) -> Bool
+pub fn OH_Drawing_PathOpMode::from_raw(Int32) -> Self
+pub fn OH_Drawing_PathOpMode::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_PathOpMode::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_PathOpMode::to_raw(Self) -> Int32
+pub fn OH_Drawing_PathOpMode::to_string(Self) -> String
+pub impl Eq for OH_Drawing_PathOpMode
+pub impl Show for OH_Drawing_PathOpMode
+
+pub type OH_Drawing_Pen
+pub fn OH_Drawing_Pen::is_live(Self) -> Bool
+
+pub(all) enum OH_Drawing_PenLineCapStyle {
+  LineFlatCap
+  LineSquareCap
+  LineRoundCap
+  Other(Int32)
+}
+pub fn OH_Drawing_PenLineCapStyle::c_name(Self) -> String
+pub fn OH_Drawing_PenLineCapStyle::equal(Self, Self) -> Bool
+pub fn OH_Drawing_PenLineCapStyle::from_raw(Int32) -> Self
+pub fn OH_Drawing_PenLineCapStyle::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_PenLineCapStyle::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_PenLineCapStyle::to_raw(Self) -> Int32
+pub fn OH_Drawing_PenLineCapStyle::to_string(Self) -> String
+pub impl Eq for OH_Drawing_PenLineCapStyle
+pub impl Show for OH_Drawing_PenLineCapStyle
+
+pub(all) enum OH_Drawing_PenLineJoinStyle {
+  LineMiterJoin
+  LineRoundJoin
+  LineBevelJoin
+  Other(Int32)
+}
+pub fn OH_Drawing_PenLineJoinStyle::c_name(Self) -> String
+pub fn OH_Drawing_PenLineJoinStyle::equal(Self, Self) -> Bool
+pub fn OH_Drawing_PenLineJoinStyle::from_raw(Int32) -> Self
+pub fn OH_Drawing_PenLineJoinStyle::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_PenLineJoinStyle::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_PenLineJoinStyle::to_raw(Self) -> Int32
+pub fn OH_Drawing_PenLineJoinStyle::to_string(Self) -> String
+pub impl Eq for OH_Drawing_PenLineJoinStyle
+pub impl Show for OH_Drawing_PenLineJoinStyle
+
+pub type OH_Drawing_PixelMap
+pub fn OH_Drawing_PixelMap::is_live(Self) -> Bool
+
+pub type OH_Drawing_Point
+pub fn OH_Drawing_Point::is_live(Self) -> Bool
+
+pub(all) struct OH_Drawing_Point2D {
+  x : Float
+  y : Float
+}
+
+pub(all) struct OH_Drawing_Point3D {
+  x : Float
+  y : Float
+  z : Float
+}
+
+pub(all) enum OH_Drawing_PointMode {
+  PointModePoints
+  PointModeLines
+  PointModePolygon
+  Other(Int32)
+}
+pub fn OH_Drawing_PointMode::c_name(Self) -> String
+pub fn OH_Drawing_PointMode::equal(Self, Self) -> Bool
+pub fn OH_Drawing_PointMode::from_raw(Int32) -> Self
+pub fn OH_Drawing_PointMode::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_PointMode::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_PointMode::to_raw(Self) -> Int32
+pub fn OH_Drawing_PointMode::to_string(Self) -> String
+pub impl Eq for OH_Drawing_PointMode
+pub impl Show for OH_Drawing_PointMode
+
+pub type OH_Drawing_RecordCmd
+pub fn OH_Drawing_RecordCmd::is_live(Self) -> Bool
+
+pub type OH_Drawing_Rect
+pub fn OH_Drawing_Rect::is_live(Self) -> Bool
+
+pub type OH_Drawing_Region
+pub fn OH_Drawing_Region::is_live(Self) -> Bool
+
+pub type OH_Drawing_RoundRect
+pub fn OH_Drawing_RoundRect::is_live(Self) -> Bool
+
+pub type OH_Drawing_RunBuffer
+pub fn OH_Drawing_RunBuffer::is_live(Self) -> Bool
+
+pub type OH_Drawing_SamplingOptions
+pub fn OH_Drawing_SamplingOptions::is_live(Self) -> Bool
+
+pub(all) enum OH_Drawing_ScaleToFit {
+  ScaleToFitFill
+  ScaleToFitStart
+  ScaleToFitCenter
+  ScaleToFitEnd
+  Other(Int32)
+}
+pub fn OH_Drawing_ScaleToFit::c_name(Self) -> String
+pub fn OH_Drawing_ScaleToFit::equal(Self, Self) -> Bool
+pub fn OH_Drawing_ScaleToFit::from_raw(Int32) -> Self
+pub fn OH_Drawing_ScaleToFit::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_ScaleToFit::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_ScaleToFit::to_raw(Self) -> Int32
+pub fn OH_Drawing_ScaleToFit::to_string(Self) -> String
+pub impl Eq for OH_Drawing_ScaleToFit
+pub impl Show for OH_Drawing_ScaleToFit
+
+pub type OH_Drawing_ShaderEffect
+pub fn OH_Drawing_ShaderEffect::is_live(Self) -> Bool
+
+pub type OH_Drawing_ShadowLayer
+pub fn OH_Drawing_ShadowLayer::is_live(Self) -> Bool
+
+pub(all) enum OH_Drawing_SrcRectConstraint {
+  StrictSrcRectConstraint
+  FastSrcRectConstraint
+  Other(Int32)
+}
+pub fn OH_Drawing_SrcRectConstraint::c_name(Self) -> String
+pub fn OH_Drawing_SrcRectConstraint::equal(Self, Self) -> Bool
+pub fn OH_Drawing_SrcRectConstraint::from_raw(Int32) -> Self
+pub fn OH_Drawing_SrcRectConstraint::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_SrcRectConstraint::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_SrcRectConstraint::to_raw(Self) -> Int32
+pub fn OH_Drawing_SrcRectConstraint::to_string(Self) -> String
+pub impl Eq for OH_Drawing_SrcRectConstraint
+pub impl Show for OH_Drawing_SrcRectConstraint
+
+pub type OH_Drawing_TextBlob
+pub fn OH_Drawing_TextBlob::is_live(Self) -> Bool
+
+pub type OH_Drawing_TextBlobBuilder
+pub fn OH_Drawing_TextBlobBuilder::is_live(Self) -> Bool
+
+pub(all) enum OH_Drawing_TextEncoding {
+  TextEncodingUtf8
+  TextEncodingUtf16
+  TextEncodingUtf32
+  TextEncodingGlyphId
+  Other(Int32)
+}
+pub fn OH_Drawing_TextEncoding::c_name(Self) -> String
+pub fn OH_Drawing_TextEncoding::equal(Self, Self) -> Bool
+pub fn OH_Drawing_TextEncoding::from_raw(Int32) -> Self
+pub fn OH_Drawing_TextEncoding::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_TextEncoding::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_TextEncoding::to_raw(Self) -> Int32
+pub fn OH_Drawing_TextEncoding::to_string(Self) -> String
+pub impl Eq for OH_Drawing_TextEncoding
+pub impl Show for OH_Drawing_TextEncoding
+
+pub(all) enum OH_Drawing_TileMode {
+  Clamp
+  Repeat
+  Mirror
+  Decal
+  Other(Int32)
+}
+pub fn OH_Drawing_TileMode::c_name(Self) -> String
+pub fn OH_Drawing_TileMode::equal(Self, Self) -> Bool
+pub fn OH_Drawing_TileMode::from_raw(Int32) -> Self
+pub fn OH_Drawing_TileMode::not_equal(Self, Self) -> Bool
+pub fn OH_Drawing_TileMode::output(Self, &Logger) -> Unit
+pub fn OH_Drawing_TileMode::to_raw(Self) -> Int32
+pub fn OH_Drawing_TileMode::to_string(Self) -> String
+pub impl Eq for OH_Drawing_TileMode
+pub impl Show for OH_Drawing_TileMode
+
+pub type OH_Drawing_Typeface
+pub fn OH_Drawing_Typeface::is_live(Self) -> Bool
+
+pub type OH_NativeColorSpaceManager
+pub fn OH_NativeColorSpaceManager::is_live(Self) -> Bool
+
+// Type aliases
+
+// Traits

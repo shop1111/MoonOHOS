@@ -2,6 +2,6 @@
   "schema": "moonohos-native-v1",
   "package": "shop1111/moonohos_ohos/surface",
   "sources": ["surface_stub.c"],
-  "systemLibraries": ["libnative_window.so", "libnative_vsync.so"],
+  "systemLibraries": ["libnative_window.so", "libnative_vsync.so", "libnative_drawing.so"],
   "abis": ["arm64-v8a", "x86_64"]
 }

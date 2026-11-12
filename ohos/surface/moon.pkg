@@ -1,5 +1,6 @@
 import {
   "moonbitlang/core/encoding/utf8",
+  "shop1111/moonohos_ohos/sys/drawing",
 }
 
 options(

@@ -248,3 +248,62 @@ pub fn blit(
   }
   blit_raw(dst, dst_stride, dst_width, dst_height, src, width, height)
 }
+
+///|
+#borrow(surface, render, info)
+extern "C" fn surface_draw_raw(
+  surface : Surface,
+  tramp : FuncRef[
+    ((@drawing.OH_Drawing_Canvas) -> Unit, @drawing.OH_Drawing_Canvas) -> Unit,
+  ],
+  render : (@drawing.OH_Drawing_Canvas) -> Unit,
+  info : FixedArray[Int32],
+) -> Int32 = "moonohos_ohos_surface_draw"
+
+///|
+/// Draws the next frame with Native Drawing: `render` gets a canvas bound
+/// directly to the window buffer (RGBA 8888, premultiplied alpha), so no
+/// pixel copy is made. The canvas is only valid inside `render`; using it
+/// afterwards raises `@drawing.SysError::Closed`. An error raised by
+/// `render` is re-raised after the (partly drawn) frame has been queued.
+pub fn Surface::draw(
+  self : Surface,
+  render : (@drawing.OH_Drawing_Canvas) -> Unit raise,
+) -> Presented raise {
+  self.check("draw")
+  let failures : Array[Error] = []
+  let info : FixedArray[Int32] = [0, 0, 0]
+  let code = surface_draw_raw(
+    self,
+    fn(f, canvas) { f(canvas) },
+    canvas => render(canvas) catch { error => failures.push(error) },
+    info,
+  )
+  if code != 0 {
+    raise Failed("draw", code)
+  }
+  if failures.length() > 0 {
+    raise failures[0]
+  }
+  { width: info[0], height: info[1], stride: info[2], }
+}
+
+///|
+extern "C" fn borrow_test_raw(tag : Int32) -> @drawing.OH_Drawing_Canvas = "moonohos_ohos_surface_borrow_test"
+
+///|
+#borrow(canvas)
+extern "C" fn release_test_raw(canvas : @drawing.OH_Drawing_Canvas) = "moonohos_ohos_surface_release_test"
+
+///|
+/// For tests: a canvas handle as `draw` creates it (not backed by an SDK
+/// canvas; never draw with it), and the invalidation `draw` applies when
+/// `render` returns. Checks that the handle layout matches sys/drawing.
+pub fn borrowed_canvas_for_test(tag : Int32) -> @drawing.OH_Drawing_Canvas {
+  borrow_test_raw(tag)
+}
+
+///|
+pub fn release_canvas_for_test(canvas : @drawing.OH_Drawing_Canvas) -> Unit {
+  release_test_raw(canvas)
+}

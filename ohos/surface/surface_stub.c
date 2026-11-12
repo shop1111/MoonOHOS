@@ -16,14 +16,18 @@
 #include <unistd.h>
 #include <native_buffer/buffer_common.h>
 #include <native_buffer/native_buffer.h>
+#include <native_drawing/drawing_bitmap.h>
+#include <native_drawing/drawing_canvas.h>
+#include <native_drawing/drawing_types.h>
 #include <native_vsync/native_vsync.h>
 #include <native_window/external_window.h>
 #endif
 
 #define MOONOHOS_SURFACE_UNSUPPORTED 801
-// Errors of this file (not SDK codes): no mapping, fence timeout.
+// Errors of this file (not SDK codes): no mapping, fence timeout, no canvas.
 #define MOONOHOS_SURFACE_MMAP_FAILED -2
 #define MOONOHOS_SURFACE_FENCE_TIMEOUT -3
+#define MOONOHOS_SURFACE_CANVAS_FAILED -4
 
 // Copies a `width` x `height` block of 32-bit pixels into a destination
 // whose rows are `dst_stride` pixels apart, clipped to `dst_width` x
@@ -156,19 +160,19 @@ int32_t moonohos_ohos_surface_size(void *self, int32_t *size) {
 #endif
 }
 
-// Requests a buffer, waits for its release fence, copies the pixels (RGBA
-// 8888, rows of `width`) and queues it for composition. info[0..2] receive
-// the buffer's width, height and stride in pixels.
-int32_t moonohos_ohos_surface_present(void *self, uint32_t *pixels, int32_t width, int32_t height,
-                                 int32_t *info) {
-  moonohos_surface *surface = (moonohos_surface *)self;
-  info[0] = 0;
-  info[1] = 0;
-  info[2] = 0;
 #ifdef MOONOHOS_TARGET_OHOS
+// A window buffer mapped for CPU access, between `acquire` and `submit`.
+typedef struct {
+  OHNativeWindowBuffer *buffer;
+  BufferHandle *handle;
+  void *mapped;
+} moonohos_frame;
+
+// Requests a buffer (re-applying a requested size first: ArkUI resets the
+// geometry to the component's size when the surface changes, e.g. on
+// rotation), waits for its release fence and maps it.
+static int32_t moonohos_ohos_surface_acquire(moonohos_surface *surface, moonohos_frame *frame) {
   OHNativeWindow *window = (OHNativeWindow *)surface->window;
-  // ArkUI resets the geometry to the component's size when the surface
-  // changes (e.g. on rotation), so a requested size is applied every frame.
   if (surface->width > 0 && surface->height > 0) {
     int32_t height = 0;
     int32_t width = 0;
@@ -178,10 +182,10 @@ int32_t moonohos_ohos_surface_present(void *self, uint32_t *pixels, int32_t widt
     }
     if (g != 0) return g;
   }
-  OHNativeWindowBuffer *buffer = NULL;
   int fence = -1;
-  int32_t r = OH_NativeWindow_NativeWindowRequestBuffer(window, &buffer, &fence);
-  if (r != 0 || buffer == NULL) return r != 0 ? r : -1;
+  frame->buffer = NULL;
+  int32_t r = OH_NativeWindow_NativeWindowRequestBuffer(window, &frame->buffer, &fence);
+  if (r != 0 || frame->buffer == NULL) return r != 0 ? r : -1;
   if (fence >= 0) {
     struct pollfd pfd = {0};
     pfd.fd = fence;
@@ -192,35 +196,136 @@ int32_t moonohos_ohos_surface_present(void *self, uint32_t *pixels, int32_t widt
     } while (ready == -1 && (errno == EINTR || errno == EAGAIN));
     close(fence);
     if (ready <= 0) {
-      OH_NativeWindow_NativeWindowAbortBuffer(window, buffer);
+      OH_NativeWindow_NativeWindowAbortBuffer(window, frame->buffer);
       return MOONOHOS_SURFACE_FENCE_TIMEOUT;
     }
   }
-  BufferHandle *handle = OH_NativeWindow_GetBufferHandleFromNative(buffer);
-  if (handle == NULL) {
-    OH_NativeWindow_NativeWindowAbortBuffer(window, buffer);
+  frame->handle = OH_NativeWindow_GetBufferHandleFromNative(frame->buffer);
+  if (frame->handle == NULL) {
+    OH_NativeWindow_NativeWindowAbortBuffer(window, frame->buffer);
     return -1;
   }
-  void *mapped = mmap(handle->virAddr, (size_t)handle->size, PROT_READ | PROT_WRITE, MAP_SHARED, handle->fd, 0);
-  if (mapped == MAP_FAILED) {
-    OH_NativeWindow_NativeWindowAbortBuffer(window, buffer);
+  frame->mapped = mmap(frame->handle->virAddr, (size_t)frame->handle->size, PROT_READ | PROT_WRITE, MAP_SHARED,
+                       frame->handle->fd, 0);
+  if (frame->mapped == MAP_FAILED) {
+    OH_NativeWindow_NativeWindowAbortBuffer(window, frame->buffer);
     return MOONOHOS_SURFACE_MMAP_FAILED;
   }
-  int32_t stride = handle->stride / 4;
-  moonohos_ohos_surface_blit((uint32_t *)mapped, stride, handle->width, handle->height, pixels, width, height);
-  munmap(mapped, (size_t)handle->size);
-  info[0] = handle->width;
-  info[1] = handle->height;
-  info[2] = stride;
+  return 0;
+}
+
+// Unmaps the buffer and queues it for composition; info[0..2] receive its
+// width, height and stride in pixels.
+static int32_t moonohos_ohos_surface_submit(moonohos_surface *surface, moonohos_frame *frame, int32_t *info) {
+  info[0] = frame->handle->width;
+  info[1] = frame->handle->height;
+  info[2] = frame->handle->stride / 4;
+  munmap(frame->mapped, (size_t)frame->handle->size);
   Region region = {NULL, 0};
-  r = OH_NativeWindow_NativeWindowFlushBuffer(window, buffer, -1, region);
+  int32_t r = OH_NativeWindow_NativeWindowFlushBuffer((OHNativeWindow *)surface->window, frame->buffer, -1, region);
   if (r == 0) surface->frames++;
   return r;
+}
+#endif
+
+// Copies the pixels (RGBA 8888, rows of `width`) into the next buffer and
+// queues it. info[0..2] receive the buffer's width, height and stride.
+int32_t moonohos_ohos_surface_present(void *self, uint32_t *pixels, int32_t width, int32_t height,
+                                      int32_t *info) {
+  moonohos_surface *surface = (moonohos_surface *)self;
+  info[0] = 0;
+  info[1] = 0;
+  info[2] = 0;
+#ifdef MOONOHOS_TARGET_OHOS
+  moonohos_frame frame;
+  int32_t r = moonohos_ohos_surface_acquire(surface, &frame);
+  if (r != 0) return r;
+  moonohos_ohos_surface_blit((uint32_t *)frame.mapped, frame.handle->stride / 4, frame.handle->width,
+                             frame.handle->height, pixels, width, height);
+  return moonohos_ohos_surface_submit(surface, &frame, info);
 #else
   (void)surface;
   (void)pixels;
   (void)width;
   (void)height;
+  return MOONOHOS_SURFACE_UNSUPPORTED;
+#endif
+}
+
+// ------------------------------------------------------- native drawing
+// `draw` hands MoonBit an `OH_Drawing_Canvas` of the generated sys/drawing
+// package. Its handles are MoonBit external objects whose payload starts
+// with the SDK pointer (`moonohos_sys_handle` in the generated stubs); this
+// layout must stay in sync with bindgen_c.mbt. The canvas handle is
+// invalidated when the callback returns, so it cannot escape the frame.
+typedef struct {
+  void *ptr;
+  void (*destroy)(void *);
+} moonohos_borrowed_handle;
+
+static void moonohos_borrowed_finalize(void *self) {
+  ((moonohos_borrowed_handle *)self)->ptr = NULL;
+}
+
+static moonohos_borrowed_handle *moonohos_borrow(void *ptr) {
+  moonohos_borrowed_handle *handle =
+      (moonohos_borrowed_handle *)moonbit_make_external_object(moonohos_borrowed_finalize, sizeof(moonohos_borrowed_handle));
+  handle->ptr = ptr;
+  handle->destroy = NULL;
+  return handle;
+}
+
+// Host test: a live handle of the drawing layout around `tag`.
+void *moonohos_ohos_surface_borrow_test(int32_t tag) {
+  return moonohos_borrow((void *)(intptr_t)tag);
+}
+
+// Host test: invalidates a handle the way `draw` does after the callback.
+void moonohos_ohos_surface_release_test(void *handle) {
+  ((moonohos_borrowed_handle *)handle)->ptr = NULL;
+}
+
+typedef void (*moonohos_draw_tramp)(void *closure, void *canvas);
+
+// Binds a Native Drawing canvas to the next buffer (RGBA 8888, premultiplied
+// alpha, the buffer's own stride), runs `render(canvas)` and queues the
+// buffer. `render` is borrowed from MoonBit.
+int32_t moonohos_ohos_surface_draw(void *self, void *tramp, void *render, int32_t *info) {
+  moonohos_surface *surface = (moonohos_surface *)self;
+  info[0] = 0;
+  info[1] = 0;
+  info[2] = 0;
+#ifdef MOONOHOS_TARGET_OHOS
+  moonohos_frame frame;
+  int32_t r = moonohos_ohos_surface_acquire(surface, &frame);
+  if (r != 0) return r;
+  OH_Drawing_Image_Info image = {frame.handle->width, frame.handle->height, COLOR_FORMAT_RGBA_8888,
+                                 ALPHA_FORMAT_PREMUL};
+  OH_Drawing_Bitmap *bitmap =
+      OH_Drawing_BitmapCreateFromPixels(&image, frame.mapped, (uint32_t)frame.handle->stride);
+  OH_Drawing_Canvas *canvas = OH_Drawing_CanvasCreate();
+  if (bitmap == NULL || canvas == NULL) {
+    if (canvas) OH_Drawing_CanvasDestroy(canvas);
+    if (bitmap) OH_Drawing_BitmapDestroy(bitmap);
+    munmap(frame.mapped, (size_t)frame.handle->size);
+    OH_NativeWindow_NativeWindowAbortBuffer((OHNativeWindow *)surface->window, frame.buffer);
+    return MOONOHOS_SURFACE_CANVAS_FAILED;
+  }
+  OH_Drawing_CanvasBind(canvas, bitmap);
+  moonohos_borrowed_handle *handle = moonohos_borrow(canvas);
+  // The trampoline consumes one reference to each argument.
+  moonbit_incref(handle);
+  moonbit_incref(render);
+  ((moonohos_draw_tramp)tramp)(render, handle);
+  handle->ptr = NULL;
+  moonbit_decref(handle);
+  OH_Drawing_CanvasDestroy(canvas);
+  OH_Drawing_BitmapDestroy(bitmap);
+  return moonohos_ohos_surface_submit(surface, &frame, info);
+#else
+  (void)surface;
+  (void)tramp;
+  (void)render;
   return MOONOHOS_SURFACE_UNSUPPORTED;
 #endif
 }

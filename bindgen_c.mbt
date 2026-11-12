@@ -200,6 +200,9 @@ fn Generator::c_function(self : Generator, binding : Binding) -> String {
         args.push("(" + pointer + ")" + name)
         args.push("(" + length + ")" + name + "_length")
       }
+      InArray(name, _, spelling) => args.push("(" + spelling + ")" + name)
+      InLength(names, spelling) =>
+        args.push("(" + spelling + ")" + names[0] + "_count")
       OutValue(name, kind, pointee) => {
         pre.push(pointee + " o_" + name + " = 0;")
         args.push("&o_" + name)

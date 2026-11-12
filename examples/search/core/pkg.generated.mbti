@@ -33,6 +33,8 @@ pub fn surface_attach(String, Int32, Int32) -> String
 
 pub fn surface_detach() -> String
 
+pub fn surface_mode(Bool) -> String
+
 pub fn surface_report() -> String
 
 pub fn surface_resize(Int32, Int32) -> String

@@ -23,7 +23,7 @@ let sample_ast : String =
   #| {"id":"f1","kind":"FunctionDecl","name":"OH_Demo_GetLevel","type":{"qualType":"int32_t (void)"}},
   #| {"id":"f2","kind":"FunctionDecl","name":"OH_Demo_GetSize","type":{"qualType":"Demo_ErrCode (int32_t *, float *)"},"inner":[
   #|   {"kind":"ParmVarDecl","name":"width","type":{"desugaredQualType":"int *","qualType":"int32_t *"}},
-  #|   {"kind":"ParmVarDecl","name":"scale","type":{"qualType":"float *"}}]},
+  #|   {"kind":"ParmVarDecl","name":"r","type":{"qualType":"float *"}}]},
   #| {"id":"f3","kind":"FunctionDecl","name":"OH_Demo_GetName","type":{"qualType":"Demo_ErrCode (char *, unsigned int)"},"inner":[
   #|   {"kind":"ParmVarDecl","name":"buffer","type":{"qualType":"char *"}},
   #|   {"kind":"ParmVarDecl","name":"size","type":{"qualType":"unsigned int"}}]},
@@ -54,6 +54,14 @@ let sample_ast : String =
   #|   {"kind":"ParmVarDecl","name":"handle","type":{"qualType":"struct Demo_Handle *"}},
   #|   {"kind":"ParmVarDecl","name":"data","type":{"qualType":"float **"}},
   #|   {"kind":"ParmVarDecl","name":"length","type":{"desugaredQualType":"unsigned int *","qualType":"uint32_t *"}}]},
+  #| {"id":"f18","kind":"FunctionDecl","name":"OH_Demo_Gradient","type":{"qualType":"int (const uint32_t *, const float *, uint32_t, int)"},"inner":[
+  #|   {"kind":"ParmVarDecl","name":"colors","type":{"desugaredQualType":"const unsigned int *","qualType":"const uint32_t *"}},
+  #|   {"kind":"ParmVarDecl","name":"pos","type":{"qualType":"const float *"}},
+  #|   {"kind":"ParmVarDecl","name":"size","type":{"desugaredQualType":"unsigned int","qualType":"uint32_t"}},
+  #|   {"kind":"ParmVarDecl","name":"mode","type":{"qualType":"int"}}]},
+  #| {"id":"f19","kind":"FunctionDecl","name":"OH_Demo_Shorts","type":{"qualType":"int (const short *, int)"},"inner":[
+  #|   {"kind":"ParmVarDecl","name":"values","type":{"qualType":"const short *"}},
+  #|   {"kind":"ParmVarDecl","name":"count","type":{"qualType":"int"}}]},
   #| {"id":"f12","kind":"FunctionDecl","loc":{"file":"C:/sdk/sysroot/usr/include/unistd.h"},"name":"close","type":{"qualType":"int (int)"}}
   #|]}
 
@@ -89,7 +97,7 @@ test "header model resolves typedefs, anonymous enums and header scope" {
   let model = @moonohos.read_header_model(sample_ast, ["demo/demo.h"])
   // `close` comes from unistd.h and is not part of the bound header.
   assert_false(model.functions.any(f => f.name == "close"))
-  assert_eq(model.functions.length(), 16)
+  assert_eq(model.functions.length(), 18)
   let errors = model.enums.get("Demo_ErrCode").unwrap()
   assert_eq(errors.constants.map(c => c.1), [0L, 201L, 202L])
   assert_eq(model.aliases.get("Demo_Info"), Some("DemoInfo"))
@@ -109,7 +117,7 @@ test "functions bind by shape; unsupported shapes are reported" {
     "OH_Demo_GetLevel", "OH_Demo_GetSize", "OH_Demo_GetName", "OH_Demo_HasCapability",
     "OH_Demo_Describe", "OH_Demo_Current", "OH_Demo_Version", "OH_Demo_Open", "OH_Demo_DestroyHandle",
     "OH_Demo_HandleLevel", "OH_Demo_RegisterListener", "OH_Demo_UnregisterListener",
-    "OH_Demo_ReadSamples",
+    "OH_Demo_ReadSamples", "OH_Demo_Gradient",
   ])
   let reasons = output.skipped.map(s => s.0 + ": " + s.1)
   assert_true(
@@ -126,8 +134,31 @@ test "functions bind by shape; unsupported shapes are reported" {
       r.has_prefix("OH_Demo_Missing") && r.contains("not exported")
     }),
   )
+  // 16-bit elements do not match a FixedArray[Int] element.
+  assert_true(
+    reasons.any(r => {
+      r.has_prefix("OH_Demo_Shorts") && r.contains("array length unknown")
+    }),
+  )
   assert_eq(output.libraries, ["libdemo.so"])
   let moon = output_file(output, "demo.mbt")
+  // Const input arrays share the length parameter that follows them.
+  assert_true(
+    moon.contains(
+      "pub fn gradient(colors : FixedArray[UInt], pos : FixedArray[Float], mode : Int) -> Int {",
+    ),
+  )
+  assert_true(
+    moon.contains(
+      "guard pos.length() == colors.length() else { abort(\"OH_Demo_Gradient: pos and colors must have the same length\") }",
+    ),
+  )
+  let stub = output_file(output, "demo_stub.c")
+  assert_true(
+    stub.contains(
+      "OH_Demo_Gradient((const uint32_t *)colors, (const float *)pos, (uint32_t)colors_count, (int)mode)",
+    ),
+  )
   // Out parameters become results; an error-code result raises SysError.
   assert_true(
     moon.contains("pub fn get_size() -> (Int, Float) raise SysError {"),
@@ -191,11 +222,11 @@ test "C stubs call the SDK only for the target and fall back on the host" {
   assert_true(stub.contains("#include <demo/demo.h>"))
   assert_true(
     stub.contains(
-      "int32_t moonohos_sys_OH_Demo_GetSize(int32_t *width, float *scale) {",
+      "int32_t moonohos_sys_OH_Demo_GetSize(int32_t *width, float *r_) {",
     ),
   )
   assert_true(
-    stub.contains("int32_t r = (int32_t)OH_Demo_GetSize(&o_width, &o_scale);"),
+    stub.contains("int32_t r = (int32_t)OH_Demo_GetSize(&o_width, &o_r_);"),
   )
   assert_true(stub.contains("width[0] = (int32_t)o_width;"))
   assert_true(stub.contains("return 801;"))
@@ -213,7 +244,7 @@ test "C stubs call the SDK only for the target and fall back on the host" {
   let descriptor = output_file(output, "moonohos.native.json")
   assert_true(descriptor.contains("\"libdemo.so\""))
   let report = output_file(output, "BINDINGS.md")
-  assert_true(report.contains("Bound: 13, skipped: 3."))
+  assert_true(report.contains("Bound: 14, skipped: 4."))
   assert_true(
     stub.contains(
       "object = moonohos_sys_wrap((void *)o_handle, moonohos_sys_destroy_Demo_Handle);",

@@ -21,7 +21,7 @@ Bound: 23, skipped: 8.
 | `OH_HiDebug_SetMallocDispatchTable` | `set_malloc_dispatch_table(dispatch_table : HiDebug_MallocDispatch) -> Unit raise SysError` |
 | `OH_HiDebug_GetDefaultMallocDispatchTable` | `get_default_malloc_dispatch_table() -> HiDebug_MallocDispatch?` |
 | `OH_HiDebug_RestoreMallocDispatchTable` | `restore_malloc_dispatch_table() -> Unit` |
-| `OH_HiDebug_DestroyBacktraceObject` | `destroy_backtrace_object(object : HiDebug_Backtrace_Object__) -> Unit raise SysError` |
+| `OH_HiDebug_DestroyBacktraceObject` | `destroy_backtrace_object(object_ : HiDebug_Backtrace_Object__) -> Unit raise SysError` |
 | `OH_HiDebug_GetGraphicsMemorySummary` | `get_graphics_memory_summary(interval : UInt) -> HiDebug_GraphicsMemorySummary raise SysError` |
 | `OH_HiDebug_RequestThreadLiteSampling` | `request_thread_lite_sampling(config : HiDebug_ProcessSamplerConfig, stacks_callback : (String) -> Unit) -> Unit raise SysError` |
 | `OH_HiDebug_ResetCrashObj` | `reset_crash_obj(crash_obj : UInt64) -> Unit` |

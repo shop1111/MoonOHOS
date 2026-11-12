@@ -95,10 +95,15 @@ struct SearchPage {
   async surfaceProbe(): Promise<string> {
     const before: string = native.surface_report();
     log(`MOONSEARCH_SURFACE_WAIT ${this.surfaceCenter}`);
+    // Native Drawing while the script taps and takes the screenshot, then
+    // one second on the CPU canvas path.
     await sleep(3000);
+    log(`MOONSEARCH_SURFACE_MODE ${native.surface_mode(false)}`);
+    await sleep(1000);
     const after: string = native.surface_report();
+    native.surface_mode(true);
     log(`MOONSEARCH_SURFACE_REPORT ${after}`);
-    return surfaceVerdict(before, after, 3, this.surfaceController.bufferSize);
+    return surfaceVerdict(before, after, 4, this.surfaceController.bufferSize);
   }
 
   resources(): resourceManager.ResourceManager {
