@@ -25,6 +25,7 @@ moonohos bindgen --spec ohos/sys/display/moonohos.bindgen.json --sdk "<DevEco St
 | `headers` | `sysroot/usr/include` 下的头文件，只绑定在这些文件里声明的函数（被它们间接包含的 `unistd.h` 等不算） |
 | `prefixes` | 只绑定以这些前缀开头的函数；MoonBit 函数名去掉前缀后转为 snake_case（`GetDefaultDisplayWidth` → `get_default_display_width`） |
 | `exclude` | 跳过的函数名 |
+| `libraries` | 只在这些系统库中查找导出（0.9）。多个库导出同一批符号时需要指定，例如 GL 函数也由内部库 `libGLv4.so` 导出，`sys/gles` 指定 `libGLESv3.so` |
 | `stringBuffer` | `char *` 输出和 `const char *` 结果使用的缓冲区大小（默认 256 字节，结果超出时截断） |
 
 生成的文件：`<name>.mbt`、`<name>_stub.c`、`moon.pkg`、`moonohos.native.json`、`BINDINGS.md`（逐个列出已绑定和跳过的函数及原因）。不要手改这些文件，重新生成即可；同目录下自己写的测试文件不会被覆盖。
@@ -94,10 +95,12 @@ moonohos bindgen --spec ohos/sys/display/moonohos.bindgen.json --sdk "<DevEco St
 - 没有对应 Unregister、也不挂在句柄上的回调（闭包没人释放）。
 - 指针数组（`T **` 后跟数量，如 `OH_Sensor_GetInfos`）、元素不是数值的输出数组。
 - 非 const 的 8 位整数指针，以及后面紧跟长度参数的标量指针：它们是数组缓冲区，按单个值写入会越界。
+- 前面有名称像长度的整数参数（`n`、`count`、`size` 等）的非 const 标量指针（0.9）：`glGenBuffers(GLsizei n, GLuint *buffers)` 会写入 n 个值，按单个值生成会越界。
+- 输出个数取决于参数取值的函数无法从头文件判断，需要在清单的 `exclude` 中列出。`sys/gles` 排除了 `glGetIntegerv`、`glGetUniformfv` 等 19 个（如 `GL_VIEWPORT` 写入 4 个值），`gl` 包提供了按调用方给定个数读取的 `get_integers`。
 - 来源不明的 `char *` 返回值，以及非句柄类型的指针返回值（不知道由谁释放）。
 - `void *`（无类型指针，如 `OH_Drawing_BitmapCreateFromPixels` 的像素地址）。窗口缓冲区与画布的对接由 `surface` 包手写完成，见 [XCOMPONENT.md](XCOMPONENT.md)。
 
-参数名与桩函数内部的局部变量（`r`、`object`）重名时，生成的参数名加 `_`（0.9 修正：`OH_Drawing_BrushSetColor4f` 的红色分量 `r` 曾导致编译失败）。
+参数名与 MoonBit 关键字、保留字（如 `ref`，0.9 补充）或桩函数内部的局部变量（`r`、`object`）重名时，生成的参数名加 `_`（0.9 修正：`OH_Drawing_BrushSetColor4f` 的红色分量 `r` 曾导致编译失败）。
 
 ## 校验
 
@@ -118,6 +121,7 @@ moonohos bindgen --spec ohos/sys/display/moonohos.bindgen.json --sdk "<DevEco St
 | `sys/deviceinfo` | `deviceinfo.h` | 27 / 0 |
 | `sys/display` | `window_manager/oh_display_manager.h` | 35 / 0 |
 | `sys/drawing`（0.9） | `native_drawing/` 下 16 个头文件：canvas、bitmap、brush、pen、path、rect、round_rect、point、color、matrix、font、typeface、text_blob、shader_effect、types、error_code | 322 / 17 |
+| `sys/gles`（0.9） | `GLES3/gl3.h`（`libraries` 指定 `libGLESv3.so`，排除 19 个按 pname 返回多个值的查询函数） | 135 / 92 |
 | `sys/hidebug` | `hidebug/hidebug.h` | 23 / 8 |
 | `sys/hitrace` | `hitrace/trace.h` | 32 / 2 |
 | `sys/osaccount` | `BasicServicesKit/os_account.h` | 2 / 0 |
@@ -127,6 +131,6 @@ moonohos bindgen --spec ohos/sys/display/moonohos.bindgen.json --sdk "<DevEco St
 | `sys/timeservice` | `BasicServicesKit/time_service.h` | 1 / 0 |
 | `sys/vibrator` | `sensors/vibrator.h` | 3 / 0 |
 | `sys/wifi` | `ConnectivityKit/wifi/oh_wifi.h` | 3 / 0 |
-| 合计 15 个包 | | 482 / 32 |
+| 合计 16 个包 | | 617 / 124 |
 
 第一阶段（不含句柄和回调）是 13 个包、117 / 31。

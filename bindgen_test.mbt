@@ -59,6 +59,9 @@ let sample_ast : String =
   #|   {"kind":"ParmVarDecl","name":"pos","type":{"qualType":"const float *"}},
   #|   {"kind":"ParmVarDecl","name":"size","type":{"desugaredQualType":"unsigned int","qualType":"uint32_t"}},
   #|   {"kind":"ParmVarDecl","name":"mode","type":{"qualType":"int"}}]},
+  #| {"id":"f20","kind":"FunctionDecl","name":"OH_Demo_Fill","type":{"qualType":"void (int, uint32_t *)"},"inner":[
+  #|   {"kind":"ParmVarDecl","name":"n","type":{"qualType":"int"}},
+  #|   {"kind":"ParmVarDecl","name":"out","type":{"desugaredQualType":"unsigned int *","qualType":"uint32_t *"}}]},
   #| {"id":"f19","kind":"FunctionDecl","name":"OH_Demo_Shorts","type":{"qualType":"int (const short *, int)"},"inner":[
   #|   {"kind":"ParmVarDecl","name":"values","type":{"qualType":"const short *"}},
   #|   {"kind":"ParmVarDecl","name":"count","type":{"qualType":"int"}}]},
@@ -97,7 +100,7 @@ test "header model resolves typedefs, anonymous enums and header scope" {
   let model = @moonohos.read_header_model(sample_ast, ["demo/demo.h"])
   // `close` comes from unistd.h and is not part of the bound header.
   assert_false(model.functions.any(f => f.name == "close"))
-  assert_eq(model.functions.length(), 18)
+  assert_eq(model.functions.length(), 19)
   let errors = model.enums.get("Demo_ErrCode").unwrap()
   assert_eq(errors.constants.map(c => c.1), [0L, 201L, 202L])
   assert_eq(model.aliases.get("Demo_Info"), Some("DemoInfo"))
@@ -138,6 +141,12 @@ test "functions bind by shape; unsupported shapes are reported" {
   assert_true(
     reasons.any(r => {
       r.has_prefix("OH_Demo_Shorts") && r.contains("array length unknown")
+    }),
+  )
+  // An output pointer after a length (`glGenBuffers(n, ids)`) is an array.
+  assert_true(
+    reasons.any(r => {
+      r.has_prefix("OH_Demo_Fill") && r.contains("output array of n elements")
     }),
   )
   assert_eq(output.libraries, ["libdemo.so"])
@@ -244,7 +253,7 @@ test "C stubs call the SDK only for the target and fall back on the host" {
   let descriptor = output_file(output, "moonohos.native.json")
   assert_true(descriptor.contains("\"libdemo.so\""))
   let report = output_file(output, "BINDINGS.md")
-  assert_true(report.contains("Bound: 14, skipped: 4."))
+  assert_true(report.contains("Bound: 14, skipped: 5."))
   assert_true(
     stub.contains(
       "object = moonohos_sys_wrap((void *)o_handle, moonohos_sys_destroy_Demo_Handle);",
@@ -285,6 +294,8 @@ test "names follow MoonBit conventions" {
   )
   assert_eq(@moonohos.snake_name("canIUse"), "can_i_use")
   assert_eq(@moonohos.snake_name("GetIDsByName"), "get_ids_by_name")
+  // Keywords and words reserved by moonc get a trailing underscore.
+  assert_eq(@moonohos.snake_name("ref"), "ref_")
   assert_eq(@moonohos.snake_name("SetThreadQoS"), "set_thread_qos")
   assert_eq(@moonohos.snake_name("type"), "type_")
   assert_eq(@moonohos.snake_name("3d"), "v_3d")
@@ -297,6 +308,7 @@ test "bindgen specs are validated" {
       "{}", "{\"schema\":\"moonohos-bindgen-v1\",\"package\":\"a/b\",\"name\":\"x\",\"headers\":[]}",
       "{\"schema\":\"moonohos-bindgen-v1\",\"package\":\"a/b\",\"name\":\"x\",\"headers\":[\"../etc\"]}",
       "{\"schema\":\"moonohos-bindgen-v1\",\"package\":\"a/b\",\"name\":\"x\",\"headers\":[\"h.h\"],\"stringBuffer\":1}",
+      "{\"schema\":\"moonohos-bindgen-v1\",\"package\":\"a/b\",\"name\":\"x\",\"headers\":[\"h.h\"],\"libraries\":[\"../libx.so\"]}",
     ] {
     let rejected = try {
       @moonohos.parse_bindgen_spec(text) |> ignore
@@ -306,4 +318,8 @@ test "bindgen specs are validated" {
     }
     assert_true(rejected)
   }
+  let pinned = @moonohos.parse_bindgen_spec(
+    "{\"schema\":\"moonohos-bindgen-v1\",\"package\":\"a/b\",\"name\":\"x\",\"headers\":[\"h.h\"],\"libraries\":[\"libGLESv3.so\"]}",
+  )
+  assert_eq(pinned.libraries, ["libGLESv3.so"])
 }

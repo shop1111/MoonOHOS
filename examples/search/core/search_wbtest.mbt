@@ -132,3 +132,12 @@ test "surface demo fails cleanly on the host" {
 test "surface mode switch needs an attached scene" {
   assert_eq(surface_mode(false), "attached=false")
 }
+
+///|
+test "GL demo fails cleanly on the host" {
+  let attached = gl_attach("42")
+  assert_true(attached.has_prefix("attach!"), msg=attached)
+  assert_true(attached.contains("801"), msg=attached)
+  assert_eq(gl_report(), "attached=false")
+  assert_eq(gl_detach(), "attached=false")
+}

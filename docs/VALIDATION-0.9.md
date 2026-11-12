@@ -73,9 +73,44 @@ MOONSEARCH_SURFACE pass frames=223 fps=55.8 drawing=163 cpu=60 buffer=381x140 to
 
 证据：`evidence/v0.9/drawing-device-run-1.log`、`drawing-device-run-2.log`、`drawing-page.jpeg`。
 
+## 第三阶段：OpenGL ES（2026-11-12）
+
+`sys/gles` 由 `GLES3/gl3.h` 生成（135 个函数，跳过 92 个），手写的 `gl` 包负责 EGL 上下文和带指针的 GL 调用。
+
+| 检查 | 结果 |
+|---|---|
+| 生成器单元测试（新增：长度参数之后的输出指针不生成、保留字 `ref` 加 `_`、清单的 `libraries` 字段） | 通过 |
+| 重新生成全部 16 个包：已有包均无变化 | 617 / 124 |
+| `verify_bindings.py`：18 个包（16 个生成包和 surface、gl）两个 ABI，`-Werror` 编译、`--no-undefined` 链接 `libEGL.so`、`libGLESv3.so` | 通过 |
+| `ohos` 宿主测试（新增 `gl`：宿主上打开返回 801、错误 id、读像素和查询的结果长度、常量值） | 通过 |
+| 检索示例宿主测试、`moonohos build` + HAP 构建 | 通过 |
+
+审查生成结果时发现并修正的问题见 XCOMPONENT.md：`gen_buffers(n)` 等会越界写的绑定（改为不生成）、按 pname 返回多值的查询（排除）、GL 符号被解析到内部库 `libGLv4.so`（新增 `libraries`）、保留字参数 `ref`。
+
+### 模拟器
+
+检索页面新增第二个 XComponent，MoonBit 用 OpenGL ES 3 画一个按顶点着色、每 4 秒转一圈的三角形，着色器里按宽高比校正形状。每帧用 `glReadPixels` 读回中心像素：三角形的重心在原点，中心颜色应是红、绿、蓝三个顶点颜色的平均值（约 85/85/85），与背景色（16/24/64）明显不同。两个绘制区各有一个 VSync 接收器，回调都经进程门串行执行。
+
+```text
+MOONSEARCH_GL pass frames=230 fps=57.5 size=1144x315 center=85/85/85/255     （宽高比校正前，两轮）
+MOONSEARCH_GL pass frames=155 fps=38.8 size=1144x315 center=85/86/85/255     （校正后第一轮）
+MOONSEARCH_GL pass frames=171 fps=42.8 size=1144x315 center=85/85/84/255     （校正后第二轮）
+MOONSEARCH_GL_CLOSED released=true ... frames=669,swapped=669,...,closed=true
+```
+
+- 读回的中心像素与理论值一致，说明三角形确实由 GL 画出，而不是只清了屏。
+- 每帧都成功交换（`frames` 与 `swapped` 相等），没有 GL 错误；页面离开时销毁上下文和窗口。
+- 同一时间 Native Drawing 区为 46–60 帧/秒。两次运行之间帧率差别较大（GL 39–58），波动未分析。
+- 截图：`evidence/v0.9/gl-page.jpeg`。
+
+模拟器启动 10 秒后的第一次运行，应用安装成功但没有启动（日志里只有桌面刷新图标的记录），重新运行后连续四轮通过。
+
+证据：`evidence/v0.9/gl-device-run-1.log`、`gl-device-run-2.log`、`gl-page.jpeg`。
+
 ## 未验证
 
 - ARM64 真机：只在 x86_64 模拟器运行；ARM64 只做了编译和链接。
 - 帧率瓶颈（绘制、复制或缓冲区队列）没有分析；更大的缓冲区和真机上的帧率未测。
-- EGL/OpenGL ES 尚未接入；322 个 drawing 函数中在设备上调用过的约 20 个。
-- 模拟器刚开机时第一次运行页面被提前关闭的原因。
+- 322 个 drawing 函数中在设备上调用过的约 20 个；135 个 gles 函数中 18 个，加上 `gl` 包的着色器、缓冲区、顶点属性和读像素。
+- 纹理、帧缓冲、深度测试等 GL 功能未在设备上运行。
+- 模拟器刚开机时第一次运行的两种异常（页面被提前关闭；应用未启动）的原因。

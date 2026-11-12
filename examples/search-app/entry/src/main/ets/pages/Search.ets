@@ -5,7 +5,7 @@ import { window } from '@kit.ArkUI';
 import native, { Hit, IndexStats, SearchSession } from '@moonohos/search';
 import { callbacksVerdict, memoryProbe, platformProbe, typeTagProbe, typedArrayProbe } from './BridgeProbes';
 import { runTaskPool, runWorker } from './Concurrency';
-import { MoonSurfaceController, surfaceVerdict } from './SurfacePanel';
+import { glVerdict, MoonGlController, MoonSurfaceController, surfaceVerdict } from './SurfacePanel';
 
 const TAG: string = 'MoonSearchApp';
 
@@ -39,6 +39,7 @@ struct SearchPage {
   private timer: number = -1;
   private round: number = 0;
   private surfaceController: MoonSurfaceController = new MoonSurfaceController(log);
+  private glController: MoonGlController = new MoonGlController(log);
   // Center of the XComponent in screen pixels, for the device script's tap.
   private surfaceCenter: string = '';
   private surfaceSize: number[] = [1, 1];
@@ -61,6 +62,8 @@ struct SearchPage {
     // onSurfaceDestroyed detaches too; the second call reports attached=false.
     const detached: string = native.surface_detach();
     log(`MOONSEARCH_SURFACE_CLOSED released=${detached.endsWith('closed=true')} ${detached}`);
+    const glDetached: string = native.gl_detach();
+    log(`MOONSEARCH_GL_CLOSED released=${glDetached.endsWith('closed=true')} ${glDetached}`);
     log(`MOONSEARCH_PAGE_CLOSED round=${this.round}`);
   }
 
@@ -94,6 +97,7 @@ struct SearchPage {
   // callbacks; the device script taps it while MOONSEARCH_SURFACE_WAIT is shown.
   async surfaceProbe(): Promise<string> {
     const before: string = native.surface_report();
+    const glBefore: string = native.gl_report();
     log(`MOONSEARCH_SURFACE_WAIT ${this.surfaceCenter}`);
     // Native Drawing while the script taps and takes the screenshot, then
     // one second on the CPU canvas path.
@@ -101,8 +105,11 @@ struct SearchPage {
     log(`MOONSEARCH_SURFACE_MODE ${native.surface_mode(false)}`);
     await sleep(1000);
     const after: string = native.surface_report();
+    const glAfter: string = native.gl_report();
     native.surface_mode(true);
     log(`MOONSEARCH_SURFACE_REPORT ${after}`);
+    log(`MOONSEARCH_GL_REPORT ${glAfter}`);
+    log(`MOONSEARCH_GL ${glVerdict(glBefore, glAfter, 4)}`);
     return surfaceVerdict(before, after, 4, this.surfaceController.bufferSize);
   }
 
@@ -213,6 +220,9 @@ struct SearchPage {
             log(`MOONSEARCH_SURFACE_TOUCH count=${count}`);
           }
         })
+      XComponent({ type: XComponentType.SURFACE, controller: this.glController })
+        .width('100%')
+        .height(90)
       Row({ space: 8 }) {
         Button('小型文档集').enabled(!this.building).onClick(() => {
           this.buildIndex('docs').catch((error: Error) => log(`build failed ${errorName(error)}`));

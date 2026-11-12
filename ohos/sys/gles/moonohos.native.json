@@ -1,0 +1,14 @@
+{
+  "schema": "moonohos-native-v1",
+  "package": "shop1111/moonohos_ohos/sys/gles",
+  "sources": [
+    "gles_stub.c"
+  ],
+  "systemLibraries": [
+    "libGLESv3.so"
+  ],
+  "abis": [
+    "arm64-v8a",
+    "x86_64"
+  ]
+}

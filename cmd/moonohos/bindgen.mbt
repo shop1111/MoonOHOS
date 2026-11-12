@@ -11,13 +11,14 @@ let bindgen_triples : Array[(String, String)] = [
 async fn exporting_libraries(
   sysroot : String,
   wanted : Array[String],
+  only : Array[String],
 ) -> Map[String, String] {
   let per_abi : Array[Map[String, String]] = []
   for pair in bindgen_triples {
     let dir = sysroot + "/usr/lib/" + pair.1
     let found : Map[String, String] = Map([])
     for name in @fs.readdir(dir, include_hidden=false, sort=true) {
-      if !name.has_suffix(".so") {
+      if !name.has_suffix(".so") || (!only.is_empty() && !only.contains(name)) {
         continue
       }
       let path = dir + "/" + name
@@ -83,7 +84,11 @@ async fn bindgen(options : @lib.CliOptions) -> Json {
   )
   @fs.rmdir(work, recursive=true)
   let model = @lib.read_header_model(ast, spec.headers)
-  let libraries = exporting_libraries(sysroot, model.functions.map(f => f.name))
+  let libraries = exporting_libraries(
+    sysroot,
+    model.functions.map(f => f.name),
+    spec.libraries,
+  )
   let output = @lib.generate_bindings(
     spec, model, libraries, @lib.minimum_sdk_api,
   )

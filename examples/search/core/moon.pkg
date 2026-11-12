@@ -18,4 +18,6 @@ import {
   "shop1111/moonohos_ohos/sys/sensor",
   "shop1111/moonohos_ohos/surface",
   "shop1111/moonohos_ohos/sys/drawing",
+  "shop1111/moonohos_ohos/gl",
+  "shop1111/moonohos_ohos/sys/gles",
 }

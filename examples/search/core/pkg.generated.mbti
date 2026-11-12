@@ -11,6 +11,12 @@ pub fn build_index(@rawfile.Manager, String) -> SearchIndex raise
 
 pub fn build_index_reporting(@rawfile.Manager, String, (Int32, Int32) -> Unit) -> SearchIndex raise
 
+pub fn gl_attach(String) -> String
+
+pub fn gl_detach() -> String
+
+pub fn gl_report() -> String
+
 pub fn index_bytes(SearchIndex) -> Int32
 
 pub fn index_texts(Array[String], Array[String]) -> SearchIndex raise @task.Cancelled

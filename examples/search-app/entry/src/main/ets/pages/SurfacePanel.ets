@@ -34,6 +34,25 @@ export class MoonSurfaceController extends XComponentController {
   }
 }
 
+// The OpenGL ES XComponent: MoonBit creates an EGL context for it and
+// renders from VSync callbacks.
+export class MoonGlController extends XComponentController {
+  private log: (message: string) => void;
+
+  constructor(log: (message: string) => void) {
+    super();
+    this.log = log;
+  }
+
+  onSurfaceCreated(surfaceId: string): void {
+    this.log(`MOONSEARCH_GL_ATTACH ${native.gl_attach(surfaceId)}`);
+  }
+
+  onSurfaceDestroyed(surfaceId: string): void {
+    this.log(`MOONSEARCH_GL_DETACH ${native.gl_detach()}`);
+  }
+}
+
 function field(report: string, name: string): string {
   for (const part of report.split(',')) {
     if (part.startsWith(`${name}=`)) {
@@ -57,4 +76,19 @@ export function surfaceVerdict(before: string, after: string, seconds: number, e
     fps >= 20 && buffer === expected && touches >= 1 && drawing > 0 && cpu > 0;
   return `${ok ? 'pass' : 'fail'} frames=${frames} fps=${fps.toFixed(1)} drawing=${drawing} cpu=${cpu} ` +
     `buffer=${buffer} touches=${touches}`;
+}
+
+// GL frames advanced at a plausible rate and the center pixel, read back
+// with glReadPixels, is the triangle (gray-ish mix of red, green and blue),
+// not the clear color (16/24/64).
+export function glVerdict(before: string, after: string, seconds: number): string {
+  const frames: number = Number(field(after, 'frames')) - Number(field(before, 'frames'));
+  const fps: number = frames / seconds;
+  const center: number[] = field(after, 'center').split('/').map((v: string) => Number(v));
+  const drawn: boolean = center.length === 4 && center[3] === 255 &&
+    Math.abs(center[0] - 16) + Math.abs(center[1] - 24) + Math.abs(center[2] - 64) > 60;
+  const ok: boolean = field(after, 'running') === 'true' && field(after, 'error') === '' &&
+    fps >= 20 && drawn && field(after, 'swapped') === field(after, 'frames');
+  return `${ok ? 'pass' : 'fail'} frames=${frames} fps=${fps.toFixed(1)} size=${field(after, 'size')} ` +
+    `center=${field(after, 'center')}`;
 }

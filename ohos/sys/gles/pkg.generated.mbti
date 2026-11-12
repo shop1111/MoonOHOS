@@ -1,0 +1,290 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "shop1111/moonohos_ohos/sys/gles"
+
+// Values
+pub fn active_texture(UInt32) -> Unit
+
+pub fn attach_shader(UInt32, UInt32) -> Unit
+
+pub fn begin_query(UInt32, UInt32) -> Unit
+
+pub fn begin_transform_feedback(UInt32) -> Unit
+
+pub fn bind_attrib_location(UInt32, UInt32, String) -> Unit
+
+pub fn bind_buffer(UInt32, UInt32) -> Unit
+
+pub fn bind_buffer_base(UInt32, UInt32, UInt32) -> Unit
+
+pub fn bind_buffer_range(UInt32, UInt32, UInt32, Int64, Int64) -> Unit
+
+pub fn bind_framebuffer(UInt32, UInt32) -> Unit
+
+pub fn bind_renderbuffer(UInt32, UInt32) -> Unit
+
+pub fn bind_sampler(UInt32, UInt32) -> Unit
+
+pub fn bind_texture(UInt32, UInt32) -> Unit
+
+pub fn bind_transform_feedback(UInt32, UInt32) -> Unit
+
+pub fn bind_vertex_array(UInt32) -> Unit
+
+pub fn blend_color(Float, Float, Float, Float) -> Unit
+
+pub fn blend_equation(UInt32) -> Unit
+
+pub fn blend_equation_separate(UInt32, UInt32) -> Unit
+
+pub fn blend_func(UInt32, UInt32) -> Unit
+
+pub fn blend_func_separate(UInt32, UInt32, UInt32, UInt32) -> Unit
+
+pub fn blit_framebuffer(Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, UInt32, UInt32) -> Unit
+
+pub fn check_framebuffer_status(UInt32) -> UInt32
+
+pub fn clear(UInt32) -> Unit
+
+pub fn clear_bufferfi(UInt32, Int32, Float, Int32) -> Unit
+
+pub fn clear_color(Float, Float, Float, Float) -> Unit
+
+pub fn clear_depthf(Float) -> Unit
+
+pub fn clear_stencil(Int32) -> Unit
+
+pub fn client_wait_sync(C__GLsync, UInt32, UInt64) -> UInt32 raise SysError
+
+pub fn color_mask(Int32, Int32, Int32, Int32) -> Unit
+
+pub fn compile_shader(UInt32) -> Unit
+
+pub fn copy_buffer_sub_data(UInt32, UInt32, Int64, Int64, Int64) -> Unit
+
+pub fn copy_tex_image2_d(UInt32, Int32, UInt32, Int32, Int32, Int32, Int32, Int32) -> Unit
+
+pub fn copy_tex_sub_image2_d(UInt32, Int32, Int32, Int32, Int32, Int32, Int32, Int32) -> Unit
+
+pub fn copy_tex_sub_image3_d(UInt32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32) -> Unit
+
+pub fn create_program() -> UInt32
+
+pub fn create_shader(UInt32) -> UInt32
+
+pub fn cull_face(UInt32) -> Unit
+
+pub fn delete_program(UInt32) -> Unit
+
+pub fn delete_shader(UInt32) -> Unit
+
+pub fn delete_sync(C__GLsync) -> Unit raise SysError
+
+pub fn depth_func(UInt32) -> Unit
+
+pub fn depth_mask(Int32) -> Unit
+
+pub fn depth_rangef(Float, Float) -> Unit
+
+pub fn detach_shader(UInt32, UInt32) -> Unit
+
+pub fn disable(UInt32) -> Unit
+
+pub fn disable_vertex_attrib_array(UInt32) -> Unit
+
+pub fn draw_arrays(UInt32, Int32, Int32) -> Unit
+
+pub fn draw_arrays_instanced(UInt32, Int32, Int32, Int32) -> Unit
+
+pub fn enable(UInt32) -> Unit
+
+pub fn enable_vertex_attrib_array(UInt32) -> Unit
+
+pub fn end_query(UInt32) -> Unit
+
+pub fn end_transform_feedback() -> Unit
+
+pub fn finish() -> Unit
+
+pub fn flush() -> Unit
+
+pub fn flush_mapped_buffer_range(UInt32, Int64, Int64) -> Unit
+
+pub fn framebuffer_renderbuffer(UInt32, UInt32, UInt32, UInt32) -> Unit
+
+pub fn framebuffer_texture2_d(UInt32, UInt32, UInt32, UInt32, Int32) -> Unit
+
+pub fn framebuffer_texture_layer(UInt32, UInt32, UInt32, Int32, Int32) -> Unit
+
+pub fn front_face(UInt32) -> Unit
+
+pub fn generate_mipmap(UInt32) -> Unit
+
+pub fn get_attrib_location(UInt32, String) -> Int32
+
+pub fn get_buffer_parameteri64v(UInt32, UInt32) -> Int64
+
+pub fn get_buffer_parameteriv(UInt32, UInt32) -> Int32
+
+pub fn get_error() -> UInt32
+
+pub fn get_frag_data_location(UInt32, String) -> Int32
+
+pub fn get_framebuffer_attachment_parameteriv(UInt32, UInt32, UInt32) -> Int32
+
+pub fn get_programiv(UInt32, UInt32) -> Int32
+
+pub fn get_query_objectuiv(UInt32, UInt32) -> UInt32
+
+pub fn get_queryiv(UInt32, UInt32) -> Int32
+
+pub fn get_renderbuffer_parameteriv(UInt32, UInt32) -> Int32
+
+pub fn get_shaderiv(UInt32, UInt32) -> Int32
+
+pub fn get_uniform_block_index(UInt32, String) -> UInt32
+
+pub fn get_uniform_location(UInt32, String) -> Int32
+
+pub fn hint(UInt32, UInt32) -> Unit
+
+pub fn is_buffer(UInt32) -> Int32
+
+pub fn is_enabled(UInt32) -> Int32
+
+pub fn is_framebuffer(UInt32) -> Int32
+
+pub fn is_program(UInt32) -> Int32
+
+pub fn is_query(UInt32) -> Int32
+
+pub fn is_renderbuffer(UInt32) -> Int32
+
+pub fn is_sampler(UInt32) -> Int32
+
+pub fn is_shader(UInt32) -> Int32
+
+pub fn is_sync(C__GLsync) -> Int32 raise SysError
+
+pub fn is_texture(UInt32) -> Int32
+
+pub fn is_transform_feedback(UInt32) -> Int32
+
+pub fn is_vertex_array(UInt32) -> Int32
+
+pub fn line_width(Float) -> Unit
+
+pub fn link_program(UInt32) -> Unit
+
+pub fn pause_transform_feedback() -> Unit
+
+pub fn pixel_storei(UInt32, Int32) -> Unit
+
+pub fn polygon_offset(Float, Float) -> Unit
+
+pub fn program_parameteri(UInt32, UInt32, Int32) -> Unit
+
+pub fn read_buffer(UInt32) -> Unit
+
+pub fn release_shader_compiler() -> Unit
+
+pub fn renderbuffer_storage(UInt32, UInt32, Int32, Int32) -> Unit
+
+pub fn renderbuffer_storage_multisample(UInt32, Int32, UInt32, Int32, Int32) -> Unit
+
+pub fn resume_transform_feedback() -> Unit
+
+pub fn sample_coverage(Float, Int32) -> Unit
+
+pub fn sampler_parameterf(UInt32, UInt32, Float) -> Unit
+
+pub fn sampler_parameteri(UInt32, UInt32, Int32) -> Unit
+
+pub fn scissor(Int32, Int32, Int32, Int32) -> Unit
+
+pub fn stencil_func(UInt32, Int32, UInt32) -> Unit
+
+pub fn stencil_func_separate(UInt32, UInt32, Int32, UInt32) -> Unit
+
+pub fn stencil_mask(UInt32) -> Unit
+
+pub fn stencil_mask_separate(UInt32, UInt32) -> Unit
+
+pub fn stencil_op(UInt32, UInt32, UInt32) -> Unit
+
+pub fn stencil_op_separate(UInt32, UInt32, UInt32, UInt32) -> Unit
+
+pub fn tex_parameterf(UInt32, UInt32, Float) -> Unit
+
+pub fn tex_parameteri(UInt32, UInt32, Int32) -> Unit
+
+pub fn tex_storage2_d(UInt32, Int32, UInt32, Int32, Int32) -> Unit
+
+pub fn tex_storage3_d(UInt32, Int32, UInt32, Int32, Int32, Int32) -> Unit
+
+pub fn uniform1f(Int32, Float) -> Unit
+
+pub fn uniform1i(Int32, Int32) -> Unit
+
+pub fn uniform1ui(Int32, UInt32) -> Unit
+
+pub fn uniform2f(Int32, Float, Float) -> Unit
+
+pub fn uniform2i(Int32, Int32, Int32) -> Unit
+
+pub fn uniform2ui(Int32, UInt32, UInt32) -> Unit
+
+pub fn uniform3f(Int32, Float, Float, Float) -> Unit
+
+pub fn uniform3i(Int32, Int32, Int32, Int32) -> Unit
+
+pub fn uniform3ui(Int32, UInt32, UInt32, UInt32) -> Unit
+
+pub fn uniform4f(Int32, Float, Float, Float, Float) -> Unit
+
+pub fn uniform4i(Int32, Int32, Int32, Int32, Int32) -> Unit
+
+pub fn uniform4ui(Int32, UInt32, UInt32, UInt32, UInt32) -> Unit
+
+pub fn uniform_block_binding(UInt32, UInt32, UInt32) -> Unit
+
+pub fn unmap_buffer(UInt32) -> Int32
+
+pub fn use_program(UInt32) -> Unit
+
+pub fn validate_program(UInt32) -> Unit
+
+pub fn vertex_attrib1f(UInt32, Float) -> Unit
+
+pub fn vertex_attrib2f(UInt32, Float, Float) -> Unit
+
+pub fn vertex_attrib3f(UInt32, Float, Float, Float) -> Unit
+
+pub fn vertex_attrib4f(UInt32, Float, Float, Float, Float) -> Unit
+
+pub fn vertex_attrib_divisor(UInt32, UInt32) -> Unit
+
+pub fn vertex_attrib_i4i(UInt32, Int32, Int32, Int32, Int32) -> Unit
+
+pub fn vertex_attrib_i4ui(UInt32, UInt32, UInt32, UInt32, UInt32) -> Unit
+
+pub fn viewport(Int32, Int32, Int32, Int32) -> Unit
+
+pub fn wait_sync(C__GLsync, UInt32, UInt64) -> Unit raise SysError
+
+// Errors
+pub(all) suberror SysError {
+  Failed(String, String, Int32)
+  Closed(String)
+}
+pub fn SysError::output(Self, &Logger) -> Unit
+pub fn SysError::to_string(Self) -> String
+pub impl Show for SysError
+
+// Types and methods
+pub type C__GLsync
+pub fn C__GLsync::is_live(Self) -> Bool
+
+// Type aliases
+
+// Traits

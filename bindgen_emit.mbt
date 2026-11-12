@@ -17,6 +17,10 @@ pub struct BindgenSpec {
   exclude : Array[String]
   /// Capacity used for `char *` outputs and `const char *` results.
   string_buffer : Int32
+  /// System libraries a function may be bound to (all when empty). Needed
+  /// when several libraries export the same symbols, e.g. GL functions are
+  /// exported by `libGLESv3.so` and by internal libraries.
+  libraries : Array[String]
 }
 
 ///|
@@ -53,6 +57,10 @@ pub fn parse_bindgen_spec(text : String) -> BindgenSpec raise ConfigError {
   if headers.is_empty() || headers.any(h => h == "" || h.contains("..")) {
     raise Invalid("bindgen: headers must name SDK headers under usr/include")
   }
+  let libraries = strings("libraries", false)
+  if libraries.any(l => !l.has_suffix(".so") || l.contains("/")) {
+    raise Invalid("bindgen: libraries must be .so file names")
+  }
   let string_buffer = match json_field(json, "stringBuffer") {
     Some(Number(n, ..)) if n >= 16.0 && n <= 65536.0 => n.to_int()
     None => 256
@@ -65,6 +73,7 @@ pub fn parse_bindgen_spec(text : String) -> BindgenSpec raise ConfigError {
     prefixes: strings("prefixes", false),
     exclude: strings("exclude", false),
     string_buffer,
+    libraries,
   }
 }
 
@@ -178,7 +187,12 @@ let moon_keywords : Array[String] = [
   "false", "fn", "for", "guard", "if", "impl", "import", "in", "is", "let", "loop",
   "match", "mut", "priv", "pub", "raise", "return", "struct", "test", "trait", "true",
   "try", "type", "typealias", "while", "with", "lexmatch", "defer", "noraise", "local",
-  "readonly", "enumview", "using", "extenum",
+  "readonly", "enumview", "using", "extenum", "suberror", "derive",
+  // Reserved for future use (moonc warns `reserved_keyword`).
+   "ref", "module", "move", "static", "super", "unsafe", "use", "where", "await",
+  "dyn", "abstract", "do", "final", "macro", "override", "typeof", "virtual", "yield",
+  "method", "alias", "assert", "package", "sealed", "protected", "private", "public",
+  "throw", "throws", "new", "delete", "constructor",
 ]
 
 ///|
@@ -612,6 +626,19 @@ fn Generator::plan(
         next is Some(len) &&
         is_integer(len.kind) &&
         length_name(len.name) =>
+        return Err(
+          "parameter " +
+          param.name +
+          ": output array of " +
+          len.name +
+          " elements",
+        )
+      // ... or a pointer after a length: `glGenBuffers(GLsizei n, GLuint *)`.
+      (1, _) if !kind.const_pointee &&
+        function.params[:i]
+        .iter()
+        .find_first(p => is_integer(p.kind) && length_name(p.name))
+        is Some(len) =>
         return Err(
           "parameter " +
           param.name +
@@ -2017,6 +2044,7 @@ fn Generator::moon_source(
 /// Parameter names that announce the length of the preceding buffer.
 fn length_name(name : String) -> Bool {
   let lower = name.to_lower()
+  lower == "n" ||
   ["len", "size", "count", "num", "capacity"].any(word => lower.contains(word))
 }
 

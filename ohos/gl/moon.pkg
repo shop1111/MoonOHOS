@@ -1,0 +1,9 @@
+import {
+  "moonbitlang/core/encoding/utf8",
+  "shop1111/moonohos_ohos/surface",
+  "shop1111/moonohos_ohos/sys/gles",
+}
+
+options(
+  "native-stub": [ "gl_stub.c" ],
+)

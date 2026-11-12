@@ -37,6 +37,9 @@
     {"name": "surface_touch", "params": [{"name": "x", "type": "Double"}, {"name": "y", "type": "Double"}], "return": "Int"},
     {"name": "surface_report", "params": [], "return": "String"},
     {"name": "surface_detach", "params": [], "return": "String"},
+    {"name": "gl_attach", "params": [{"name": "surface_id", "type": "String"}], "return": "String"},
+    {"name": "gl_report", "params": [], "return": "String"},
+    {"name": "gl_detach", "params": [], "return": "String"},
     {"name": "term_idf", "params": [{"name": "index", "type": "SearchIndex"}, {"name": "query", "type": "String"}], "return": "FixedArray[Double]"}
   ]
 }

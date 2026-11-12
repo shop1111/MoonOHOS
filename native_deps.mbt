@@ -50,6 +50,7 @@ pub fn system_library_allowlist() -> Array[String] {
     "libhitrace_ndk.z.so", "libnative_display_manager.so", "libohbattery_info.so",
     "libohhidebug.so", "libohsensor.so", "libos_account_ndk.so", "libqos.so", "libtime_service_ndk.so",
     "libwifi_ndk.so", "libnative_window.so", "libnative_vsync.so", "libnative_drawing.so",
+    "libGLESv3.so", "libEGL.so",
   ]
 }
 

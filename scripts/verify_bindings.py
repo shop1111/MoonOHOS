@@ -1,6 +1,6 @@
 """Compile and link generated system bindings against the real HarmonyOS SDK.
 
-For every package directory (default: ohos/sys/* and ohos/surface) and both ABIs, the generated
+For every package directory (default: ohos/sys/*, ohos/surface and ohos/gl) and both ABIs, the generated
 `*_stub.c` is compiled with the SDK's clang against the SDK headers with
 -Wall -Wextra -Werror, then linked into a shared object against the declared
 system libraries with --no-undefined, so a wrong type, cast or library fails.
@@ -20,7 +20,7 @@ native = next(p for p in [sdk / "default/openharmony/native", sdk / "openharmony
 clang = native / "llvm/bin" / ("clang.exe" if os.name == "nt" else "clang")
 sysroot = native / "sysroot"
 # Hand-written packages that call SDK headers directly are checked the same way.
-HAND_WRITTEN = ["ohos/surface"]
+HAND_WRITTEN = ["ohos/surface", "ohos/gl"]
 packages = [Path(p) for p in sys.argv[2:]] or (
     sorted(p for p in (root / "ohos/sys").iterdir() if (p / "moonohos.native.json").exists())
     + [root / p for p in HAND_WRITTEN])

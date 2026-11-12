@@ -33,7 +33,26 @@ All notable changes to MoonOHOS are recorded here. The format follows
   double) followed by a size/count/len parameter become `FixedArray[E]`
   parameters sharing that length (gradients, glyph widths).
 
+- OpenGL ES (0.9 phase 3): `shop1111/moonohos_ohos/gl` creates an EGL
+  window surface and an ES 3 context from an XComponent surface id;
+  `GlSurface::frame` makes it current on the calling thread, sets the
+  viewport, runs the callback, swaps and releases it. Helpers cover the GL
+  calls that take pointers (shader source, program linking with info logs,
+  buffer/vertex array/texture/framebuffer names, float buffer data, vertex
+  attribute offsets, matrix uniforms, `read_pixels`, `get_integers`) plus
+  common `GL_*` constants. `sys/gles` is generated from `GLES3/gl3.h`
+  (135 functions); `libEGL.so` and `libGLESv3.so` are allowlisted. The
+  search example renders a rotating triangle in a second XComponent and
+  checks the read-back center pixel on the emulator.
+- bindgen spec field `libraries`: only these system libraries are searched
+  for exports (GL symbols are also exported by internal libraries).
+
 ### Fixed
+- bindgen: a non-const scalar pointer after a length-like integer parameter
+  (`glGenBuffers(GLsizei n, GLuint *)`) was bound as a single output and
+  would have been written past; it is now reported as an output array. `n`
+  counts as a length name.
+- bindgen: MoonBit's reserved words (`ref`, ...) are escaped like keywords.
 - bindgen: a parameter named like a local of the generated C stub (`r`,
   `object`) redefined it and failed to compile
   (`OH_Drawing_BrushSetColor4f(..., float r, ...)`); such parameters now get

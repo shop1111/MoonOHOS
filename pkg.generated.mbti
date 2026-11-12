@@ -234,6 +234,7 @@ pub struct BindgenSpec {
   prefixes : Array[String]
   exclude : Array[String]
   string_buffer : Int32
+  libraries : Array[String]
 }
 
 pub struct BuildStage {

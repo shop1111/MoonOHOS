@@ -90,14 +90,43 @@ VSync 回调在系统的 VSync 线程上执行，先进入 MoonOHOS 的进程门
 
 为了生成渐变，0.9 给生成器加了一种形态：连续的 `const E *` 后跟长度参数（如 `const uint32_t *colors, const float *pos, uint32_t size`）生成为共享长度的 `FixedArray` 参数，见 [BINDGEN.md](BINDGEN.md)。
 
+## OpenGL ES（`gl` 包）
+
+`shop1111/moonohos_ohos/gl` 用同样的 surface id 创建 EGL 窗口表面和 OpenGL ES 3 上下文（RGBA 8888），缓冲区跟随组件尺寸：
+
+```moonbit
+let gl = @gl.GlSurface::open(surface_id)
+let vsync = @surface.VSync::open("demo-gl")
+
+fn frame(ts : Int64) -> Unit {
+  try {
+    ignore(gl.frame((w, h) => {
+      @gles.clear_color(0.06, 0.09, 0.25, 1)
+      @gles.clear(@gl.COLOR_BUFFER_BIT)
+      // program、顶点数组见 examples/search/core/gl_demo.mbt
+    }))
+    vsync.request_frame(frame)
+  } catch {
+    error => println(error)
+  }
+}
+```
+
+- **上下文与线程**：`frame` 在调用线程上 `eglMakeCurrent`，把视口设为表面尺寸，调用 `render(width, height)`，`eglSwapBuffers`，再释放上下文。所以帧可以在 VSync 线程上渲染，ArkTS 线程上的导出函数也能调用 `frame`，不存在“上下文绑在哪个线程”的问题。GL 调用只能在 `render` 里进行。
+- **GL 函数**：不带指针的 135 个函数由生成的 `sys/gles` 提供（`@gles.clear_color`、`@gles.draw_arrays`、`@gles.get_shaderiv` 等）。带指针的常用调用由 `gl` 包手写：`shader_source`、`compile_shader`、`link_program`（失败时带信息日志抛出）、`gen_buffer`/`gen_vertex_array`/`gen_texture`/`gen_framebuffer` 及对应的删除、`buffer_data_floats`、`vertex_attrib_pointer`（只支持缓冲区偏移，不支持客户端数组）、`uniform_matrix`、`read_pixels`、`get_integers`。头文件里的 `GL_*` 是宏，不在 AST 中，常用的列在 `gl` 包里（`@gl.TRIANGLES`、`@gl.FLOAT` 等）。
+- **释放**：`close` 或回收时销毁上下文、EGL 表面和窗口；EGL display 不终止，因为同一进程的其他表面共用它。
+- 同一个 XComponent 不能同时用 EGL 和 CPU/Native Drawing 两种方式提交；示例为 GL 单独放了一个组件。
+
 ## 实现中发现的问题
 
 - **组件尺寸变化会重置缓冲区尺寸。** 旋转屏幕后，ArkUI 把窗口的缓冲区尺寸改回组件的像素尺寸，固定尺寸的画面只画在左上角，其余为黑色。现在 `present` 在申请缓冲区前检查尺寸，不一致时重新设置。
+- **GL 头文件暴露了生成器的两个越界风险。** `glGenBuffers(GLsizei n, GLuint *buffers)` 被生成为 `gen_buffers(n) -> UInt`，n 大于 1 时会写出单值缓冲区；`glGetIntegerv(pname, GLint *)` 对 `GL_VIEWPORT` 写入 4 个值。生成器现在把长度参数之后的输出指针视为数组、不生成；按 pname 返回多个值的函数在清单中排除。同时发现 GL 符号由多个库导出，生成器选中了内部库 `libGLv4.so`，为此清单新增 `libraries` 字段。
+- **保留字。** `glStencilFunc` 的参数 `ref` 是 moonc 的保留字，`--deny-warn` 下编译失败；生成器的关键字表补充了保留字。
 - **生成的参数名会和桩函数的局部变量重名。** `OH_Drawing_BrushSetColor4f(brush, a, r, g, b, ...)` 的参数 `r` 与桩函数保存返回值的 `r` 冲突，`-Werror` 编译失败。生成器现在给这类参数加 `_`。
 - **导出函数的 C 符号会和平台包冲突。** 桥接把导出函数 `f` 生成为 C 符号 `moonohos_f`。示例导出 `surface_resize` 时，和 surface 包自己的 `moonohos_surface_resize` 重名，编译失败。surface 包的符号已改为 `moonohos_ohos_surface_*` / `moonohos_ohos_vsync_*`。`hilog`、`rawfile`、`task` 包的符号（如 `moonohos_rawfile_read`）仍有同样的风险，需要在桥接层统一解决。
 
 ## 后续
 
-- **EGL / OpenGL ES**：在同一个 NativeWindow 上创建 EGL 表面，供需要 GPU 的应用使用。
 - **文字排版**：`drawing_text_typography.h` 等段落排版接口尚未生成，目前只能用字体和文字块画单行文字。
-- 帧率：模拟器上 381x140 的缓冲区，Native Drawing 和 CPU 路径都约 54–60 帧/秒（第一阶段测得 40–45，差异未分析，可能与模拟器负载有关）；更大的缓冲区和 ARM64 真机未测。
+- **纹理与图片**：`glTexImage2D` 等带像素指针的调用尚未提供，图片解码也未接入。
+- 帧率：模拟器上 Native Drawing / CPU（381x140 缓冲区）和 GL（1144x315）在不同轮次分别为 40–60 帧/秒，波动未分析，可能与模拟器负载有关；更大的缓冲区和 ARM64 真机未测。

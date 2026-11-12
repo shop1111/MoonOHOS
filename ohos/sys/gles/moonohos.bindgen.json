@@ -1,0 +1,14 @@
+{
+  "schema": "moonohos-bindgen-v1",
+  "package": "shop1111/moonohos_ohos/sys/gles",
+  "name": "gles",
+  "headers": ["GLES3/gl3.h"],
+  "prefixes": ["gl"],
+  "libraries": ["libGLESv3.so"],
+  "exclude": [
+    "glGetBooleanv", "glGetIntegerv", "glGetFloatv", "glGetInteger64v", "glGetIntegeri_v", "glGetInteger64i_v",
+    "glGetTexParameterfv", "glGetTexParameteriv", "glGetSamplerParameterfv", "glGetSamplerParameteriv",
+    "glGetVertexAttribfv", "glGetVertexAttribiv", "glGetVertexAttribIiv", "glGetVertexAttribIuiv",
+    "glGetUniformfv", "glGetUniformiv", "glGetUniformuiv", "glGetActiveUniformBlockiv", "glGetShaderPrecisionFormat"
+  ]
+}
