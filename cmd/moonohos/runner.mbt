@@ -5,6 +5,11 @@ let command_logs : Ref[String?] = Ref(None)
 let command_sequence : Ref[Int32] = Ref(0)
 
 ///|
+/// `(staged, original)` source roots of the current build; failed command
+/// output is rewritten so diagnostics name the developer's files.
+let source_paths : Ref[Array[(String, String)]] = Ref([])
+
+///|
 async fn collect_command(
   exe : String,
   args : Array[String],
@@ -110,7 +115,11 @@ async fn command(
   }
   if code != 0 {
     raise Failure(
-      stage + " (exit " + code.to_string() + "):\n" + stdout + stderr,
+      stage +
+      " (exit " +
+      code.to_string() +
+      "):\n" +
+      @lib.restore_source_paths(stdout + stderr, source_paths.val),
     )
   }
   stdout

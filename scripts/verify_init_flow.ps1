@@ -2,7 +2,8 @@ param(
   [string]$DevEco = $(if ($env:DEVECO_STUDIO) { $env:DEVECO_STUDIO } elseif (Test-Path 'C:\Program Files\Huawei\DevEco Studio') { 'C:\Program Files\Huawei\DevEco Studio' } else { 'D:\apps\DevEco Studio' }),
   [string]$Evidence = (Join-Path (Split-Path -Parent $PSScriptRoot) '_build\init-flow-v0.4')
 )
-# Clean-room developer flow: moonohos init -> build (both ABIs) -> har --assemble.
+# Clean-room developer flows: moonohos init -> build (both ABIs) -> har --assemble,
+# and init -> ohpm install -> hvigor assembleHap through the MoonOHOS Hvigor plugin.
 # No CMake, type package or library copying is done by hand.
 $ErrorActionPreference = 'Continue'
 $root = Split-Path -Parent $PSScriptRoot
@@ -37,8 +38,36 @@ $hapEntries = @(tar -tf $har.result.hap | Where-Object { -not $_.EndsWith('/') }
 foreach ($required in @('libs/arm64-v8a/libtextkit.so', 'libs/x86_64/libtextkit.so', 'module.json')) {
   if ($hapEntries -notcontains $required) { throw "HAP misses $required" }
 }
+# DevEco Studio flow: a second init project built by Hvigor alone. The Hvigor
+# plugin runs `moonohos build --cache` and `moonohos har` before PreBuild.
+$ide = Join-Path $Evidence 'ideflow'
+Step 'init-ide' @('init', $ide, '--package', 'alice/ideflow', '--ohos', (Join-Path $root 'ohos'), '--json') | Out-Null
+$saved = @{}
+foreach ($pair in @{ DEVECO_SDK_HOME = "$DevEco\sdk"; NODE_HOME = "$DevEco\tools\node"; OHPM_HOME = "$DevEco\tools\ohpm"; JAVA_HOME = "$DevEco\jbr"; MOONOHOS_CLI = $cli }.GetEnumerator()) {
+  $saved[$pair.Key] = [Environment]::GetEnvironmentVariable($pair.Key)
+  [Environment]::SetEnvironmentVariable($pair.Key, $pair.Value)
+}
+Push-Location (Join-Path $ide 'harmony')
+try {
+  & "$DevEco\tools\node\node.exe" "$DevEco\tools\ohpm\bin\pm-cli.js" install 2>&1 | Out-File -FilePath (Join-Path $Evidence 'ide-ohpm.log') -Encoding utf8
+  if ($LASTEXITCODE -ne 0) { throw 'ohpm install failed before the first build' }
+  & "$DevEco\tools\node\node.exe" "$DevEco\tools\hvigor\bin\hvigorw.js" --mode module -p 'module=entry@default' -p 'product=default' -p 'buildMode=debug' --no-daemon assembleHap 2>&1 | Out-File -FilePath (Join-Path $Evidence 'ide-hvigor.log') -Encoding utf8
+  if ($LASTEXITCODE -ne 0) { throw 'hvigor assembleHap with the MoonOHOS plugin failed' }
+} finally {
+  Pop-Location
+  foreach ($key in $saved.Keys) { [Environment]::SetEnvironmentVariable($key, $saved[$key]) }
+}
+$ideHap = Join-Path $ide 'harmony\entry\build\default\outputs\default\entry-default-unsigned.hap'
+$ideEntries = @(tar -tf $ideHap | Where-Object { -not $_.EndsWith('/') })
+foreach ($required in @('libs/arm64-v8a/libideflow.so', 'libs/x86_64/libideflow.so')) {
+  if ($ideEntries -notcontains $required) { throw "plugin-built HAP misses $required" }
+}
+if (-not (Select-String -Path (Join-Path $Evidence 'ide-hvigor.log') -Pattern 'moonohosBuild' -Quiet)) { throw 'moonohosBuild task did not run' }
+$steps += 'hvigor-plugin'
+
 [ordered]@{
   steps = $steps
+  ideHap = $ideHap
   har = $har.result.har
   sha256 = $har.result.sha256
   hap = $har.result.hap

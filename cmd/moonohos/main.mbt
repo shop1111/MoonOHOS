@@ -271,12 +271,10 @@ async fn build(
   }
   let types = package_dir + "/types/lib" + config.native_module
   write(types + "/index.d.ts", artifacts.declarations)
-  let type_manifest : Json = {
-    "name": "lib" + config.native_module + ".so",
-    "version": @lib.moonohos_version(),
-    "types": "./index.d.ts",
-  }
-  write(types + "/oh-package.json5", type_manifest.stringify(indent=2))
+  write(
+    types + "/oh-package.json5",
+    @lib.type_package_manifest(config.native_module),
+  )
   let imported = "# Generated, relocatable import. This does not package the library into a HAP.\nadd_library(" +
     config.native_module +
     " SHARED IMPORTED)\nset_target_properties(" +
@@ -395,6 +393,7 @@ async fn main {
       Init => init_project(options)
       Har => package_har(options)
       Bindgen => bindgen(options)
+      Hvigor => add_hvigor_plugin(options)
     }
   } catch {
     error => {

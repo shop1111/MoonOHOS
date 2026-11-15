@@ -32,3 +32,26 @@ pub fn staged_workspace(count : Int32) -> String {
   }
   "members = [\n" + members.join("") + "]\n"
 }
+
+///|
+/// Rewrites paths under a staged copy back to the source they were copied
+/// from, so compiler diagnostics name the developer's files. Each mapping is
+/// `(staged, original)` with `/` separators; both separator styles are
+/// matched and the replacement keeps the style the tool printed.
+pub fn restore_source_paths(
+  text : String,
+  mappings : Array[(String, String)],
+) -> String {
+  let mut result = text
+  for mapping in mappings {
+    let (staged, original) = mapping
+    result = result.replace_all(old=staged + "/", new=original + "/")
+    let back_staged = staged.replace_all(old="/", new="\\")
+    let back_original = original.replace_all(old="/", new="\\")
+    result = result.replace_all(
+      old=back_staged + "\\",
+      new=back_original + "\\",
+    )
+  }
+  result
+}

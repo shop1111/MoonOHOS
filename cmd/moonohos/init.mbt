@@ -51,6 +51,9 @@ async fn init_project(options : @lib.CliOptions) -> Json {
     "files": Json(files.map(f => f.0)),
     "workspace": Json(ohos),
     "next": Json([
+      "open " +
+      target +
+      "/harmony in DevEco Studio and run entry; the Hvigor plugin builds the MoonBit module",
       "moonohos build --config " +
       target +
       "/moonohos.json --sdk <SDK> --out _build/dist",
