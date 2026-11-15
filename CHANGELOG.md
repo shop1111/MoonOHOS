@@ -6,6 +6,32 @@ All notable changes to MoonOHOS are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Hvigor plugin (docs/HVIGOR.md): `harmony/hvigor/moonohos-plugin.ts`
+  registers `moonohosBuild` before each target's `PreBuild` of a HAR module.
+  It runs `moonohos build --cache` and `moonohos har`, so DevEco Studio's
+  Build/Run and `hvigorw assembleHap` compile the MoonBit module first. The
+  CLI is found through `cli`, `MOONOHOS_CLI`, `~/.moon/bin` or PATH, the SDK
+  through `sdk`, `MOONOHOS_SDK` or `DEVECO_SDK_HOME`; `MOONOHOS_ABIS`
+  narrows the ABIs. `MOONOHOS_PLUGIN=off` skips it.
+- `moonohos init` applies the plugin to the HAR module and writes the type
+  package's `oh-package.json5`, so `ohpm install` succeeds before the first
+  build; only `index.d.ts` under `types/` is ignored by git now.
+- `moonohos hvigor --module <HAR module> [--config moonohos.json]` writes or
+  refreshes the plugin in an existing Hvigor project, applies it to a stock
+  `hvigorfile.ts` (or prints the two lines to add to a customised one) and
+  adds the type package dependency.
+- `scripts/verify_init_flow.ps1` also builds a second `init` project with
+  `ohpm install` and `hvigorw assembleHap` only.
+
+### Changed
+- Compiler output in failed build steps names the original source files
+  instead of the staged copy under `_build/moonohos/work-N/`.
+- `moonohos har` removes the module's library for an ABI the package does not
+  contain, so switching ABIs cannot package stale code.
+- `moonohos har --assemble` runs Hvigor with `MOONOHOS_PLUGIN=off`: the module
+  holds the package given by `--dist`, which the plugin must not rebuild.
+
 ## [0.9.0] - 2026-11-12
 
 ### Added

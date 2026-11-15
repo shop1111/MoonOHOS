@@ -53,6 +53,7 @@ async fn stage_project(
     None => {
       let root = work + "/module"
       copy_tree(module_root, root, module_tree=true)
+      source_paths.val = [(root, module_root)]
       {
         root,
         source: root + "/" + source_dir,
@@ -64,6 +65,7 @@ async fn stage_project(
       let members = @lib.workspace_members(read(workspace))
       let root = work + "/ws"
       let mut selected = -1
+      source_paths.val = []
       for index, entry in members {
         let member_root = normalized(
           @fs.realpath(resolve(parent(workspace), entry)),
@@ -73,6 +75,7 @@ async fn stage_project(
           root + "/m" + index.to_string(),
           module_tree=true,
         )
+        source_paths.val.push((root + "/m" + index.to_string(), member_root))
         if member_root == module_root {
           selected = index
         }

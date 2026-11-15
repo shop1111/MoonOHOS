@@ -46,7 +46,7 @@ It is not a good fit for:
 | HarmonyOS runtime | ArkTS ↔ MoonBit: conversions, `.d.ts` generation, background-thread tasks, cancellation, ArkTS callbacks, handle lifecycle | **Done.** Host ASan covers everything. **Run on the x86_64 emulator** (built with moonc 0.10.20, 2026-11-11): background-thread tasks, cancellation, ArkTS progress callbacks, handle methods, handle type tags, handle lifecycle, and the 0.7 additions `Float64Array`, native size reporting and loading the module in a Worker and in TaskPool. **Not yet run on a device**: Int64, Option, enums, the other three typed arrays |
 | System APIs | MoonBit calls the HarmonyOS NDK directly | **Done (0.8)**: `moonohos bindgen` reads SDK headers through the SDK's own clang and emits a MoonBit package, C stub and descriptor. 16 `sys/*` packages (Native Drawing, OpenGL ES 3, display, sensors, battery, device info, HiTrace, HiDebug, QoS, time zone, OS account, permission check, syscap, Wi-Fi, Bluetooth, vibrator) bind 617 functions, including SDK handles (released on destroy or garbage collection) and callbacks (MoonBit closures called through the gate from SDK threads). They compile with `-Werror` and link against the real SDK for both ABIs; display handles, the display listener and an ambient-light subscription ran on the emulator. Plus six hand-written packages (`hilog`, `rawfile`, `task`, ...) and third-party C dependencies; see [BINDGEN.md](docs/BINDGEN.md) (Chinese) |
 | Graphics | MoonBit renders through XComponent and handles touch | **Done (0.9)**: the `surface` package opens the NativeWindow of an XComponent from its surface id and draws one frame per VSync, with touch forwarded from ArkTS. Frames are drawn with Native Drawing (the generated `sys/drawing`, 322 functions, on a canvas bound to the window buffer: gradients, text, anti-aliasing), into a CPU pixel array, or with OpenGL ES 3 (the `gl` package owns the EGL context; the generated `sys/gles` has 135 functions). The search example runs two drawing areas at once, each at about 40-60 fps on the emulator, through taps, rotation and page changes; see [XCOMPONENT.md](docs/XCOMPONENT.md) (Chinese) |
-| Project integration | Init, cross-compilation, HAR packaging, artifact verification | **Done**: the CLI (`init`, `build`, `har`, `verify`). **Planned**: a Hvigor plugin to build from DevEco; publishing to ohpm |
+| Project integration | Init, cross-compilation, HAR packaging, artifact verification, DevEco builds | **Done**: the CLI (`init`, `build`, `har`, `verify`). **Hvigor plugin (0.10)**: DevEco Studio Build/Run compiles MoonBit first; on by default in `init` projects, added to existing ones with `moonohos hvigor`; compiler errors point at the original sources, see [HVIGOR.md](docs/HVIGOR.md). **Planned**: publishing to ohpm |
 
 | Document | Contents |
 |---|---|
@@ -54,6 +54,7 @@ It is not a good fit for:
 | [NATIVE-EXTENSIONS.md](docs/NATIVE-EXTENSIONS.md) (Chinese) | Platform packages and native dependencies |
 | [COMPARISON.md](docs/COMPARISON.md) (Chinese) | Point-by-point comparison with napi-mbt and ohos-rs |
 | [BINDGEN.md](docs/BINDGEN.md) (Chinese) | System API binding generation: spec format, type mapping, checks, first modules |
+| [HVIGOR.md](docs/HVIGOR.md) (Chinese) | Hvigor plugin: building MoonBit modules from DevEco Studio |
 | [VALIDATION-0.8.md](docs/VALIDATION-0.8.md) (Chinese) | SDK compile/link and emulator runs of the generated bindings |
 | [XCOMPONENT.md](docs/XCOMPONENT.md), [VALIDATION-0.9.md](docs/VALIDATION-0.9.md) (Chinese) | XComponent graphics: design and emulator runs (0.9) |
 | [VALIDATION-0.7.md](docs/VALIDATION-0.7.md) (Chinese) | Emulator runs with moonc 0.10.20: async, cancellation, callbacks, type tags, typed arrays, native size, Worker/TaskPool |
@@ -92,6 +93,13 @@ moon install shop1111/moonohos/cmd/moonohos        # or, in this repo: moon buil
 moonohos init textkit --package alice/textkit       # MoonBit module + manifest + HAR project
 cd textkit
 moonohos check                                      # no SDK needed: strict compile of the generated wrapper
+```
+
+Then open `textkit/harmony/` in DevEco Studio and run `entry`. The HAR module applies the MoonOHOS Hvigor plugin: every Build or Run first compiles `core/` with `moonohos build --cache` and places the libraries and declarations into the module; MoonBit compiler errors appear in the Build window with paths into `core/`. The plugin finds `moonohos` in `~/.moon/bin` or on PATH; set `MOONOHOS_ABIS=x86_64` to build one ABI while iterating on the emulator. See [HVIGOR.md](docs/HVIGOR.md).
+
+Without DevEco Studio, the same from the command line:
+
+```bash
 moonohos build --sdk "$DEVECO/sdk" --out _build/dist
 moonohos har --dist _build/dist --module harmony/textkit --assemble --app --deveco "$DEVECO"
 ```
@@ -105,7 +113,8 @@ textkit/
   moon.work            # workspace; --ohos adds a local checkout of the platform module
   moonohos.json        # bridge manifest (version 2)
   core/                # MoonBit library: sync greet, async cancellable count_words (logs via HiLog)
-  harmony/textkit/     # Hvigor HAR module; Index.ets re-exports the native module
+  harmony/hvigor/moonohos-plugin.ts  # MoonOHOS Hvigor plugin (refreshed by `moonohos hvigor`)
+  harmony/textkit/     # Hvigor HAR module; Index.ets re-exports the native module, hvigorfile.ts applies the plugin
   harmony/entry/       # demo Stage app depending on the HAR module
 ```
 
@@ -227,7 +236,7 @@ Next, layer by layer (priorities are open for discussion in issues):
 1. **HarmonyOS runtime**: run Int64, Option, enums and the platform packages on the emulator. The four additions borrowed from napi-mbt's designs (handle type tags, native size reporting, per-environment state, typed arrays) are done and ran on the emulator (0.7). Full general-purpose binding coverage is not a goal.
 2. **System APIs**: the binding generator, handles, callbacks and 14 modules are done (0.8). Next: more modules (files, cryptography, media) and ARM64 hardware runs.
 3. **Graphics**: XComponent surfaces, VSync, CPU drawing, Native Drawing and OpenGL ES are done (0.9). Next: ARM64 hardware runs, textures and image loading, text layout.
-4. **Project integration**: a Hvigor plugin that builds MoonBit modules from DevEco; publishing HARs to ohpm; turning pure-MoonBit Mooncakes packages into HARs in one step.
+4. **Project integration**: the Hvigor plugin is done (0.10) and builds MoonBit modules from DevEco. Next: validate it in the DevEco GUI and on macOS/Linux; publish HARs to ohpm; turn pure-MoonBit Mooncakes packages into HARs in one step.
 5. **Other**: ARM64 hardware validation and a bilingual docs site.
 
 ## Contributing

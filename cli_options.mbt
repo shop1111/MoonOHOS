@@ -11,6 +11,8 @@ pub(all) enum Command {
   Har
   /// Generate MoonBit bindings for HarmonyOS SDK headers (0.8).
   Bindgen
+  /// Add or refresh the Hvigor plugin in a HAR module (0.10).
+  Hvigor
   Help
   Version
 }
@@ -83,6 +85,7 @@ pub fn command_name(command : Command) -> String {
     Init => "init"
     Har => "har"
     Bindgen => "bindgen"
+    Hvigor => "hvigor"
     Help => "help"
     Version => "version"
   }
@@ -100,6 +103,7 @@ fn parse_command(text : String) -> Command raise ConfigError {
     "init" => Init
     "har" => Har
     "bindgen" => Bindgen
+    "hvigor" => Hvigor
     "help" | "--help" | "-h" => Help
     "--version" => Version
     _ => raise Invalid("unknown command: " + text)
@@ -150,8 +154,8 @@ fn allowed_option(command : Command, option : String) -> Bool {
       command == Bindgen
     "--dry-run" | "--cache" => command == Build
     "--name" | "--package" | "--ohos" => command == Init
-    "--dist" | "--module" | "--deveco" | "--assemble" | "--app" =>
-      command == Har
+    "--module" => command == Har || command == Hvigor
+    "--dist" | "--deveco" | "--assemble" | "--app" => command == Har
     _ => false
   }
 }
@@ -268,6 +272,9 @@ pub fn parse_cli(args : Array[String]) -> CliOptions raise ConfigError {
   if command == Init && target is None {
     raise Invalid("init requires a project directory: moonohos init <dir>")
   }
+  if command == Hvigor && module_dir is None {
+    raise Invalid("hvigor requires --module <HAR module>")
+  }
   if command == Har && (dist is None || module_dir is None) {
     raise Invalid("har requires --dist <package> and --module <HAR module>")
   }
@@ -374,6 +381,14 @@ fn command_doc(command : Command) -> (String, String, Array[String]) {
           "--app       also build the demo app module `entry` created by init (HAP)",
         ],
       )
+    Hvigor =>
+      (
+        "add the Hvigor plugin that builds MoonBit inside DevEco Studio builds",
+        "moonohos hvigor --module <HAR module> [--config moonohos.json] [--json]",
+        [
+          "--module    Hvigor HAR module directory (e.g. harmony/<name>)", "--config    bridge manifest the plugin builds (default: moonohos.json)",
+        ],
+      )
     Doctor =>
       (
         "check the MoonBit toolchain, runtime files and HarmonyOS SDK",
@@ -429,7 +444,18 @@ pub fn usage_text(version : String) -> String {
     "Commands:",
   ]
   for
-    command in [Init, Build, Har, Bindgen, Doctor, Check, Inspect, Plan, Verify] {
+    command in [
+      Init,
+      Build,
+      Har,
+      Hvigor,
+      Bindgen,
+      Doctor,
+      Check,
+      Inspect,
+      Plan,
+      Verify,
+    ] {
     let (summary, _, _) = command_doc(command)
     let name = command_name(command)
     lines.push("  " + name + " ".repeat(10 - name.length()) + summary)

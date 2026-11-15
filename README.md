@@ -33,7 +33,7 @@
 | 鸿蒙运行时 | ArkTS ↔ MoonBit：类型转换、d.ts 生成、后台线程任务、取消、ArkTS 回调、句柄生命周期 | **已实现**。宿主 ASan 覆盖全部能力。**x86_64 模拟器上已运行**（moonc 0.10.20 构建，2026-11-11）：后台线程异步任务、取消、ArkTS 进度回调、句柄方法、句柄类型标记、句柄生命周期，以及 0.7 的 `Float64Array`、外部内存上报、在 Worker 和 TaskPool 中加载模块。**设备上尚未运行**：Int64、Option、枚举、其他三种 TypedArray |
 | 系统能力 | MoonBit 直接调用鸿蒙 NDK | **已实现（0.8）**：`moonohos bindgen` 由 SDK 自带的 clang 解析头文件，生成 MoonBit 包、C 桩函数和描述文件。16 个 `sys/*` 包（Native Drawing、OpenGL ES 3、显示、传感器、电池、设备信息、HiTrace、HiDebug、QoS、时区、系统账号、权限自查、syscap、Wi-Fi、蓝牙、振动），共绑定 617 个函数，包括 SDK 句柄（销毁或回收时释放）和回调（MoonBit 闭包，在 SDK 线程上经进程门调用）。两个 ABI 都对着真实 SDK 以 `-Werror` 编译并链接通过；模拟器上运行过显示器句柄、显示变化监听和环境光传感器订阅。另有 6 个手写平台包（`hilog`、`rawfile`、`task` 等），以及第三方 C 依赖的接入机制。见 [BINDGEN.md](docs/BINDGEN.md) |
 | 图形 | MoonBit 通过 XComponent 渲染画面、处理触摸 | **已实现（0.9）**：`surface` 包从 XComponent 的 surface id 打开 NativeWindow，每个 VSync 绘制一帧，触摸由 ArkTS 转发。绘制有三条路径：Native Drawing（生成的 `sys/drawing`，322 个函数，画布直接绑定窗口缓冲区，含渐变、文字、抗锯齿）、CPU 像素数组，以及 OpenGL ES 3（`gl` 包管理 EGL 上下文，生成的 `sys/gles` 135 个函数）。模拟器上检索示例的两个绘制区同时运行，各约 40–60 帧/秒，点击、旋转和页面进出都正常，见 [XCOMPONENT.md](docs/XCOMPONENT.md) |
-| 工程集成 | 初始化、交叉编译、HAR 打包、产物校验 | **已实现** CLI（`init`、`build`、`har`、`verify`）。**计划**：Hvigor 插件，在 DevEco 中直接构建；发布到 ohpm |
+| 工程集成 | 初始化、交叉编译、HAR 打包、产物校验、DevEco 构建 | **已实现** CLI（`init`、`build`、`har`、`verify`）。**Hvigor 插件（0.10）**：在 DevEco Studio 中 Build/Run 时先编译 MoonBit，`init` 工程默认启用，已有工程用 `moonohos hvigor` 接入；编译错误指向原始源文件，见 [HVIGOR.md](docs/HVIGOR.md)。**计划**：发布到 ohpm |
 
 | 文档 | 内容 |
 |---|---|
@@ -41,6 +41,7 @@
 | [NATIVE-EXTENSIONS.md](docs/NATIVE-EXTENSIONS.md) | 平台包与 Native 依赖接入 |
 | [COMPARISON.md](docs/COMPARISON.md) | 与 napi-mbt、ohos-rs 的逐项对照 |
 | [BINDGEN.md](docs/BINDGEN.md) | 系统能力绑定生成：清单格式、类型对应、校验方法、首批模块 |
+| [HVIGOR.md](docs/HVIGOR.md) | Hvigor 插件：在 DevEco Studio 中直接构建 MoonBit 模块 |
 | [VALIDATION-0.8.md](docs/VALIDATION-0.8.md) | 生成绑定的 SDK 编译链接与模拟器运行记录 |
 | [XCOMPONENT.md](docs/XCOMPONENT.md)、[VALIDATION-0.9.md](docs/VALIDATION-0.9.md) | XComponent 图形的设计与模拟器验证（0.9） |
 | [VALIDATION-0.7.md](docs/VALIDATION-0.7.md) | moonc 0.10.20 构建的模拟器运行记录：异步、取消、回调、类型标记、TypedArray、外部内存、Worker/TaskPool |
@@ -70,6 +71,13 @@ moon install shop1111/moonohos/cmd/moonohos        # 或在本仓库中：moon b
 moonohos init textkit --package alice/textkit       # 生成 MoonBit 模块、清单和 HAR 工程
 cd textkit
 moonohos check                                      # 不需要 SDK：严格编译生成的包装层
+```
+
+然后在 DevEco Studio 中打开 `textkit/harmony/`，直接运行 `entry`。HAR 模块已启用 MoonOHOS Hvigor 插件：每次 Build 或 Run 先用 `moonohos build --cache` 编译 `core/`，再把库和声明放进模块，MoonBit 编译错误显示在 Build 窗口并指向 `core/` 中的文件。插件在 `~/.moon/bin` 或 PATH 中查找 `moonohos`；调试模拟器时可设 `MOONOHOS_ABIS=x86_64` 只编一个 ABI。见 [HVIGOR.md](docs/HVIGOR.md)。
+
+不用 DevEco Studio 时，在命令行完成同样的事：
+
+```bash
 moonohos build --sdk "$DEVECO/sdk" --out _build/dist
 moonohos har --dist _build/dist --module harmony/textkit --assemble --app --deveco "$DEVECO"
 ```
@@ -86,7 +94,8 @@ textkit/
   moonohos.json             # 桥接清单（version 2）
   core/                     # MoonBit 库：同步 greet，异步可取消 count_words（使用 HiLog）
   harmony/                  # Hvigor 工程
-    textkit/                # HAR 模块：Index.ets 重导出原生模块
+    hvigor/moonohos-plugin.ts  # MoonOHOS Hvigor 插件（`moonohos hvigor` 更新）
+    textkit/                # HAR 模块：Index.ets 重导出原生模块，hvigorfile.ts 应用插件
     entry/                  # 演示应用：以本地依赖使用上面的 HAR
 ```
 
@@ -111,6 +120,7 @@ token.cancel();                                                     // 页面退
 | 步骤 | 手工（NDK + CMake） | MoonOHOS |
 |---|---|---|
 | 新建工程 | 手写 Node-API 胶水代码、CMake 和 DevEco 工程 | `moonohos init` |
+| 日常开发 | 改代码后重新编译、复制库，再回 DevEco 构建 | DevEco 中直接 Run（Hvigor 插件） |
 | 编译 | 自己配置 MoonBit 生成的 C 代码、运行时和鸿蒙 clang，分别编两个 ABI | `moonohos build` |
 | 原生库进入应用 | 复制两个 ABI 的 `.so` 到 `entry/libs/<abi>/` | `moonohos har` 放入 HAR 模块 |
 | 类型声明 | 手写 `index.d.ts` 并复制到 `entry/src/main/cpp/types/` | 自动生成，HAR 内置类型包与 ArkTS 门面 |
@@ -241,7 +251,7 @@ SDK、HAP 与模拟器检查在本机执行。各层证明范围见 [VALIDATION-
 1. **鸿蒙运行时**：在模拟器上验证 Int64、Option、枚举和平台包。借鉴 napi-mbt 设计的四项补强（句柄类型标记、外部内存上报、每个环境独立的状态、TypedArray）已完成，并在模拟器上运行（0.7）。不追求通用绑定的完整度。
 2. **系统能力**：绑定生成器、句柄、回调和 16 个模块已完成（0.8；Native Drawing 和 OpenGL ES 为 0.9 新增）。下一步扩大模块覆盖（文件、加解密、多媒体等），并在 ARM64 真机上验证。
 3. **图形**：XComponent 的 surface、VSync、CPU 绘制、Native Drawing 和 OpenGL ES 已完成（0.9）。下一步：ARM64 真机验证、纹理与图片加载、文字排版。
-4. **工程集成**：Hvigor 插件，在 DevEco 中直接构建 MoonBit 模块；发布 HAR 到 ohpm；纯 MoonBit 的 Mooncakes 包一键转为 HAR。
+4. **工程集成**：Hvigor 插件已完成（0.10），在 DevEco 中直接构建 MoonBit 模块。下一步：在 DevEco 图形界面和 macOS/Linux 上验证插件；发布 HAR 到 ohpm；纯 MoonBit 的 Mooncakes 包一键转为 HAR。
 5. **其他**：ARM64 真机验证、中英文档站。
 
 ## 参与贡献

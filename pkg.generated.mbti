@@ -61,6 +61,14 @@ pub fn har_package_manifest(String, String) -> String raise ConfigError
 
 pub fn har_provenance(PackageManifest, String) -> @json.Json
 
+pub fn hvigor_har_module_file(String, String) -> String
+
+pub let hvigor_plugin_file : String
+
+pub fn hvigor_plugin_source() -> String
+
+pub fn hvigorfile_update(String, String, String) -> HvigorfileUpdate
+
 pub fn identifier(String) -> Bool
 
 pub fn ignored_cache_component(String) -> Bool
@@ -139,6 +147,8 @@ pub fn resolve_adapters(Project, Array[NativeDescriptor], Map[String, String]) -
 
 pub fn resolve_deveco(HostOs, String, Array[String]) -> DevEcoTools raise ConfigError
 
+pub fn restore_source_paths(String, Array[(String, String)]) -> String
+
 pub fn runtime_files() -> Array[String]
 
 pub fn sdk_candidates(String) -> Array[String]
@@ -164,6 +174,8 @@ pub fn tested_environment() -> Array[(String, String)]
 pub fn tokenize(String) -> Array[String] raise ConfigError
 
 pub fn tool_banner(String) -> String
+
+pub fn type_package_manifest(String) -> String
 
 pub fn usage_text(String) -> String
 
@@ -357,6 +369,7 @@ pub(all) enum Command {
   Init
   Har
   Bindgen
+  Hvigor
   Help
   Version
 }
@@ -478,6 +491,12 @@ pub fn HostOs::exe(Self, String) -> String
 pub fn HostOs::not_equal(Self, Self) -> Bool
 #deprecated
 pub fn HostOs::to_repr(Self) -> @debug.Repr
+
+pub(all) enum HvigorfileUpdate {
+  Present
+  Replace(String)
+  Manual(String)
+}
 
 pub(all) struct InitOptions {
   name : String

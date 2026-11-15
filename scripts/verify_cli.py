@@ -124,6 +124,21 @@ def framework_cases(run, work: Path, sdk: str):
     run("init", work / "新建 项目", "--name", "demo", "--json", code=3)
     run("init", "--name", "demo", "--json", code=2)
     run("init", work / "bad", "--name", "Bad-Name", "--json", code=3)
+    assert "harmony/hvigor/moonohos-plugin.ts" in created["files"]
+
+    # hvigor: init already applied the plugin; a stock HAR module gets it applied.
+    project = work / "新建 项目"
+    module = project / "harmony/demo"
+    applied = run("hvigor", "--module", module, "--config", project / "moonohos.json", "--json")["result"]
+    assert applied["hvigorfile"] == "present", applied
+    (module / "hvigorfile.ts").write_text(
+        "import { harTasks } from '@ohos/hvigor-ohos-plugin';\nexport default { system: harTasks, plugins: [] };\n",
+        encoding="utf-8")
+    applied = run("hvigor", "--module", module, "--config", project / "moonohos.json", "--json")["result"]
+    assert applied["hvigorfile"] == "applied" and applied["config"] == "../../moonohos.json", applied
+    assert "moonohosPlugin({ config: '../../moonohos.json' })" in (module / "hvigorfile.ts").read_text(encoding="utf-8")
+    run("hvigor", "--config", project / "moonohos.json", "--json", code=2)
+    run("hvigor", "--module", project / "core", "--config", project / "moonohos.json", "--json", code=3)
 
     # Workspace build with platform packages: NDK libraries linked and recorded.
     async_config = ROOT / "fixtures/async_core/moonohos.json"

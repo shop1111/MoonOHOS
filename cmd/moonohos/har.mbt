@@ -30,6 +30,14 @@ async fn package_har(options : @lib.CliOptions) -> Json {
     ensure_dir(module_root + "/libs/" + abi)
     @fs.write_file(module_root + library, @fs.read_file(dist + library))
   }
+  // A library left from an earlier build for another ABI would be packaged
+  // with stale code.
+  for abi in ["arm64-v8a", "x86_64"] {
+    let stale = module_root + "/libs/" + abi + "/lib" + module_name + ".so"
+    if !manifest.abis.contains(abi) && @fs.exists(stale) {
+      @fs.remove(stale)
+    }
+  }
   let types = "/types/lib" + module_name
   let declarations = read(dist + types + "/index.d.ts")
   write(
@@ -73,6 +81,9 @@ async fn package_har(options : @lib.CliOptions) -> Json {
   let tools = @lib.resolve_deveco(os, deveco, existing)
   let node = tools.node
   let env = tools.env()
+  // The module already holds the verified package from --dist; the Hvigor
+  // plugin must not rebuild it from source.
+  env["MOONOHOS_PLUGIN"] = "off"
   let project = hvigor_project(module_root)
   command_logs.val = Some(module_root + "/build/moonohos-commands")
   command(
